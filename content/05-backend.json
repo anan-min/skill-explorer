@@ -72,7 +72,7 @@
           "id": "backend/rest/safe-methods",
           "title": "Safe methods",
           "summary": "GET and HEAD must not change server state, because anything may fetch them automatically",
-          "level": "medium",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -104,7 +104,7 @@
           "id": "backend/rest/etag-if-match",
           "title": "ETag and If-Match",
           "summary": "Conditional updates that reject a write if the resource changed since the client read it",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -161,6 +161,38 @@
               ],
               "answer": 1,
               "explain": "`Retry-After` is the server telling you when it's willing to take the request again. Retrying sooner just burns more of your quota and adds load."
+            }
+          ]
+        },
+        {
+          "id": "backend/rest/json-merge-patch",
+          "title": "JSON Merge Patch (RFC 7396)",
+          "summary": "A PATCH body that mirrors the resource: fields replace, `null` deletes, and arrays are replaced whole",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "The resource is `{\"name\": \"Ada\", \"nickname\": \"ad\", \"tags\": [\"a\", \"b\"]}`. A client sends `PATCH` with `Content-Type: application/merge-patch+json` and body `{\"nickname\": null, \"tags\": [\"c\"]}`. What's the result?",
+              "choices": [
+                "`{\"name\": \"Ada\", \"nickname\": null, \"tags\": [\"c\"]}`",
+                "`{\"name\": \"Ada\", \"tags\": [\"a\", \"b\", \"c\"]}`",
+                "`{\"name\": \"Ada\", \"tags\": [\"c\"]}`",
+                "`{\"name\": \"Ada\", \"nickname\": null, \"tags\": [\"a\", \"b\", \"c\"]}`"
+              ],
+              "answer": 2,
+              "explain": "In a merge patch, `null` means 'remove this member', and an array is a plain value that replaces the old one rather than being merged. Members not mentioned, like `name`, stay as they are."
+            },
+            {
+              "lang": null,
+              "q": "With JSON Merge Patch, a client needs to set `middle_name` to an explicit `null` value, keeping the field present. What's true?",
+              "choices": [
+                "Send `{\"middle_name\": null}`, since null sets the value",
+                "Merge Patch can't express this; use JSON Patch (RFC 6902)",
+                "Send `{\"middle_name\": \"null\"}` as a string instead",
+                "Send `{\"middle_name\": []}` to clear the value"
+              ],
+              "answer": 1,
+              "explain": "Merge Patch reserves `null` for deletion, so it has no way to store an explicit null. JSON Patch's `replace` operation can set a value to `null`. Sending the string `\"null\"` stores a four-letter string."
             }
           ]
         }
@@ -278,7 +310,7 @@
           "id": "backend/authn-authz/jwt-algorithm-pinning",
           "title": "Pinning the JWT algorithm",
           "summary": "Verifying tokens with algorithms you choose, never the one named in the token's header",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -310,7 +342,7 @@
           "id": "backend/authn-authz/oauth-pkce",
           "title": "OAuth authorization code flow with PKCE",
           "summary": "The recommended OAuth flow for apps that can't keep a client secret, like SPAs and mobile apps",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -393,6 +425,38 @@
               "explain": "IDOR only shows up when a valid user asks for someone else's record. The other checks cover missing records, missing authentication and injection, which are different bugs."
             }
           ]
+        },
+        {
+          "id": "backend/authn-authz/rbac",
+          "title": "Role-based access control (RBAC)",
+          "summary": "Permissions are grouped into roles, and users are given roles instead of individual permissions",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Code checks `if user.role == \"admin\"` in 40 places. Product now wants a 'billing manager' who can issue refunds but not delete users. Which RBAC design would have made this a small change?",
+              "choices": [
+                "A boolean column per feature on the users table",
+                "Check permissions (`refund:create`) mapped to roles in one place",
+                "Give billing managers admin and hide buttons in the UI",
+                "Store each user's allowed URLs inside their JWT"
+              ],
+              "answer": 1,
+              "explain": "When code checks permissions and one table maps roles to permissions, a new role is a data change. Checking role names spreads the policy across the codebase, and hiding buttons doesn't stop direct API calls."
+            },
+            {
+              "lang": null,
+              "q": "In an RBAC system, a new support agent joins the company. How do they normally get the access they need?",
+              "choices": [
+                "An admin copies another agent's permissions one by one",
+                "Their user id is added to each endpoint's allow list",
+                "They're given the shared support team login",
+                "They're assigned the Support role, which holds the permissions"
+              ],
+              "answer": 3,
+              "explain": "RBAC attaches permissions to roles, so access for a new person is one role assignment, and changing what support can do updates everyone in that role at once. Copying permissions per user is what RBAC replaces."
+            }
+          ]
         }
       ]
     },
@@ -405,7 +469,7 @@
           "id": "backend/background-jobs-queues/at-least-once",
           "title": "At-least-once delivery",
           "summary": "Queues guarantee a message isn't lost, which means it may arrive more than once",
-          "level": "medium",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -481,7 +545,7 @@
           "id": "backend/background-jobs-queues/dead-letter-queue",
           "title": "Dead-letter queue",
           "summary": "Where messages go after too many failed attempts, so one bad message can't block the rest",
-          "level": "medium",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -513,7 +577,7 @@
           "id": "backend/background-jobs-queues/message-ordering",
           "title": "Message ordering",
           "summary": "Parallel consumers and retries reorder messages; ordering holds only per partition or by version checks",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -577,7 +641,7 @@
           "id": "backend/background-jobs-queues/skip-locked",
           "title": "FOR UPDATE SKIP LOCKED",
           "summary": "Letting many workers pull jobs from a Postgres table without blocking on each other",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -655,7 +719,7 @@
           "id": "backend/caching/invalidate-on-write",
           "title": "Cache invalidation on write",
           "summary": "Deleting the cache key after a database write, with a TTL as a backstop for races",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -729,10 +793,10 @@
               "lang": null,
               "q": "Ten thousand product pages are cached at deploy time, all with a TTL of exactly 300 seconds. Five minutes later the database falls over. Which change helps most?",
               "choices": [
-                "Raise every TTL to a full hour",
-                "Lower every TTL to 60 seconds",
-                "Add random jitter to each TTL so expiries spread out",
-                "Store the pages in a second cache as well"
+                "Raise every TTL to a full hour or more",
+                "Lower every TTL to 60 seconds or less",
+                "Add random jitter to each TTL so they spread",
+                "Store the pages in a second cache too"
               ],
               "answer": 2,
               "explain": "Identical TTLs make every entry expire in the same moment, so all the misses reach the database together. Randomised TTLs spread the reloads over time; a longer TTL only delays the same cliff."
@@ -743,7 +807,7 @@
           "id": "backend/caching/cache-control-no-cache",
           "title": "Cache-Control: no-cache vs no-store",
           "summary": "`no-cache` allows storing but forces revalidation; `no-store` forbids storing at all",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -800,6 +864,38 @@
               ],
               "answer": 1,
               "explain": "The cached miss outlives the fact it recorded. Keep negative TTLs short, or delete the entry when the record is created."
+            }
+          ]
+        },
+        {
+          "id": "backend/caching/ttl",
+          "title": "TTL (time to live)",
+          "summary": "An expiry time on each cache entry, which caps how stale it can get",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Product prices are cached with a 10-minute TTL, and nothing deletes the key when a price changes. An admin updates a price. What do users see?",
+              "choices": [
+                "The old price for up to 10 minutes, then the new one",
+                "The new price at once, since the database changed",
+                "The old price until the cache server restarts",
+                "An error until someone clears the cache by hand"
+              ],
+              "answer": 0,
+              "explain": "With no invalidation, the cached entry is served until it expires, so the TTL is the upper bound on staleness. The cache doesn't know the database changed."
+            },
+            {
+              "lang": null,
+              "q": "You raise a cache's TTL from 1 minute to 1 hour. What's the trade-off?",
+              "choices": [
+                "Fewer cache hits, but fresher data",
+                "More memory per entry, but the same hit rate",
+                "More cache hits, but data can be up to an hour old",
+                "No change in staleness, since TTL only affects memory"
+              ],
+              "answer": 2,
+              "explain": "Entries live longer, so more requests hit the cache and fewer reach the database, but an entry can now be up to an hour behind the source."
             }
           ]
         }
@@ -870,7 +966,7 @@
           "id": "backend/security/password-hashing",
           "title": "Password hashing",
           "summary": "Storing passwords with a deliberately slow, salted algorithm like Argon2id or bcrypt",
-          "level": "medium",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -902,7 +998,7 @@
           "id": "backend/security/ssrf",
           "title": "Server-side request forgery (SSRF)",
           "summary": "Tricking your server into making requests to internal addresses on the attacker's behalf",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -976,10 +1072,10 @@
               "lang": null,
               "q": "`POST /orders` creates an order straight from the JSON body, including `total` and `status`. A client sends `{\"items\": [...], \"total\": 0, \"status\": \"paid\"}` and gets a free paid order. What's the root cause?",
               "choices": [
-                "`POST` requests aren't idempotent",
-                "The endpoint lacks CSRF protection",
-                "The server copies every body field onto the model instead of picking allowed ones",
-                "The JSON body has no size limit"
+                "`POST` requests aren't idempotent, so can be repeated",
+                "The endpoint lacks CSRF protection on that route",
+                "The server copies every body field onto the model unfiltered",
+                "The JSON body has no size limit set on the endpoint"
               ],
               "answer": 2,
               "explain": "Fields the client shouldn't control were bound from the request. The fix is an explicit allow-list of input fields, with `total` and `status` computed on the server."
@@ -990,7 +1086,7 @@
           "id": "backend/security/timing-safe-compare",
           "title": "Constant-time comparison",
           "summary": "Comparing secrets so the time taken doesn't reveal how many bytes matched",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": "go",
@@ -1028,7 +1124,7 @@
               "q": "An API compares a client's key with the stored key using `==`, which stops at the first differing byte. Why is that exploitable?",
               "choices": [
                 "`==` ignores letter case, so many keys are equal",
-                "Response time grows with the matching prefix, so guesses can be refined byte by byte",
+                "Time grows with the matching prefix, so guesses can be refined",
                 "`==` only compares the first 8 bytes of each value",
                 "`==` writes the compared values to the process log"
               ],

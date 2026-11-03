@@ -10,10 +10,74 @@
       "summary": "Pipelines that build and test every change, and keeping main green",
       "concepts": [
         {
+          "id": "delivery-ops/ci/pipeline-stages",
+          "title": "Pipeline stages",
+          "summary": "A pipeline runs steps such as lint, test, build and deploy in order, and a failing step stops the ones after it",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A pipeline has the stages `test → build → deploy-staging`. A unit test fails. What normally happens?",
+              "choices": [
+                "Build and deploy are skipped, and the run is marked failed",
+                "Only deploy is skipped; the build stage still runs",
+                "Build and deploy still run, with a warning on the test stage",
+                "The test stage is retried automatically until it passes"
+              ],
+              "answer": 0,
+              "explain": "Later stages depend on the earlier ones succeeding, so a failure stops the run before anything is built or deployed. Retrying until green would hide real failures."
+            },
+            {
+              "lang": null,
+              "q": "Why do most pipelines run lint and unit tests before slower steps such as building images and running end-to-end tests?",
+              "choices": [
+                "Linters can only read source code before it is compiled",
+                "Fast checks fail early, so feedback arrives in minutes",
+                "End-to-end tests delete the build, so they must run last",
+                "Image builds need the lint report as one of their inputs"
+              ],
+              "answer": 1,
+              "explain": "Putting the fast, cheap checks first gives quick feedback and avoids spending minutes building and testing a change that a short lint run would have rejected."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/ci/required-checks",
+          "title": "Required status checks",
+          "summary": "Branch protection that blocks merging a pull request until named CI checks pass",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A team keeps finding broken builds on `main` because people merge pull requests while CI is still red. Which setting stops this?",
+              "choices": [
+                "Running CI only on `main`, after each merge",
+                "Asking reviewers to check the CI status before they approve",
+                "Marking the CI checks as required in the branch protection rules",
+                "Running the pipeline nightly instead of on every push"
+              ],
+              "answer": 2,
+              "explain": "Required status checks keep the merge button disabled until the named checks pass. Asking reviewers to look is only a convention, and CI that runs after the merge finds the break once it's already on `main`."
+            },
+            {
+              "lang": null,
+              "q": "On GitHub, a branch protection rule requires only the `test` status check. A pull request has a passing `test` check and a failing `docs-lint` check, and no other rules apply. Can it be merged?",
+              "choices": [
+                "No: any failing check blocks the merge",
+                "Only once every check has been re-run on `main`",
+                "Only after an admin re-runs the failing check",
+                "Yes: only checks marked as required block merging"
+              ],
+              "answer": 3,
+              "explain": "Only the checks listed as required gate the merge; other checks are shown but advisory. That's why a check that must never fail has to be added to the required list."
+            }
+          ]
+        },
+        {
           "id": "delivery-ops/ci/trunk-based-development",
           "title": "Trunk-based development",
           "summary": "Merging small changes to the main branch at least daily, with unfinished work hidden behind flags",
-          "level": "easy",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -74,10 +138,42 @@
           ]
         },
         {
+          "id": "delivery-ops/ci/dependency-cache-keys",
+          "title": "CI cache keys",
+          "summary": "Keying dependency caches on a hash of the lockfile so the cache updates when dependencies change",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A GitHub Actions cache step uses the fixed key `deps-cache`. Months later, builds still restore very old dependencies and reinstall most packages. Why?",
+              "choices": [
+                "Caches expire after 24 hours and are rebuilt from scratch",
+                "Restoring a cache always clears it for the next run",
+                "An exact key hit isn't saved again, so it never updates",
+                "Fixed keys are shared across every repo in the org"
+              ],
+              "answer": 2,
+              "explain": "`actions/cache` doesn't overwrite an existing key, so a constant key freezes the first snapshot. Including `hashFiles('**/package-lock.json')` in the key creates a new cache whenever dependencies change."
+            },
+            {
+              "lang": null,
+              "q": "Why include a hash of the lockfile (`go.sum`, `package-lock.json`, `uv.lock`) in a CI dependency cache key?",
+              "choices": [
+                "A new entry is made whenever dependencies change",
+                "It makes the cache encrypted at rest on the runner",
+                "It lets the same cache be shared with production builds",
+                "Every run becomes a cache hit, even after an upgrade"
+              ],
+              "answer": 0,
+              "explain": "The key changes exactly when the dependency set changes, so you get hits on unchanged builds and fresh entries after an upgrade. A fallback `restore-keys` prefix can still start from the nearest older cache."
+            }
+          ]
+        },
+        {
           "id": "delivery-ops/ci/pin-actions-to-sha",
           "title": "Pinning CI actions to a commit SHA",
           "summary": "Referencing third-party CI actions by full commit hash, because tags can be moved",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -109,7 +205,7 @@
           "id": "delivery-ops/ci/merge-queue",
           "title": "Merge queue",
           "summary": "Testing each PR combined with main and the PRs ahead of it before merging, so main stays green",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -134,38 +230,6 @@
               ],
               "answer": 1,
               "explain": "Requiring up-to-date branches gives the same safety, but every merge invalidates all other PRs and starts a rebase race. A queue tests the combined state for you, often batching PRs together."
-            }
-          ]
-        },
-        {
-          "id": "delivery-ops/ci/dependency-cache-keys",
-          "title": "CI cache keys",
-          "summary": "Keying dependency caches on a hash of the lockfile so the cache updates when dependencies change",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": null,
-              "q": "A GitHub Actions cache step uses the fixed key `deps-cache`. Months later, builds still restore very old dependencies and reinstall most packages. Why?",
-              "choices": [
-                "Caches expire after 24 hours and are rebuilt from scratch",
-                "Restoring a cache always clears it for the next run",
-                "An exact key hit isn't saved again, so it never updates",
-                "Fixed keys are shared across every repo in the org"
-              ],
-              "answer": 2,
-              "explain": "`actions/cache` doesn't overwrite an existing key, so a constant key freezes the first snapshot. Including `hashFiles('**/package-lock.json')` in the key creates a new cache whenever dependencies change."
-            },
-            {
-              "lang": null,
-              "q": "Why include a hash of the lockfile (`go.sum`, `package-lock.json`, `uv.lock`) in a CI dependency cache key?",
-              "choices": [
-                "A new entry is made whenever dependencies change",
-                "It makes the cache encrypted at rest on the runner",
-                "It lets the same cache be shared with production builds",
-                "Every run becomes a cache hit, even after an upgrade"
-              ],
-              "answer": 0,
-              "explain": "The key changes exactly when the dependency set changes, so you get hits on unchanged builds and fresh entries after an upgrade. A fallback `restore-keys` prefix can still start from the nearest older cache."
             }
           ]
         }
@@ -205,6 +269,38 @@
               ],
               "answer": 1,
               "explain": "Rolling back sends traffic to blue, which now runs against the migrated schema. If the migration dropped or renamed something blue uses, the rollback fails."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/release-deployment/rollback",
+          "title": "Rolling back a release",
+          "summary": "Redeploying the previous known-good version when a release causes problems",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Why do teams keep the previous release's image or binary, tagged by version, after deploying a new one?",
+              "choices": [
+                "So it can be redeployed quickly if the new release must be rolled back",
+                "Registries refuse to delete images that are less than 30 days old",
+                "So reviewers can diff the old image against the new one",
+                "The new version loads the old image's layers when it starts"
+              ],
+              "answer": 0,
+              "explain": "Rollback is fastest when the last known-good artifact is ready to redeploy, with no rebuild. Rebuilding old code during an incident is slower and may not produce the same artifact."
+            },
+            {
+              "lang": null,
+              "q": "Release 2.4 runs a migration that drops the `nickname` column, which release 2.3 still reads. 2.4 has a bug, so you roll back the code to 2.3. What happens?",
+              "choices": [
+                "2.3 works normally, since a rollback also restores the database",
+                "2.3 fails on queries that read `nickname`: the migration isn't undone",
+                "The deploy tool refuses to roll back past a migration step",
+                "2.3 skips the missing column automatically and carries on"
+              ],
+              "answer": 1,
+              "explain": "A code rollback only swaps the application version; the schema stays as 2.4 left it. That's why destructive migrations ship separately, after no running version needs the column."
             }
           ]
         },
@@ -276,7 +372,7 @@
           "id": "delivery-ops/release-deployment/version-skew",
           "title": "Version skew during rolling deploys",
           "summary": "Old and new versions run side by side during a rollout, so each must handle the other's data and calls",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -308,7 +404,7 @@
           "id": "delivery-ops/release-deployment/graceful-shutdown",
           "title": "Graceful shutdown",
           "summary": "On SIGTERM: refuse new requests, let in-flight ones complete, release connections, then exit",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": "go",
@@ -355,6 +451,70 @@
       "title": "Docker",
       "summary": "Writing Dockerfiles and building and running containers",
       "concepts": [
+        {
+          "id": "delivery-ops/docker/image-vs-container",
+          "title": "Image vs container",
+          "summary": "An image is a read-only template; a container is a running instance with its own writable layer",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You `docker exec` into a running container and install `curl` with the package manager. Then you remove the container and start a new one with `docker run` from the same image. Is `curl` installed?",
+              "choices": [
+                "Yes: the install was saved back into the image",
+                "Yes, but only if the new container has the same name",
+                "No: the change lived in the removed container's writable layer",
+                "No: `docker exec` commands can't install packages"
+              ],
+              "answer": 2,
+              "explain": "Changes made inside a container go to that container's own writable layer, which is deleted with it. To keep `curl`, install it in the Dockerfile and rebuild the image."
+            },
+            {
+              "lang": null,
+              "q": "You start three containers from the same image, and one of them writes a file to `/tmp`. What do the other two containers see?",
+              "choices": [
+                "The file, since all three share the image's filesystem",
+                "An error, because image layers are read-only to every container",
+                "The file, but only after the other containers restart",
+                "Nothing: each container has its own writable layer on top of the shared image"
+              ],
+              "answer": 3,
+              "explain": "Containers share the image's read-only layers, but each gets a separate writable layer, so a write in one isn't visible in the others. Sharing files between containers needs a volume."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/docker/publishing-ports",
+          "title": "Publishing ports",
+          "summary": "`-p host:container` maps a host port to a container port; `EXPOSE` alone doesn't make the app reachable",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which command lets you open a containerised app that listens on port 80 inside the container at `http://localhost:8080` on your machine?",
+              "choices": [
+                "`docker run -p 8080:80 web`",
+                "`docker run -p 80:8080 web`",
+                "`docker run --expose 8080 web`",
+                "`docker run --expose 80 web`"
+              ],
+              "answer": 0,
+              "explain": "The format is `-p HOST:CONTAINER`, so `8080:80` forwards host port 8080 to port 80 inside. `--expose` only records a port as metadata and publishes nothing."
+            },
+            {
+              "lang": null,
+              "q": "A Dockerfile has `EXPOSE 5000`, and the app inside listens on `0.0.0.0:5000`. You start it with `docker run myapp`, and `curl localhost:5000` on your machine fails. Why?",
+              "choices": [
+                "`EXPOSE` only takes effect when the Dockerfile also has a `HEALTHCHECK`",
+                "The port isn't published: `EXPOSE` only documents it, so you need `-p 5000:5000`",
+                "The app has to listen on `127.0.0.1` instead of `0.0.0.0`",
+                "Docker blocks host access to container ports below 8000 by default"
+              ],
+              "answer": 1,
+              "explain": "`EXPOSE` is documentation (and a hint for `-P`); nothing is reachable from the host until you publish it with `-p`. Listening on `127.0.0.1` inside the container would make it worse, since only the container itself could connect."
+            }
+          ]
+        },
         {
           "id": "delivery-ops/docker/layer-cache-order",
           "title": "Layer cache ordering",
@@ -420,10 +580,42 @@
           ]
         },
         {
+          "id": "delivery-ops/docker/dockerignore",
+          "title": ".dockerignore",
+          "summary": "Excluding files like `.git`, `.env` and local `node_modules` from the build context",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A repo has no `.dockerignore` and the Dockerfile does `COPY . .`. Which of these is the most serious consequence?",
+              "choices": [
+                "A local `.env` with real credentials lands in the image",
+                "The build can no longer use the layer cache for any step",
+                "The `Dockerfile` itself gets copied into the final image",
+                "Docker refuses to build without a `.dockerignore` file"
+              ],
+              "answer": 0,
+              "explain": "Without exclusions the whole directory, secrets included, becomes part of the context and the image. Slower builds and larger images are side effects; a leaked credential is the real damage."
+            },
+            {
+              "lang": null,
+              "q": "A Node image builds fine on CI but crashes on a Mac developer's local build with an error from a native module. The Dockerfile runs `npm ci` and later `COPY . .`. What is the likely cause?",
+              "choices": [
+                "`npm ci` doesn't support native modules in containers",
+                "The base image was pulled for the wrong CPU architecture",
+                "`COPY . .` brings the host's macOS `node_modules`",
+                "Docker Desktop disables native modules on macOS hosts"
+              ],
+              "answer": 2,
+              "explain": "Without `node_modules` in `.dockerignore`, the host's install overwrites the one built for Linux in the image. CI has no local `node_modules`, so it doesn't happen there."
+            }
+          ]
+        },
+        {
           "id": "delivery-ops/docker/pid-1-signals",
           "title": "PID 1 and signals",
           "summary": "A container's PID 1 gets no default signal actions, so it must handle SIGTERM itself or pass it on",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -455,7 +647,7 @@
           "id": "delivery-ops/docker/secrets-in-layers",
           "title": "Secrets in image layers",
           "summary": "Files deleted in a later layer and build args stay readable in the image; use build secrets instead",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -480,38 +672,6 @@
               ],
               "answer": 1,
               "explain": "Docker warns that build args are visible in `docker history` and in max-mode provenance attestations. `ARG` values aren't set in the running container's environment (that's `ENV`); use `RUN --mount=type=secret` instead."
-            }
-          ]
-        },
-        {
-          "id": "delivery-ops/docker/dockerignore",
-          "title": ".dockerignore",
-          "summary": "Excluding files like `.git`, `.env` and local `node_modules` from the build context",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": null,
-              "q": "A repo has no `.dockerignore` and the Dockerfile does `COPY . .`. Which of these is the most serious consequence?",
-              "choices": [
-                "A local `.env` with real credentials lands in the image",
-                "The build can no longer use the layer cache for any step",
-                "The `Dockerfile` itself gets copied into the final image",
-                "Docker refuses to build without a `.dockerignore` file"
-              ],
-              "answer": 0,
-              "explain": "Without exclusions the whole directory, secrets included, becomes part of the context and the image. Slower builds and larger images are side effects; a leaked credential is the real damage."
-            },
-            {
-              "lang": null,
-              "q": "A Node image builds fine on CI but crashes on a Mac developer's local build with an error from a native module. The Dockerfile runs `npm ci` and later `COPY . .`. What is the likely cause?",
-              "choices": [
-                "`npm ci` doesn't support native modules in containers",
-                "The base image was pulled for the wrong CPU architecture",
-                "`COPY . .` brings the host's macOS `node_modules`",
-                "Docker Desktop disables native modules on macOS hosts"
-              ],
-              "answer": 2,
-              "explain": "Without `node_modules` in `.dockerignore`, the host's install overwrites the one built for Linux in the image. CI has no local `node_modules`, so it doesn't happen there."
             }
           ]
         }
@@ -551,6 +711,38 @@
               ],
               "answer": 0,
               "explain": "Config is whatever varies between deploys (a sandbox URL in staging, the live one in production). Routes, request schemas and table names are part of the code and are the same everywhere."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/environment-management/secrets-out-of-repo",
+          "title": "Keeping secrets out of the repo",
+          "summary": "Secrets come from a secret manager or an untracked env file at run time, and are never committed",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A new service needs a database password locally and in production. What is the usual setup?",
+              "choices": [
+                "Commit `.env` with the real values so every developer gets them on clone",
+                "Hard-code the password in a config file that is marked read-only",
+                "Git-ignore `.env`, commit placeholders, inject prod values at run time",
+                "Store the password base64-encoded in the repository so it can't be read"
+              ],
+              "answer": 2,
+              "explain": "The example file documents which variables exist without real values, the real `.env` never enters git, and production gets its secrets at run time. Base64 is an encoding, not encryption, so anyone can decode it."
+            },
+            {
+              "lang": null,
+              "q": "Why is a private repository still the wrong place for a production API key?",
+              "choices": [
+                "Private repositories become public after a period without activity",
+                "Git can't store values longer than 64 characters in tracked files",
+                "CI runners aren't allowed to clone private repositories",
+                "Every clone and the whole history get the key, and it's hard to remove"
+              ],
+              "answer": 3,
+              "explain": "A committed secret spreads to every clone, fork and backup, and it stays in the history even after deletion. Repo access is also usually much wider than who should hold production credentials."
             }
           ]
         },
@@ -700,6 +892,38 @@
               "explain": "Environments created per PR only work if setup and teardown are scripted end to end. Copying production data is usually something to avoid, for privacy reasons."
             }
           ]
+        },
+        {
+          "id": "delivery-ops/environment-management/zero-downtime-rotation",
+          "title": "Zero-downtime secret rotation",
+          "summary": "Rotating a credential by keeping the old and new one valid during an overlap, then retiring the old one",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A service authenticates to a partner API with a key. You must rotate the key without any failed requests while instances restart one at a time. Which order works?",
+              "choices": [
+                "Create the new key so both are valid, roll it out to all instances, then revoke the old one",
+                "Revoke the old key, create a new one, then redeploy every instance",
+                "Redeploy every instance with the new key first, then create that key at the partner",
+                "Change the key at the partner and rely on retries until instances pick it up"
+              ],
+              "answer": 0,
+              "explain": "During a rolling restart some instances still hold the old key, so both keys must work until the rollout finishes. Revoking first, or leaning on retries, guarantees failed requests in between."
+            },
+            {
+              "lang": null,
+              "q": "An auth service signs JWTs, and other services verify them using its published key set (JWKS), which they cache. Why publish the new public key in the JWKS a while before starting to sign with it?",
+              "choices": [
+                "A JWKS endpoint can serve only one key at a time per issuer",
+                "Verifiers need the new key cached before tokens signed with it arrive",
+                "A new signing key needs a day before it is cryptographically valid",
+                "Tokens without a `kid` header are rejected by every verifier"
+              ],
+              "answer": 1,
+              "explain": "Verifiers refresh their cached key set only every so often, so publish first, wait for caches to pick it up, then switch signing. Keep the old public key published until tokens signed with it have expired."
+            }
+          ]
         }
       ]
     },
@@ -708,6 +932,70 @@
       "title": "Cloud",
       "summary": "Using cloud services (compute, storage, IAM) and running workloads on them",
       "concepts": [
+        {
+          "id": "delivery-ops/cloud/regions-and-zones",
+          "title": "Regions and availability zones",
+          "summary": "A region is a geographic area made of isolated zones; spreading instances across zones survives one zone failing",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Your service runs three instances, all in zone `a` of one cloud region. Which change best protects it from one data centre going down?",
+              "choices": [
+                "Moving to larger instance sizes in zone `a`",
+                "Adding a fourth instance in zone `a`",
+                "Spreading the instances across zones `a`, `b` and `c`",
+                "Turning on autoscaling inside zone `a`"
+              ],
+              "answer": 2,
+              "explain": "Zones in a region have separate power, cooling and networking, so instances spread across zones survive one zone failing. More or bigger instances in the same zone go down together."
+            },
+            {
+              "lang": null,
+              "q": "Your database stays in one region, and the app servers that query it are moved to a region on another continent. What is the most likely effect?",
+              "choices": [
+                "The database stops accepting queries until it is moved as well",
+                "Nothing noticeable, since cloud backbones make region distance irrelevant",
+                "Queries get faster, because the load is now spread across two regions",
+                "Each query now pays a cross-continent round trip, slowing requests"
+              ],
+              "answer": 3,
+              "explain": "Each query now crosses an ocean and back, tens of milliseconds or more, and a request making many queries pays it every time; cross-region traffic is usually billed too. Keep chatty services in the same region as their data."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/cloud/object-storage",
+          "title": "Object storage",
+          "summary": "Services like S3 and GCS that store files as objects under keys, for uploads, backups and static assets",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Your app runs on several stateless instances behind a load balancer, and users upload profile photos. Where should the photos be stored?",
+              "choices": [
+                "In an object storage bucket that every instance can read and write",
+                "On the local disk of whichever instance handled the upload",
+                "In the container's `/tmp` directory, which instances share",
+                "Inside the application image, rebuilt after each upload"
+              ],
+              "answer": 0,
+              "explain": "A local disk belongs to one instance and disappears when that instance is replaced, so the others can't serve the file. A bucket is shared, durable storage made for this."
+            },
+            {
+              "lang": null,
+              "q": "A team keeps its nightly database backups on the same VM disk as the database itself. Where is a better place for them?",
+              "choices": [
+                "A second directory on that same VM's disk",
+                "An object storage bucket, separate from the VM",
+                "A table inside the same database",
+                "The app's container image, rebuilt every night"
+              ],
+              "answer": 1,
+              "explain": "A bucket is durable storage that doesn't depend on any one machine, so losing the VM or its disk doesn't take the backups with it. A second directory or a table in the same database fails together with the thing it is meant to back up."
+            }
+          ]
+        },
         {
           "id": "delivery-ops/cloud/least-privilege",
           "title": "Least privilege",
@@ -737,94 +1025,6 @@
               ],
               "answer": 3,
               "explain": "The narrowest action set on the narrowest resource is least privilege. Network rules don't limit what a compromised process with admin rights can do."
-            }
-          ]
-        },
-        {
-          "id": "delivery-ops/cloud/requests-and-limits",
-          "title": "Kubernetes requests and limits",
-          "summary": "Requests reserve capacity for scheduling; going over the CPU limit throttles, over the memory limit kills",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": null,
-              "q": "A container regularly goes over its memory limit. What does Kubernetes do?",
-              "choices": [
-                "Throttles the container until its usage drops",
-                "Moves the pod to a node with more free memory",
-                "Kills it (OOMKilled, exit 137)",
-                "Logs a warning and lets the container continue"
-              ],
-              "answer": 2,
-              "explain": "Memory can't be throttled the way CPU time can, so the kernel's OOM killer ends the process and the app gets no chance to log why. Throttling is what happens at the CPU limit, not the memory limit."
-            },
-            {
-              "lang": null,
-              "q": "An API's latency spikes under load and health checks start timing out, but the pod never restarts for memory. Usage graphs show it pinned at its CPU limit. What is happening?",
-              "choices": [
-                "It's CPU-throttled, so all work runs slower",
-                "It's being OOMKilled silently and restarted",
-                "The scheduler keeps moving it between nodes",
-                "Its CPU request is set too high for the node"
-              ],
-              "answer": 0,
-              "explain": "Going over a CPU limit doesn't kill anything; the kernel restricts how much CPU time the container gets, so work slows down. Raise the limit or scale out."
-            }
-          ]
-        },
-        {
-          "id": "delivery-ops/cloud/runtime-memory-limit",
-          "title": "Runtime heap vs container memory limit",
-          "summary": "Telling the language runtime about the container's memory limit so its GC works before the OOM killer does",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "A Go service has about 600 MiB of live heap, a 1 GiB container limit, default `GOGC=100` and no `GOMEMLIMIT`. It gets OOMKilled at traffic peaks. Which change addresses this most directly (Go 1.19+)?",
-              "choices": [
-                "Set `GOMAXPROCS` to match the container's CPU limit",
-                "Set `GOGC=200` so collections happen less often",
-                "Call `runtime.GC()` on a timer every few seconds",
-                "Set `GOMEMLIMIT` a bit under the limit"
-              ],
-              "answer": 3,
-              "explain": "With `GOGC=100` the heap can grow to about twice the live heap before the next GC, past 1 GiB here. `GOMEMLIMIT` makes the GC work harder as total memory nears the limit; raising `GOGC` makes it worse."
-            },
-            {
-              "lang": "ts",
-              "q": "A Node service runs in a 1 GiB container with `--max-old-space-size=4096`. Under load memory climbs. How does it most likely die?",
-              "choices": [
-                "OOMKilled by the kernel (exit 137), no JS stack",
-                "A JS `heap out of memory` error at the 4 GiB heap cap",
-                "The event loop blocks and the liveness probe restarts it",
-                "V8 shrinks the heap to fit the container automatically"
-              ],
-              "answer": 0,
-              "explain": "The flag tells V8 it may grow the heap to 4 GiB, so it lets garbage pile up past what the container allows and the kernel kills the process. Set the old-space size below the container limit; about three quarters of it is a common rule of thumb, leaving room for buffers and native memory."
-            },
-            {
-              "lang": null,
-              "q": "A service on a garbage-collected runtime holds about 600 MiB of live data in a 1 GiB container. It is OOMKilled at peak traffic, even though live data fits. What is the underlying cause and fix?",
-              "choices": [
-                "Live data is leaking; the only fix is to find and remove the leak",
-                "The runtime lets the heap grow past the container limit; set a heap ceiling below it",
-                "The container's CPU limit is too low for the collector; raise it",
-                "The garbage collector never runs in containers; trigger it manually"
-              ],
-              "answer": 1,
-              "explain": "A runtime sizes its heap from its own settings or the host, not the container's cgroup limit, so garbage can pile up until the kernel kills the process. A leak is possible but not implied: live data stayed at 600 MiB."
-            },
-            {
-              "lang": null,
-              "q": "A Java service in a 1 GiB container is started with a maximum heap of 1 GiB, and it is still OOMKilled while the heap shows no out-of-memory error. Why?",
-              "choices": [
-                "Heap memory is not counted against the container limit until a full GC",
-                "Kubernetes always kills pods whose heap is above 80% of the limit",
-                "Thread stacks, metaspace and native buffers count toward the limit too",
-                "The container limit applies only to the memory the heap has already used"
-              ],
-              "answer": 2,
-              "explain": "The container limit covers the whole process, not just the heap, so a heap ceiling equal to the limit leaves no room for stacks, metaspace and native memory. The heap itself counts as it grows, so the kill can come before the runtime ever reports its own out-of-memory error."
             }
           ]
         },
@@ -891,6 +1091,94 @@
               "explain": "When the limit is downstream, more consumers just add load where it hurts. Set a maximum based on what the dependency can handle and fix the real bottleneck."
             }
           ]
+        },
+        {
+          "id": "delivery-ops/cloud/requests-and-limits",
+          "title": "Kubernetes requests and limits",
+          "summary": "Requests reserve capacity for scheduling; going over the CPU limit throttles, over the memory limit kills",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A container regularly goes over its memory limit. What does Kubernetes do?",
+              "choices": [
+                "Throttles the container until its usage drops",
+                "Moves the pod to a node with more free memory",
+                "Kills it (OOMKilled, exit 137)",
+                "Logs a warning and lets the container continue"
+              ],
+              "answer": 2,
+              "explain": "Memory can't be throttled the way CPU time can, so the kernel's OOM killer ends the process and the app gets no chance to log why. Throttling is what happens at the CPU limit, not the memory limit."
+            },
+            {
+              "lang": null,
+              "q": "An API's latency spikes under load and health checks start timing out, but the pod never restarts for memory. Usage graphs show it pinned at its CPU limit. What is happening?",
+              "choices": [
+                "It's CPU-throttled, so all work runs slower",
+                "It's being OOMKilled silently and restarted",
+                "The scheduler keeps moving it between nodes",
+                "Its CPU request is set too high for the node"
+              ],
+              "answer": 0,
+              "explain": "Going over a CPU limit doesn't kill anything; the kernel restricts how much CPU time the container gets, so work slows down. Raise the limit or scale out."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/cloud/runtime-memory-limit",
+          "title": "Runtime heap vs container memory limit",
+          "summary": "Telling the language runtime about the container's memory limit so its GC works before the OOM killer does",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "A Go service has about 600 MiB of live heap, a 1 GiB container limit, default `GOGC=100` and no `GOMEMLIMIT`. It gets OOMKilled at traffic peaks. Which change addresses this most directly (Go 1.19+)?",
+              "choices": [
+                "Set `GOMAXPROCS` to match the container's CPU limit",
+                "Set `GOGC=200` so collections happen less often",
+                "Call `runtime.GC()` on a timer every few seconds",
+                "Set `GOMEMLIMIT` a bit under the limit"
+              ],
+              "answer": 3,
+              "explain": "With `GOGC=100` the heap can grow to about twice the live heap before the next GC, past 1 GiB here. `GOMEMLIMIT` makes the GC work harder as total memory nears the limit; raising `GOGC` makes it worse."
+            },
+            {
+              "lang": "ts",
+              "q": "A Node service runs in a 1 GiB container with `--max-old-space-size=4096`. Under load memory climbs. How does it most likely die?",
+              "choices": [
+                "OOMKilled by the kernel (exit 137), no JS stack",
+                "A JS `heap out of memory` error at the 4 GiB heap cap",
+                "The event loop blocks and the liveness probe restarts it",
+                "V8 shrinks the heap to fit the container automatically"
+              ],
+              "answer": 0,
+              "explain": "The flag tells V8 it may grow the heap to 4 GiB, so it lets garbage pile up past what the container allows and the kernel kills the process. Set the old-space size below the container limit; about three quarters of it is a common rule of thumb, leaving room for buffers and native memory."
+            },
+            {
+              "lang": null,
+              "q": "A service on a garbage-collected runtime holds about 600 MiB of live data in a 1 GiB container. It is OOMKilled at peak traffic, even though live data fits. What is the underlying cause and fix?",
+              "choices": [
+                "Live data is leaking; the only fix is to find and remove the leak",
+                "The heap can outgrow the container limit; set a heap ceiling below it",
+                "The container's CPU limit is too low for the collector; raise it",
+                "The garbage collector never runs in containers; trigger it manually"
+              ],
+              "answer": 1,
+              "explain": "A runtime sizes its heap from its own settings or the host, not the container's cgroup limit, so garbage can pile up until the kernel kills the process. A leak is possible but not implied: live data stayed at 600 MiB."
+            },
+            {
+              "lang": null,
+              "q": "A Java service in a 1 GiB container is started with a maximum heap of 1 GiB, and it is still OOMKilled while the heap shows no out-of-memory error. Why?",
+              "choices": [
+                "Heap memory is not counted against the container limit until a full GC",
+                "Kubernetes always kills pods whose heap is above 80% of the limit",
+                "Thread stacks, metaspace and native buffers count toward the limit too",
+                "The container limit applies only to the memory the heap has already used"
+              ],
+              "answer": 2,
+              "explain": "The container limit covers the whole process, not just the heap, so a heap ceiling equal to the limit leaves no room for stacks, metaspace and native memory. The heap itself counts as it grows, so the kill can come before the runtime ever reports its own out-of-memory error."
+            }
+          ]
         }
       ]
     },
@@ -903,32 +1191,8 @@
           "id": "delivery-ops/observability/structured-logging",
           "title": "Structured logging",
           "summary": "Logging events as key-value fields (usually JSON) so they can be filtered and searched",
-          "level": "medium",
+          "level": "easy",
           "variants": [
-            {
-              "lang": "go",
-              "q": "What does this `log/slog` call log for the trailing `\"user\"` argument?\n\n```go\nslog.Info(\"login failed\", \"user\")\n```",
-              "choices": [
-                "`user=` with an empty value",
-                "A compile error, because the arguments are unbalanced",
-                "Nothing: the extra argument is dropped",
-                "`!BADKEY=user`, since a key has no value"
-              ],
-              "answer": 3,
-              "explain": "slog takes alternating keys and values; a lone string at the end has no value, so it is logged as a value under the key `!BADKEY`. `go vet` (Go 1.21+) flags the mismatched pair, and `slog.String(\"user\", id)` avoids it."
-            },
-            {
-              "lang": "python",
-              "q": "With `logging.basicConfig(level=logging.INFO)`, what shows up for this call?\n\n```python\nlog.info(\"order created\", extra={\"order_id\": oid})\n```",
-              "choices": [
-                "The message, with `order_id` as a JSON field",
-                "Only the message: `extra` isn't in the format",
-                "An error, because `extra` needs a custom formatter",
-                "`order_id` appended to the message as `key=value`"
-              ],
-              "answer": 1,
-              "explain": "`extra` attaches attributes to the log record, but the default format string only includes the level, logger name and message. You need a JSON formatter (or a format string naming the field) for it to be emitted."
-            },
             {
               "lang": null,
               "q": "Why log `{\"msg\": \"payment failed\", \"invoice_id\": \"inv_7\", \"provider\": \"x\"}` instead of the string `\"payment failed for invoice inv_7 via x\"`?",
@@ -952,38 +1216,6 @@
               ],
               "answer": 2,
               "explain": "Structured logs only pay off when field names are consistent, since queries are by field. Agreeing on a shared schema (or normalising at ingest) lets one query find the user everywhere."
-            }
-          ]
-        },
-        {
-          "id": "delivery-ops/observability/trace-context-propagation",
-          "title": "Trace context propagation",
-          "summary": "Passing the trace ID across every hop (the `traceparent` header, message metadata) so one request is one trace",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": null,
-              "q": "Service A calls service B over HTTP and both are instrumented with OpenTelemetry. How does B know its spans belong to A's trace?",
-              "choices": [
-                "B queries A's tracing backend by timestamp to match spans",
-                "A sends a `traceparent` header that B continues",
-                "Both services share a global trace ID set at deploy time",
-                "The load balancer matches spans up by client IP address"
-              ],
-              "answer": 1,
-              "explain": "Trace context travels with the request; each service reads it, creates child spans, and passes it on. Without propagation, B starts a new, unrelated trace."
-            },
-            {
-              "lang": null,
-              "q": "HTTP traces look complete, but every trace stops where service A publishes to a queue, and the consumer's work shows up as separate traces. What is missing?",
-              "choices": [
-                "The consumer's trace sampling rate is set too low",
-                "The broker has to be restarted with tracing switched on",
-                "The consumer must use the same service name as A",
-                "The context isn't put in the message headers"
-              ],
-              "answer": 3,
-              "explain": "Async hops have no HTTP header, so the producer must put the context in message metadata and the consumer must extract it. Many queue client libraries need instrumentation for this to happen."
             }
           ]
         },
@@ -1020,66 +1252,34 @@
           ]
         },
         {
-          "id": "delivery-ops/observability/histogram-aggregation",
-          "title": "Aggregating latency with histograms",
-          "summary": "Percentiles can't be averaged across instances; combine histograms, then compute the percentile",
+          "id": "delivery-ops/observability/trace-context-propagation",
+          "title": "Trace context propagation",
+          "summary": "Passing the trace ID across every hop (the `traceparent` header, message metadata) so one request is one trace",
           "level": "medium",
           "variants": [
             {
               "lang": null,
-              "q": "Each of 10 pods reports its own p99 latency. A dashboard shows the average of those ten numbers as \"service p99\". What is wrong?",
+              "q": "Service A calls service B over HTTP and both are instrumented with OpenTelemetry. How does B know its spans belong to A's trace?",
               "choices": [
-                "An average of percentiles isn't a percentile",
-                "It should be the sum of the ten values instead",
-                "Nothing, as long as every pod gets equal traffic",
-                "It should be the median of the ten values instead"
-              ],
-              "answer": 0,
-              "explain": "The true p99 depends on the whole distribution, which the ten summaries have thrown away. Exporting histograms (bucket counts) lets you add buckets across pods and compute the real percentile."
-            },
-            {
-              "lang": null,
-              "q": "Why do Prometheus users usually record request latency as a histogram rather than a summary when they want a service-wide p99?",
-              "choices": [
-                "Histograms use less memory than summaries in every case",
-                "Summaries can't record latency values, only counts",
-                "Histogram buckets can be summed across pods",
-                "Summaries are only available in the Go client"
-              ],
-              "answer": 2,
-              "explain": "A summary's quantiles are computed per instance and can't be combined; histogram bucket counters can be added up and fed to `histogram_quantile`. The price is that the percentile is an estimate limited by bucket boundaries."
-            }
-          ]
-        },
-        {
-          "id": "delivery-ops/observability/metric-cardinality",
-          "title": "Metric label cardinality",
-          "summary": "Each unique label combination is a separate time series, so unbounded labels blow up the metrics store",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": null,
-              "q": "Someone adds a `user_id` label to `http_requests_total`. The service has 2 million users. What is the likely effect?",
-              "choices": [
-                "Nothing: labels are just text attached to one series",
-                "Queries get more precise, with no other cost",
-                "The client library rejects labels with over 100 values",
-                "Millions of new series, overloading the backend"
-              ],
-              "answer": 3,
-              "explain": "Every distinct label value creates its own series. Per-user detail belongs in logs or traces; metric labels should come from small, bounded sets like status code or route."
-            },
-            {
-              "lang": null,
-              "q": "Which label is safe on a request-count metric?",
-              "choices": [
-                "The raw URL path, such as `/orders/98213`",
-                "The route template, such as `/orders/:id`",
-                "The request ID",
-                "The client's IP address"
+                "B queries A's tracing backend by timestamp to match spans",
+                "A sends a `traceparent` header that B continues",
+                "Both services share a global trace ID set at deploy time",
+                "The load balancer matches spans up by client IP address"
               ],
               "answer": 1,
-              "explain": "A route template has a small, fixed set of values. Raw paths, request IDs and IPs are unbounded and each creates new series."
+              "explain": "Trace context travels with the request; each service reads it, creates child spans, and passes it on. Without propagation, B starts a new, unrelated trace."
+            },
+            {
+              "lang": null,
+              "q": "HTTP traces look complete, but every trace stops where service A publishes to a queue, and the consumer's work shows up as separate traces. What is missing?",
+              "choices": [
+                "The consumer's trace sampling rate is set too low",
+                "The broker has to be restarted with tracing switched on",
+                "The consumer must use the same service name as A",
+                "The context isn't put in the message headers"
+              ],
+              "answer": 3,
+              "explain": "Async hops have no HTTP header, so the producer must put the context in message metadata and the consumer must extract it. Many queue client libraries need instrumentation for this to happen."
             }
           ]
         },
@@ -1112,6 +1312,70 @@
               ],
               "answer": 2,
               "explain": "Saturation is work that can't be served yet and is queued. Share in use is utilization; failed attempts are errors."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/observability/histogram-aggregation",
+          "title": "Aggregating latency with histograms",
+          "summary": "Percentiles can't be averaged across instances; combine histograms, then compute the percentile",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Each of 10 pods reports its own p99 latency. A dashboard shows the average of those ten numbers as \"service p99\". What is wrong?",
+              "choices": [
+                "An average of percentiles isn't a percentile",
+                "It should be the sum of the ten values instead",
+                "Nothing, as long as every pod gets equal traffic",
+                "It should be the median of the ten values instead"
+              ],
+              "answer": 0,
+              "explain": "The true p99 depends on the whole distribution, which the ten summaries have thrown away. Exporting histograms (bucket counts) lets you add buckets across pods and compute the real percentile."
+            },
+            {
+              "lang": null,
+              "q": "Why do Prometheus users usually record request latency as a histogram rather than a summary when they want a service-wide p99?",
+              "choices": [
+                "Histograms use less memory than summaries in every case",
+                "Summaries can't record latency values, only counts",
+                "Histogram buckets can be summed across pods",
+                "Summaries are only available in the Go client"
+              ],
+              "answer": 2,
+              "explain": "A summary's quantiles are computed per instance and can't be combined; histogram bucket counters can be added up and fed to `histogram_quantile`. The price is that the percentile is an estimate limited by bucket boundaries."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/observability/metric-cardinality",
+          "title": "Metric label cardinality",
+          "summary": "Each unique label combination is a separate time series, so unbounded labels blow up the metrics store",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Someone adds a `user_id` label to `http_requests_total`. The service has 2 million users. What is the likely effect?",
+              "choices": [
+                "Nothing: labels are just text attached to one series",
+                "Queries get more precise, with no other cost",
+                "The client library rejects labels with over 100 values",
+                "Millions of new series, overloading the backend"
+              ],
+              "answer": 3,
+              "explain": "Every distinct label value creates its own series. Per-user detail belongs in logs or traces; metric labels should come from small, bounded sets like status code or route."
+            },
+            {
+              "lang": null,
+              "q": "Which label is safe on a request-count metric?",
+              "choices": [
+                "The raw URL path, such as `/orders/98213`",
+                "The route template, such as `/orders/:id`",
+                "The request ID",
+                "The client's IP address"
+              ],
+              "answer": 1,
+              "explain": "A route template has a small, fixed set of values. Raw paths, request IDs and IPs are unbounded and each creates new series."
             }
           ]
         }
@@ -1151,6 +1415,38 @@
               ],
               "answer": 3,
               "explain": "Restoring service comes before understanding it, as long as you capture what you need for the review. The faulty region can still be investigated after traffic has moved."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/incident-response/escalate-early",
+          "title": "Escalating early",
+          "summary": "Paging the owning team and raising severity as soon as you can't mitigate quickly, instead of working alone",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You're on call. An alert fires for checkout errors, the runbook steps haven't helped, and 20 minutes have passed. The failing payment service belongs to another team. What should you do?",
+              "choices": [
+                "Keep debugging alone so nobody else gets woken up",
+                "Wait for the next stand-up and raise it with the team there",
+                "Page the payment team's on-call and declare an incident",
+                "Silence the alert until the error rate drops on its own"
+              ],
+              "answer": 2,
+              "explain": "Escalating is cheap and user impact is not; paging the owners brings in the people who know the system. Waiting or silencing the alert only stretches the outage."
+            },
+            {
+              "lang": null,
+              "q": "You're handling a low-severity alert, and it turns out every customer's login is failing. What should change?",
+              "choices": [
+                "Nothing: an incident keeps the severity it was opened with",
+                "Close it and open a separate low-severity ticket for logins",
+                "Fix it quietly first, then decide whether anyone needs to know",
+                "Raise the severity to bring in more responders and updates"
+              ],
+              "answer": 3,
+              "explain": "Severity should follow the real impact as you learn it, and raising it is how the process pulls in more help and informs stakeholders. Fixing quietly keeps away the help and the communication the impact calls for."
             }
           ]
         },
@@ -1214,33 +1510,6 @@
           ]
         },
         {
-          "id": "delivery-ops/incident-response/burn-rate-alerts",
-          "title": "Burn-rate alerting",
-          "summary": "Alerting on how fast the error budget is being spent, over a short and a long window",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": null,
-              "q": "With a 30-day SLO window, a burn rate of 1 means the budget will be exactly used up in 30 days. Sustained for 1 hour, what share of the 30-day budget does a burn rate of 14.4 use?",
-              "choices": ["About 14%", "About 0.5%", "About 48%", "About 2%"],
-              "answer": 3,
-              "explain": "One hour is 1/720 of 30 days, so 14.4 × 1/720 = 2% of the budget. That's why a high burn rate over a short window is a common paging threshold."
-            },
-            {
-              "lang": null,
-              "q": "Why do burn-rate alerts often require both a long window (say 1 hour) and a short window (say 5 minutes) to be over the threshold?",
-              "choices": [
-                "Long window shows it's real; short shows it's ongoing",
-                "Most monitoring tools can't evaluate a single-window rule",
-                "The short window catches problems the long one never sees",
-                "It halves the number of alert rules that need maintaining"
-              ],
-              "answer": 0,
-              "explain": "A long window alone keeps firing for a while after the problem is fixed; a short window alone is noisy. Requiring both gives alerts that are significant and current."
-            }
-          ]
-        },
-        {
           "id": "delivery-ops/incident-response/incident-commander",
           "title": "Incident commander",
           "summary": "One person who coordinates the response and makes calls, rather than debugging hands-on",
@@ -1278,6 +1547,33 @@
           "summary": "Reviewing an incident to find how the system allowed it and what to change, without blaming individuals",
           "level": "medium",
           "variants": []
+        },
+        {
+          "id": "delivery-ops/incident-response/burn-rate-alerts",
+          "title": "Burn-rate alerting",
+          "summary": "Alerting on how fast the error budget is being spent, over a short and a long window",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "With a 30-day SLO window, a burn rate of 1 means the budget will be exactly used up in 30 days. Sustained for 1 hour, what share of the 30-day budget does a burn rate of 14.4 use?",
+              "choices": ["About 14%", "About 0.5%", "About 48%", "About 2%"],
+              "answer": 3,
+              "explain": "One hour is 1/720 of 30 days, so 14.4 × 1/720 = 2% of the budget. That's why a high burn rate over a short window is a common paging threshold."
+            },
+            {
+              "lang": null,
+              "q": "Why do burn-rate alerts often require both a long window (say 1 hour) and a short window (say 5 minutes) to be over the threshold?",
+              "choices": [
+                "Long window shows it's real; short shows it's ongoing",
+                "Most monitoring tools can't evaluate a single-window rule",
+                "The short window catches problems the long one never sees",
+                "It halves the number of alert rules that need maintaining"
+              ],
+              "answer": 0,
+              "explain": "A long window alone keeps firing for a while after the problem is fixed; a short window alone is noisy. Requiring both gives alerts that are significant and current."
+            }
+          ]
         }
       ]
     }

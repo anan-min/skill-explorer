@@ -45,7 +45,7 @@
           "id": "data-storage/schema-design/money-types",
           "title": "Storing money",
           "summary": "Using exact types (`numeric` or integer minor units) for money, never binary floating point",
-          "level": "easy",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -104,7 +104,7 @@
           "id": "data-storage/schema-design/soft-delete-unique",
           "title": "Unique constraints with soft delete",
           "summary": "Keeping a value unique among live rows only, when deleted rows stay in the table",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -136,7 +136,7 @@
           "id": "data-storage/schema-design/timestamptz",
           "title": "timestamptz vs timestamp",
           "summary": "In Postgres, `timestamptz` stores an instant (UTC); `timestamp` stores a wall-clock time with no zone",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -207,62 +207,31 @@
           "id": "data-storage/query-optimization/reading-query-plan",
           "title": "Reading a query plan",
           "summary": "Using `EXPLAIN ANALYZE` to see how a query actually ran: scans, joins, estimated vs actual rows",
-          "level": "medium",
-          "variants": []
-        },
-        {
-          "id": "data-storage/query-optimization/n-plus-one",
-          "title": "N+1 query",
-          "summary": "Running one query for a list, then one more per item, instead of loading them together",
           "level": "easy",
           "variants": [
             {
-              "lang": "ts",
-              "q": "How many queries does this run, and what's the problem called?\n\n```ts\nconst orders = await db.query('SELECT * FROM orders LIMIT 50')\nfor (const o of orders.rows) {\n  const c = await db.query('SELECT * FROM customers WHERE id = $1', [o.customer_id])\n  o.customer = c.rows[0]\n}\n```",
+              "lang": null,
+              "q": "In Postgres, what's the key difference between `EXPLAIN` and `EXPLAIN ANALYZE`?",
               "choices": [
-                "51: the N+1 query problem",
-                "2: the driver batches the loop",
-                "1: `pg` joins the queries",
-                "50: a cartesian product"
+                "`ANALYZE` executes the query and shows real rows and timings",
+                "`ANALYZE` also refreshes the table's statistics",
+                "`ANALYZE` prints the plan as JSON instead of text",
+                "`ANALYZE` works only on `SELECT` statements"
               ],
               "answer": 0,
-              "explain": "One query for the list plus one per row. Load all the customers at once with `WHERE id = ANY($1)` or a join."
-            },
-            {
-              "lang": "go",
-              "q": "What's the usual fix?\n\n```go\nposts, _ := store.ListPosts(ctx, 20) // 1 query\nfor i := range posts {\n    posts[i].Author, _ = store.GetUser(ctx, posts[i].AuthorID) // 1 query each\n}\n```",
-              "choices": [
-                "Run the `GetUser` calls in parallel goroutines",
-                "Load all authors at once with `WHERE id = ANY($1)`",
-                "Add an index on `users.id` to speed up each lookup",
-                "Raise the connection pool size so calls don't wait"
-              ],
-              "answer": 1,
-              "explain": "One query for all the ids removes 20 round trips. Running them in parallel hides the latency but still sends 21 queries and takes 21 connections' worth of work."
-            },
-            {
-              "lang": "python",
-              "q": "What's the usual fix?\n\n```python\nposts = await store.list_posts(limit=20)  # 1 query\nfor post in posts:\n    post.author = await store.get_user(post.author_id)  # 1 query each\n```",
-              "choices": [
-                "Wrap the loop in `asyncio.gather` so lookups run at once",
-                "Add an index on `users.id` to speed up each lookup",
-                "Load all authors in one query with `WHERE id = ANY(%s)`",
-                "Raise the connection pool size so calls don't wait"
-              ],
-              "answer": 2,
-              "explain": "Fetching every author in one query replaces 20 round trips with one. `gather` overlaps them but still sends 21 queries."
+              "explain": "`EXPLAIN` shows the planner's estimates; `EXPLAIN ANALYZE` runs the query and adds what really happened, so wrap an `UPDATE` or `DELETE` in a transaction you roll back. Refreshing statistics is the separate `ANALYZE` command."
             },
             {
               "lang": null,
-              "q": "A blog page lists 30 posts with each post's comment count. The query log shows 31 queries per page view. What's the usual fix?",
+              "q": "What does this plan suggest?\n\n```\nSeq Scan on orders  (cost=0.00..41000.00 rows=12 width=64) (actual time=0.03..812.40 rows=9 loops=1)\n  Filter: (customer_id = 42)\n  Rows Removed by Filter: 1999991\n```",
               "choices": [
-                "One query that groups comment counts by `post_id`, joined or fetched once",
-                "Add an index on `comments.post_id`",
-                "Run the 30 count queries in parallel",
-                "Cache each count in memory per request"
+                "Most rows are dead, so the table needs `VACUUM`",
+                "The statistics are stale, since 12 estimated isn't 9",
+                "There's probably no usable index on `customer_id`",
+                "Nothing; a sequential scan is always the fastest"
               ],
-              "answer": 0,
-              "explain": "One query for the list plus one per post is the N+1 shape, and it goes away by fetching all the counts together. An index makes each query cheaper, and parallelism overlaps them, but both still send 31 queries."
+              "answer": 2,
+              "explain": "It read two million rows to return nine, filtering out the rest, which is what happens without an index on the filtered column. 'Rows Removed by Filter' counts rows that didn't match, not dead rows, and an estimate of 12 against 9 actual is accurate."
             }
           ]
         },
@@ -334,7 +303,7 @@
           "id": "data-storage/query-optimization/covering-index",
           "title": "Covering index (index-only scan)",
           "summary": "An index that holds every column a query needs, so the table itself isn't read",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -359,6 +328,70 @@
               ],
               "answer": 0,
               "explain": "Postgres must check the table for rows on pages the visibility map doesn't mark all-visible. A recently vacuumed table needs few heap fetches."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/query-optimization/index-basics",
+          "title": "Indexes (B-tree)",
+          "summary": "A sorted structure that lets the database find matching rows without reading the whole table",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "`SELECT * FROM users WHERE email = $1` takes 2 seconds on a 10-million-row table, and the plan shows a sequential scan. What's the usual fix?",
+              "choices": [
+                "Add `LIMIT 1` so the scan stops at the first match",
+                "Increase the application's connection pool size",
+                "Run `VACUUM FULL` on the table",
+                "Create an index on `users(email)`"
+              ],
+              "answer": 3,
+              "explain": "An index on `email` lets the database jump to the matching rows instead of reading all ten million. `LIMIT 1` can stop early, but on average it still reads a large share of the table."
+            },
+            {
+              "lang": null,
+              "q": "Why not simply add an index on every column of a busy, write-heavy table?",
+              "choices": [
+                "Every insert and update must also update each index",
+                "Databases allow only one index per table",
+                "Reads get slower once a table has three indexes",
+                "Indexes are rebuilt from scratch every night"
+              ],
+              "answer": 0,
+              "explain": "Each index is a separate structure that writes must keep in sync, so it costs write time and storage. Add the ones your queries actually use."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/query-optimization/stale-statistics",
+          "title": "Stale planner statistics",
+          "summary": "The planner picks plans from stored statistics; after big data changes, outdated stats give bad plans until `ANALYZE` runs",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A Postgres job bulk-loads millions of rows into a table, then immediately runs a large join on it. `EXPLAIN ANALYZE` shows row estimates off from the actual counts by orders of magnitude, and a nested loop that runs for minutes. What's the most direct fix?",
+              "choices": [
+                "Run `REINDEX` on the table's indexes",
+                "Run `ANALYZE` on the table after the load",
+                "Raise `max_connections` for the job",
+                "Add an index on every join column"
+              ],
+              "answer": 1,
+              "explain": "The planner estimates rows from statistics gathered by `ANALYZE`; right after a big load they describe the old data, so it picks a plan suited to a much smaller table. Autovacuum would analyze it eventually, but not before the job's next statement."
+            },
+            {
+              "lang": null,
+              "q": "A Postgres query was fast for months, then started using a much slower plan. Nobody changed the code, the indexes or the settings. What's the most likely explanation?",
+              "choices": [
+                "Postgres caches every plan until the server restarts",
+                "Indexes expire after a set age and stop being used",
+                "The planner picks at random among equal-cost plans",
+                "Plans come from statistics, and the data has shifted"
+              ],
+              "answer": 3,
+              "explain": "The planner is cost-based: as row counts and value distributions change, its estimates change and a different plan can win, sometimes wrongly. Comparing estimated and actual rows in `EXPLAIN ANALYZE` shows where it went wrong."
             }
           ]
         }
@@ -449,7 +482,7 @@
           "id": "data-storage/transactions-consistency/write-skew",
           "title": "Write skew",
           "summary": "Two transactions read the same data, then update different rows, breaking an invariant together",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -513,7 +546,7 @@
           "id": "data-storage/transactions-consistency/transactional-outbox",
           "title": "Transactional outbox",
           "summary": "Writing an event to an outbox table in the same transaction as the data, then publishing it",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": "ts",
@@ -579,6 +612,38 @@
               "explain": "Sticky routing after a write covers the user who wrote, while everyone else keeps reading cheap replicas. Waiting for a replica to pass the write's WAL position is a more precise variant."
             }
           ]
+        },
+        {
+          "id": "data-storage/transactions-consistency/atomicity",
+          "title": "Atomicity",
+          "summary": "All statements in a transaction take effect together, or none of them do",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A transfer runs `UPDATE accounts SET balance = balance - 100 WHERE id = 1`, then the matching `+ 100` for id 2, as two separate autocommit statements. The process crashes between them. What's the state, and what prevents it?",
+              "choices": [
+                "Both updates are lost; just retry the transfer",
+                "Account 1 is debited but 2 isn't; use one transaction",
+                "The first update is rolled back automatically",
+                "Account 2 is credited twice; add a unique key"
+              ],
+              "answer": 1,
+              "explain": "Each autocommit statement is its own transaction, so the first one is already durable when the crash happens. Putting both in one transaction makes them commit together or not at all."
+            },
+            {
+              "lang": null,
+              "q": "Inside `BEGIN`, an `INSERT` succeeds, then an `UPDATE` violates a constraint, and the code runs `ROLLBACK`. What happens to the inserted row?",
+              "choices": [
+                "It stays, since it succeeded before the error",
+                "It stays, but is hidden until the next commit",
+                "It's removed only if the table has a foreign key",
+                "It's removed, with everything else in the transaction"
+              ],
+              "answer": 3,
+              "explain": "`ROLLBACK` undoes every change made since `BEGIN`, whether or not that statement succeeded on its own. That's what lets a multi-step change fail cleanly."
+            }
+          ]
         }
       ]
     },
@@ -591,7 +656,7 @@
           "id": "data-storage/migrations/expand-contract",
           "title": "Expand and contract",
           "summary": "Changing a schema in backward-compatible steps so old and new code can run at the same time",
-          "level": "medium",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -623,7 +688,7 @@
           "id": "data-storage/migrations/add-column-default",
           "title": "Adding a column with a default",
           "summary": "On Postgres 11+, a constant default is stored in the catalog; a volatile one rewrites the table",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -687,7 +752,7 @@
           "id": "data-storage/migrations/lock-timeout",
           "title": "Lock queues and lock_timeout",
           "summary": "A DDL statement waiting for a lock blocks every query queued behind it; `lock_timeout` limits the wait",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -746,6 +811,38 @@
               "explain": "Short batches hold locks briefly, let vacuum and replicas keep up, and can be paused or resumed. A night-time single update has the same problems, just with fewer witnesses."
             }
           ]
+        },
+        {
+          "id": "data-storage/migrations/versioned-migrations",
+          "title": "Versioned migrations",
+          "summary": "Schema changes kept as ordered files that a tool applies once each and records in the database",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A migration that already ran in production created a column named `adress`. What's the right fix?",
+              "choices": [
+                "Edit the old migration file to say `address`",
+                "Rename the column in production by hand only",
+                "Add a new migration that renames the column",
+                "Delete the migration and recreate the table"
+              ],
+              "answer": 2,
+              "explain": "The tool has recorded the old migration as applied and won't run it again, so editing it leaves environments out of sync (and tools that store checksums will refuse to continue). A new migration moves every environment forward the same way."
+            },
+            {
+              "lang": null,
+              "q": "How does a migration tool such as Flyway, golang-migrate or Alembic decide which migrations to run on deploy?",
+              "choices": [
+                "It records applied versions in a table and runs the rest",
+                "It runs every migration file again on each deploy",
+                "It diffs the live schema against the code's models",
+                "It reads the latest git commit to find new files"
+              ],
+              "answer": 0,
+              "explain": "Each tool keeps a table in the database (for example `flyway_schema_history`, `schema_migrations`, `alembic_version`) that says how far the schema has got, and applies only what comes after. Generating migrations from model diffs is a development-time step in some tools, not what runs on deploy."
+            }
+          ]
         }
       ]
     },
@@ -790,7 +887,7 @@
           "id": "data-storage/relational-vs-nosql/pacelc",
           "title": "PACELC",
           "summary": "Extends CAP: when there's no partition, the trade-off is latency vs consistency",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -878,42 +975,10 @@
           ]
         },
         {
-          "id": "data-storage/relational-vs-nosql/dynamodb-read-consistency",
-          "title": "DynamoDB read consistency",
-          "summary": "DynamoDB reads are eventually consistent unless you ask otherwise, and GSIs only offer eventual",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": null,
-              "q": "By default, what can a DynamoDB `GetItem` return right after a successful `PutItem` of the same item?",
-              "choices": [
-                "Always the new item: reads are strongly consistent",
-                "An error until the write has been replicated everywhere",
-                "The new item only if both calls share a connection",
-                "Possibly the old one, unless `ConsistentRead` is set"
-              ],
-              "answer": 3,
-              "explain": "Default reads are eventually consistent and may hit a copy that hasn't caught up. `ConsistentRead: true` gives a strongly consistent read on the base table."
-            },
-            {
-              "lang": null,
-              "q": "You query a DynamoDB global secondary index and need to see a write made a moment ago. What can you do?",
-              "choices": [
-                "Read the base table instead",
-                "Set `ConsistentRead: true` on the GSI query",
-                "Add a sort key to the GSI definition",
-                "Scan the GSI instead of querying it"
-              ],
-              "answer": 0,
-              "explain": "GSIs are updated asynchronously and don't support strongly consistent reads. For read-after-write, read the base table by key with `ConsistentRead`."
-            }
-          ]
-        },
-        {
           "id": "data-storage/relational-vs-nosql/jsonb-indexing",
           "title": "Indexing JSONB",
           "summary": "Which Postgres indexes help which `jsonb` queries: GIN for containment, expression B-trees for one field",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -940,6 +1005,70 @@
               "explain": "An expression index stores exactly the extracted value the query compares. A GIN index on `data` serves `@>` lookups, not `->>` equality."
             }
           ]
+        },
+        {
+          "id": "data-storage/relational-vs-nosql/relational-vs-document",
+          "title": "Relational vs document databases",
+          "summary": "Tables with joins and an enforced schema vs self-contained JSON documents, and which data fits each",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "An order system has customers, orders, line items, products and inventory, with many cross-references and multi-row updates that must succeed together. Which default fits best?",
+              "choices": [
+                "A document store with one document per customer",
+                "A relational database",
+                "A key-value cache",
+                "A time-series database"
+              ],
+              "answer": 1,
+              "explain": "Many relationships, joins in both directions and multi-row transactions are what relational databases are built for. One document per customer makes queries across customers, such as 'all orders for product X', awkward and duplicates product data."
+            },
+            {
+              "lang": null,
+              "q": "A document database is described as 'schemaless'. What does that mean for your application in practice?",
+              "choices": [
+                "Documents have no structure, so no validation is needed",
+                "The database infers a schema from the first document",
+                "The schema lives in your code, not in the database",
+                "Every field is stored as a string, so types don't matter"
+              ],
+              "answer": 2,
+              "explain": "Your data still has a shape; by default the database just doesn't enforce it, so readers and writers in your code must agree on it and cope with older document versions."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/relational-vs-nosql/key-value-stores",
+          "title": "Key-value stores",
+          "summary": "Very fast reads and writes by exact key, but no filtering, joins or queries on other fields unless you build an index yourself",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Users are stored in a key-value store, keyed by `user_id`. Product now wants a page listing every user who signed up last week. What's the catch?",
+              "choices": [
+                "Each value can hold only one field, not a whole user",
+                "Lookups go by key, so this needs a scan or an extra index",
+                "Dates can't be stored as values in a key-value store",
+                "The query works, but results come back in random order"
+              ],
+              "answer": 1,
+              "explain": "A key-value store answers 'give me the value for this key' and little else, so a query on another field means scanning everything or maintaining a second key (an index) yourself. The value can be a whole JSON user; the limit is how you can find it."
+            },
+            {
+              "lang": null,
+              "q": "Which workload fits a key-value store best?",
+              "choices": [
+                "Ad-hoc reports joining orders, customers and products",
+                "Finding every order over $100 placed in March",
+                "Making sure each order points at an existing customer",
+                "Loading a session by its session id on every request"
+              ],
+              "answer": 3,
+              "explain": "Fetching one item by a known key is exactly what key-value stores are fast at. Joins, range filters on non-key fields and foreign keys are relational strengths."
+            }
+          ]
         }
       ]
     },
@@ -949,10 +1078,66 @@
       "summary": "Using a database from code: ORMs, connection pools and the N+1 problem",
       "concepts": [
         {
+          "id": "data-storage/db-integration/n-plus-one",
+          "title": "N+1 query",
+          "summary": "Running one query for a list, then one more per item, instead of loading them together",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "How many queries does this run, and what's the problem called?\n\n```ts\nconst orders = await db.query('SELECT * FROM orders LIMIT 50')\nfor (const o of orders.rows) {\n  const c = await db.query('SELECT * FROM customers WHERE id = $1', [o.customer_id])\n  o.customer = c.rows[0]\n}\n```",
+              "choices": [
+                "51: the N+1 query problem",
+                "2: the driver batches the loop",
+                "1: `pg` joins the queries",
+                "50: a cartesian product"
+              ],
+              "answer": 0,
+              "explain": "One query for the list plus one per row. Load all the customers at once with `WHERE id = ANY($1)` or a join."
+            },
+            {
+              "lang": "go",
+              "q": "What's the usual fix?\n\n```go\nposts, _ := store.ListPosts(ctx, 20) // 1 query\nfor i := range posts {\n    posts[i].Author, _ = store.GetUser(ctx, posts[i].AuthorID) // 1 query each\n}\n```",
+              "choices": [
+                "Run the `GetUser` calls in parallel goroutines",
+                "Load all authors at once with `WHERE id = ANY($1)`",
+                "Add an index on `users.id` to speed up each lookup",
+                "Raise the connection pool size so calls don't wait"
+              ],
+              "answer": 1,
+              "explain": "One query for all the ids removes 20 round trips. Running them in parallel hides the latency but still sends 21 queries and takes 21 connections' worth of work."
+            },
+            {
+              "lang": "python",
+              "q": "What's the usual fix?\n\n```python\nposts = await store.list_posts(limit=20)  # 1 query\nfor post in posts:\n    post.author = await store.get_user(post.author_id)  # 1 query each\n```",
+              "choices": [
+                "Wrap the loop in `asyncio.gather` so lookups run at once",
+                "Add an index on `users.id` to speed up each lookup",
+                "Load all authors in one query with `WHERE id = ANY(%s)`",
+                "Raise the connection pool size so calls don't wait"
+              ],
+              "answer": 2,
+              "explain": "Fetching every author in one query replaces 20 round trips with one. `gather` overlaps them but still sends 21 queries."
+            },
+            {
+              "lang": null,
+              "q": "A blog page lists 30 posts with each post's comment count. The query log shows 31 queries per page view. What's the usual fix?",
+              "choices": [
+                "Fetch all 30 counts in one grouped query",
+                "Add an index on `comments.post_id`",
+                "Run the 30 count queries in parallel",
+                "Cache each count in memory per request"
+              ],
+              "answer": 0,
+              "explain": "One query for the list plus one per post is the N+1 shape, and it goes away by fetching all the counts together. An index makes each query cheaper, and parallelism overlaps them, but both still send 31 queries."
+            }
+          ]
+        },
+        {
           "id": "data-storage/db-integration/connection-pool-sizing",
           "title": "Connection pool sizing",
           "summary": "Pools across all app instances add up, and their total must fit the database's connection limit",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -996,7 +1181,7 @@
           "id": "data-storage/db-integration/release-connections",
           "title": "Returning connections to the pool",
           "summary": "Every path, including errors and early returns, must give its connection back",
-          "level": "medium",
+          "level": "easy",
           "variants": [
             {
               "lang": "go",
@@ -1038,10 +1223,10 @@
               "lang": null,
               "q": "A function checks out a database connection and runs a query. Which structure makes sure the connection goes back to the pool on every path?",
               "choices": [
-                "Release it on the last line of the function",
-                "Release it in the error handler only",
+                "Release it on the last line of the function body",
+                "Release it in the error handler only, not on success",
                 "Rely on the pool's idle timeout to reclaim leaked connections",
-                "Release it in a `finally` / `defer` / context manager right after acquiring it"
+                "Release it in a `finally` / `defer` / context manager"
               ],
               "answer": 3,
               "explain": "Cleanup tied to the acquisition runs on early returns and exceptions too. A release on the last line is skipped by any early exit, and idle timeouts don't reclaim a connection that's checked out."
@@ -1138,10 +1323,10 @@
               "lang": null,
               "q": "A handler opens a transaction, inserts an order row, calls a shipping provider's API (usually 300 ms, sometimes 20 s), then updates the row and commits. Under load, which symptom appears first?",
               "choices": [
-                "Duplicate key errors on the order row",
-                "Pool exhaustion and lock waits, from connections and row locks held during slow calls",
-                "Phantom reads for concurrent readers",
-                "Replication lag on every replica"
+                "Duplicate key errors on the order row when it is retried",
+                "Pool exhaustion and lock waits while slow calls hold resources",
+                "Phantom reads for other concurrent readers of the table",
+                "Replication lag on every read replica in the cluster"
               ],
               "answer": 1,
               "explain": "The transaction holds a connection (and any locks it took) for the whole API call, so slow responses pin pool slots and make other writers wait. The other symptoms aren't caused by the call's duration."
@@ -1152,7 +1337,7 @@
           "id": "data-storage/db-integration/pgbouncer-transaction-mode",
           "title": "PgBouncer transaction pooling",
           "summary": "In transaction mode each transaction may get a different server connection, so session state can't be relied on",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
