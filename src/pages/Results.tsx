@@ -9,6 +9,7 @@ import type { AppProps } from "../App.tsx";
 import { GROUPS } from "../content.ts";
 import {
   claimsChecked,
+  emptyProgress,
   gapsByGroup,
   gapText,
   isChecked,
@@ -106,6 +107,12 @@ export function Results({ progress, update }: AppProps) {
     } catch {
       toast("That file isn't a Nerdscape backup");
     }
+  };
+
+  const startOver = () => {
+    if (!window.confirm("Clear every rating and answer in this browser and start over?")) return;
+    update(emptyProgress);
+    window.location.hash = "#/";
   };
 
   const gaps = gapsByGroup(GROUPS, progress);
@@ -271,6 +278,9 @@ export function Results({ progress, update }: AppProps) {
             Restore
             <input type="file" accept="application/json" hidden onChange={(e) => void restore(e.target.files?.[0])} />
           </label>
+        </Button>
+        <Button variant="outline" className="sm:ml-auto" onClick={startOver}>
+          Start over
         </Button>
       </footer>
     </div>

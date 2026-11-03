@@ -20,18 +20,16 @@ export function Home({ progress }: AppProps) {
         are, and which concepts you haven't met yet.
       </p>
       <div className="mx-auto grid max-w-md gap-3 sm:grid-cols-2">
-        <Button size="lg" variant="outline" className="h-auto flex-col gap-1 py-4" asChild>
+        <Button size="lg" variant="outline" className="h-auto flex-col gap-1 py-4 whitespace-normal" asChild>
           <a href="#/scan">
             <span className="text-base">Quick scan</span>
-            <span className="text-xs font-normal text-muted-foreground">
-              About 5 min · rate skills, 9 easy questions
-            </span>
+            <span className="text-xs font-normal text-muted-foreground">About 5 min · 9 easy questions</span>
           </a>
         </Button>
-        <Button size="lg" variant="soft" className="h-auto flex-col gap-1 py-4" asChild>
+        <Button size="lg" variant="soft" className="h-auto flex-col gap-1 py-4 whitespace-normal" asChild>
           <a href="#/quiz">
             <span className="text-base">Quiz</span>
-            <span className="text-xs font-normal opacity-70">About 10 min · rate skills, up to 18 questions</span>
+            <span className="text-xs font-normal opacity-70">About 10 min · up to 18 questions</span>
           </a>
         </Button>
       </div>
