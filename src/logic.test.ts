@@ -10,7 +10,6 @@ import {
   pickVariant,
   checkQueue,
   report,
-  hasExplored,
   scanSample,
   scan,
   scanAnswer,
@@ -291,13 +290,6 @@ describe("gapText", () => {
         "\n",
       ),
     );
-  });
-});
-
-describe("hasExplored", () => {
-  it("is false until any concept leaves fog", () => {
-    expect(hasExplored(emptyProgress())).toBe(false);
-    expect(hasExplored(scan(emptyProgress(), quizzable("c"), "never"))).toBe(true);
   });
 });
 

@@ -211,8 +211,6 @@ export function gapText(groups: GroupFile[], p: Progress): string {
 
 export const parseBackup = (text: string): Progress => ProgressSchema.parse(JSON.parse(text));
 
-export const hasExplored = (p: Progress) => Object.values(p.concepts).some((c) => c.state !== "fog");
-
 function statusLabel(p: Progress, id: string): string {
   const c = p.concepts[id];
   if (!c || c.state === "fog") return "Not explored";

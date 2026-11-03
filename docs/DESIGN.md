@@ -147,7 +147,7 @@ Home has two buttons, so people know up front what they're starting. Neither let
 
 ## Results page
 
-The header's **Your map** link (to `#/results`) shows only once at least one concept is explored, and is hidden during a scan or quiz run, since leaving mid-run drops the run's queue.
+The header's **Your map** link (to `#/results`) shows only once a Quick scan or Quiz is finished (the persona is unlocked), and is hidden during a scan or quiz run, since leaving mid-run drops the run's queue.
 
 ### Hero: persona + radar
 
