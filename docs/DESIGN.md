@@ -147,7 +147,7 @@ Home has two buttons, so people know up front what they're starting. Neither let
 
 ## Results page
 
-The header's **Your map** link (to `#/results`) shows only once a Quick scan or Quiz is finished (the persona is unlocked), and is hidden during a scan or quiz run, since leaving mid-run drops the run's queue.
+The header's **Your map** link (to `#/results`) shows only once a Quick scan or Quiz reaches its result (saved as `finished` in progress, so answering the rows and then leaving doesn't count), and is hidden during a scan or quiz run, since leaving mid-run drops the run's queue.
 
 ### Hero: persona + radar
 
@@ -173,7 +173,7 @@ Below the gaps, never on the share card: right and wrong quiz answers, "Used it"
 
 - **Copy gap list** as plain text (it doubles as a personal growth note).
 - **Download report:** a Markdown file (`nerdscape-report.md`) with the persona (and whether the quiz checked it), then every topic → skill → concept with its status: Confirmed, Used, Missed, Heard, New or Not explored. Each Missed concept also has the question, the picked choice, the answer and the explanation.
-- **Backup / Restore:** a JSON file with `schemaVersion`, states keyed by concept ID.
+- **Backup / Restore:** a JSON file with `schemaVersion`, states keyed by concept ID, and `finished` once a run has reached its result.
 - One line on the first screen saying the data lives in this browser. No export nagging.
 
 ## Sharing

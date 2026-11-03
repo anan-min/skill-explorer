@@ -6,6 +6,7 @@ import { GROUPS, groupTitleOf } from "../content.ts";
 import {
   answer,
   checkQueue,
+  finishRun,
   pickVariant,
   scan,
   scanAnswer,
@@ -48,9 +49,15 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
   // The scan shows one topic per page.
   const [page, setPage] = useState(0);
   const finished = queue !== null && index >= queue.length;
+  const finish = () => {
+    update(finishRun);
+    window.location.hash = "#/results";
+  };
   useEffect(() => {
-    if (finished) window.location.hash = "#/results";
-  }, [finished]);
+    if (!finished) return;
+    update(finishRun);
+    window.location.hash = "#/results";
+  }, [finished, update]);
 
   if (queue === null) {
     const { group, concepts } = sample[page];
@@ -104,11 +111,7 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
               variant="soft"
               disabled={done < concepts.length}
               onClick={() =>
-                !last
-                  ? go(page + 1)
-                  : mode === "quiz"
-                    ? setQueue(checks(progress, settings.lang))
-                    : (window.location.hash = "#/results")
+                !last ? go(page + 1) : mode === "quiz" ? setQueue(checks(progress, settings.lang)) : finish()
               }
             >
               {!last ? "Next topic →" : mode === "quiz" ? "Next: quick check →" : "See my result →"}

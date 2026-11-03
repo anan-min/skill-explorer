@@ -4,6 +4,7 @@ import {
   allChecked,
   answer,
   emptyProgress,
+  finishRun,
   gapText,
   parseBackup,
   persona,
@@ -372,6 +373,13 @@ describe("backup", () => {
   it("round-trips", () => {
     const p = answer(emptyProgress(), quizzable("c"), 0, 2);
     expect(parseBackup(JSON.stringify(p))).toEqual(p);
+  });
+
+  it("round-trips a finished run, and loads backups saved before the flag existed", () => {
+    const p = finishRun(scan(emptyProgress(), quizzable("c"), "used"));
+    expect(p.finished).toBe(true);
+    expect(parseBackup(JSON.stringify(p))).toEqual(p);
+    expect(parseBackup(JSON.stringify({ schemaVersion: 1, concepts: {} })).finished).toBeUndefined();
   });
 
   it("rejects junk and unknown schema versions", () => {
