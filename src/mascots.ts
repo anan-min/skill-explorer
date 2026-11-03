@@ -12,6 +12,7 @@ export const MASCOTS = {
   "delivery-ops": { animal: "Husky", job: "Sled runner", file: "delivery-ops.svg" },
   frontend: { animal: "Chameleon", job: "Signaller", file: "frontend.svg" },
   wanderer: { animal: "Fox", job: "Backpacker", file: "wanderer.svg" },
+  apprentice: { animal: "Chick", job: "Apprentice", file: "apprentice.svg" },
 } as const;
 
 export type MascotId = keyof typeof MASCOTS;

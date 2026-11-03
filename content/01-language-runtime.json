@@ -1,5 +1,8 @@
 {
-  "group": { "id": "language-runtime", "title": "Language & runtime", "hidden": false },
+  "group": {
+    "id": "language-runtime",
+    "title": "Language & runtime"
+  },
   "skills": [
     {
       "id": "types-memory",

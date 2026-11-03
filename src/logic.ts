@@ -18,12 +18,14 @@ export type State = z.infer<typeof StateSchema>;
 export type Progress = z.infer<typeof ProgressSchema>;
 export type LangPref = "go" | "ts" | "both";
 export type ScanButton = "never" | "name" | "used";
-export type Persona = { kind: "locked" } | { kind: "wanderer" } | { kind: "group"; id: string };
+export type Persona =
+  { kind: "locked" } | { kind: "apprentice" } | { kind: "wanderer" } | { kind: "group"; id: string };
 
-const SESSION_LENGTH = 10;
-const UNLOCK_GROUPS = 2;
-const UNLOCK_COVERAGE = 0.5;
-const WANDERER_SPREAD = 0.15;
+// A session samples this many concepts from every group, so one session reads every group.
+const PER_GROUP = 2;
+// A group passes at MIN_ANSWERS quiz answers with at least PASS_RATE of them right.
+const MIN_ANSWERS = 2;
+const PASS_RATE = 0.6;
 
 export const emptyProgress = (): Progress => ({ schemaVersion: 1, concepts: {} });
 
@@ -64,46 +66,92 @@ export function pickVariant(concept: Concept, p: Progress, lang: LangPref, rand:
   return pool[Math.floor(rand() * pool.length)].i;
 }
 
-export function quizQueue(concepts: Concept[], p: Progress, lang: LangPref, rand: () => number): Concept[] {
-  const askable = concepts.filter((c) => pickVariant(c, p, lang, rand) !== null);
-  return (["claimed", "fog", "gap"] as const)
-    .flatMap((state) =>
-      shuffle(
-        askable.filter((c) => stateOf(p, c.id) === state),
-        rand,
-      ),
+const PRIORITY: State[] = ["claimed", "fog", "gap"];
+
+// Up to PER_GROUP concepts from each group, best-first by `rank`, then shuffled across groups.
+function sample(groups: GroupFile[], rank: (c: Concept) => number, rand: () => number): Concept[] {
+  const picks = groups.flatMap((g) =>
+    shuffle(
+      conceptsOf(g).filter((c) => rank(c) >= 0),
+      rand,
     )
-    .slice(0, SESSION_LENGTH);
+      .sort((x, y) => rank(x) - rank(y))
+      .slice(0, PER_GROUP),
+  );
+  return shuffle(picks, rand);
+}
+
+export function quizQueue(groups: GroupFile[], p: Progress, lang: LangPref, rand: () => number): Concept[] {
+  return sample(
+    groups,
+    (c) => (pickVariant(c, p, lang, rand) === null ? -1 : PRIORITY.indexOf(stateOf(p, c.id))),
+    rand,
+  );
+}
+
+export function expressQueue(groups: GroupFile[], p: Progress, rand: () => number): Concept[] {
+  return sample(groups, (c) => (stateOf(p, c.id) === "fog" ? 0 : 1), rand);
 }
 
 export const conceptsOf = (g: GroupFile): Concept[] => g.skills.flatMap((s) => s.concepts);
 
-export const visibleGroups = (groups: GroupFile[], frontend: boolean) =>
-  groups.filter((g) => frontend || !g.group.hidden);
+// A quiz answer leaves a concept confirmed (right) or a gap with `seen` (wrong).
+const answered = (p: Progress, id: string) => stateOf(p, id) === "confirmed" || !!p.concepts[id]?.seen;
 
-export function coverage(g: GroupFile, p: Progress): number {
-  const concepts = conceptsOf(g);
-  if (!concepts.length) return 0;
-  return concepts.filter((c) => stateOf(p, c.id) !== "fog").length / concepts.length;
+// Share of a group's quiz answers that were right: what the radar plots.
+export function strength(g: GroupFile, p: Progress): number {
+  const done = conceptsOf(g).filter((c) => answered(p, c.id));
+  return done.length ? done.filter((c) => stateOf(p, c.id) === "confirmed").length / done.length : 0;
 }
 
-export function persona(groups: GroupFile[], p: Progress, frontend = false): Persona {
-  const rows = visibleGroups(groups, frontend).map((g, order) => ({
-    id: g.group.id,
-    order,
-    cov: coverage(g, p),
-    confirmed: conceptsOf(g).filter((c) => stateOf(p, c.id) === "confirmed").length,
-  }));
-  if (rows.filter((r) => r.cov >= UNLOCK_COVERAGE).length < UNLOCK_GROUPS) return { kind: "locked" };
-  const covs = rows.map((r) => r.cov);
-  // Compare in whole points so float noise can't flip the 15-point rule.
-  if (Math.round((Math.max(...covs) - Math.min(...covs)) * 100) <= WANDERER_SPREAD * 100) return { kind: "wanderer" };
-  const [top] = [...rows].sort((a, b) => b.cov - a.cov || b.confirmed - a.confirmed || a.order - b.order);
+export function persona(groups: GroupFile[], p: Progress): Persona {
+  const rows = groups
+    .map((g, order) => {
+      const ids = conceptsOf(g)
+        .filter((c) => c.variants.length)
+        .map((c) => c.id);
+      const done = ids.filter((id) => answered(p, id));
+      const correct = done.filter((id) => stateOf(p, id) === "confirmed").length;
+      return { id: g.group.id, order, quizzable: ids.length, answered: done.length, correct };
+    })
+    // A group with too few quiz questions can never reach MIN_ANSWERS, so it can't hold the persona back.
+    .filter((r) => r.quizzable >= MIN_ANSWERS);
+  if (!rows.length || rows.some((r) => r.answered < MIN_ANSWERS)) return { kind: "locked" };
+  // Integer comparison so 3 of 5 is exactly 60%.
+  const passing = rows.filter((r) => r.correct * 100 >= r.answered * PASS_RATE * 100);
+  if (!passing.length) return { kind: "apprentice" };
+  if (passing.length === rows.length) return { kind: "wanderer" };
+  const [top] = passing.sort(
+    (x, y) => y.correct * x.answered - x.correct * y.answered || y.correct - x.correct || x.order - y.order,
+  );
   return { kind: "group", id: top.id };
 }
 
-export function gapsByGroup(groups: GroupFile[], p: Progress, frontend: boolean) {
-  return visibleGroups(groups, frontend)
+export function stats(groups: GroupFile[], p: Progress) {
+  const all = groups.flatMap(conceptsOf);
+  const count = (state: State) => all.filter((c) => stateOf(p, c.id) === state).length;
+  return {
+    correct: count("confirmed"),
+    wrong: all.filter((c) => p.concepts[c.id]?.seen && stateOf(p, c.id) === "gap").length,
+    used: count("claimed"),
+    gaps: count("gap"),
+    unexplored: count("fog"),
+    groups: groups.map((g) => {
+      const concepts = conceptsOf(g);
+      return {
+        id: g.group.id,
+        title: g.group.title,
+        correct: concepts.filter((c) => stateOf(p, c.id) === "confirmed").length,
+        answered: concepts.filter((c) => answered(p, c.id)).length,
+        explored: concepts.filter((c) => stateOf(p, c.id) !== "fog").length,
+        total: concepts.length,
+      };
+    }),
+  };
+}
+
+export function gapsByGroup(groups: GroupFile[], p: Progress) {
+  return groups
     .map((g) => {
       const skills = g.skills
         .map((s) => ({ skill: s, gaps: s.concepts.filter((c) => stateOf(p, c.id) === "gap") }))
@@ -114,8 +162,8 @@ export function gapsByGroup(groups: GroupFile[], p: Progress, frontend: boolean)
     .sort((a, b) => b.count - a.count);
 }
 
-export function gapText(groups: GroupFile[], p: Progress, frontend: boolean): string {
-  return gapsByGroup(groups, p, frontend)
+export function gapText(groups: GroupFile[], p: Progress): string {
+  return gapsByGroup(groups, p)
     .map(({ group, skills }) =>
       [
         group.group.title,

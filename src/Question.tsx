@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { shuffle } from "./logic.ts";
 import { Inline, Markdown } from "./Markdown.tsx";
 import type { Concept } from "./schema.ts";
@@ -29,38 +33,57 @@ export function Question({ concept, variant, onAnswer, onNext }: Props) {
   };
 
   return (
-    <div className="question">
-      <div className="q-meta">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between text-sm text-muted-foreground">
         <span>{concept.title}</span>
-        {v.lang && <span className="lang">{v.lang === "go" ? "Go" : "TS"}</span>}
-      </div>
-      <Markdown text={v.q} />
-      <ol className="choices">
-        {order.map((i) => {
-          const state = picked === null ? "" : i === v.answer ? "right" : i === picked ? "wrong" : "dim";
-          return (
-            <li key={i}>
-              <button className={`choice ${state}`} onClick={() => pick(i)} disabled={picked !== null}>
-                <Inline text={v.choices[i]} />
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+        {v.lang && <Badge variant="outline">{v.lang === "go" ? "Go" : "TS"}</Badge>}
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <Markdown text={v.q} />
+        <ol className="grid gap-2">
+          {order.map((i) => {
+            const right = picked !== null && i === v.answer;
+            const wrong = picked !== null && i === picked && i !== v.answer;
+            return (
+              <li key={i}>
+                <Button
+                  variant={right ? "default" : "outline"}
+                  className={cn(
+                    "h-auto w-full justify-start py-3 text-left whitespace-normal disabled:opacity-100",
+                    wrong && "line-through decoration-2",
+                    picked !== null && !right && !wrong && "opacity-40 disabled:opacity-40",
+                  )}
+                  onClick={() => pick(i)}
+                  disabled={picked !== null}
+                >
+                  <span className="[overflow-wrap:anywhere]">
+                    <Inline text={v.choices[i]} />
+                  </span>
+                </Button>
+              </li>
+            );
+          })}
+        </ol>
+      </CardContent>
       {picked !== null && (
-        <div className="feedback">
-          <strong>{picked === v.answer ? "Right." : "Not quite."}</strong>
+        <CardFooter className="flex-col items-stretch gap-4 border-t pt-5">
+          <p className="font-semibold">{picked === v.answer ? "Right." : "Not quite."}</p>
           <Markdown text={v.explain} />
-          <div className="row">
-            <button className="primary" onClick={onNext} autoFocus>
+          <div className="flex items-center justify-between gap-2">
+            <Button onClick={onNext} autoFocus>
               Next
-            </button>
-            <a className="report" href={reportUrl(concept.id, variant)} target="_blank" rel="noreferrer">
+            </Button>
+            <a
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+              href={reportUrl(concept.id, variant)}
+              target="_blank"
+              rel="noreferrer"
+            >
               Report this question
             </a>
           </div>
-        </div>
+        </CardFooter>
       )}
-    </div>
+    </Card>
   );
 }

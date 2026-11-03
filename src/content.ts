@@ -8,3 +8,6 @@ export const GROUPS: GroupFile[] = Object.keys(files)
   .map((path) => GroupFile.parse(files[path]));
 
 export const groupById = (id: string) => GROUPS.find((g) => g.group.id === id);
+
+// Concept IDs start with their group ID.
+export const groupTitleOf = (conceptId: string) => groupById(conceptId.split("/")[0])?.group.title ?? "";
