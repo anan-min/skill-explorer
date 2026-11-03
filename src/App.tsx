@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import type { Progress } from "./logic.ts";
-import { ExpressTopic, ExpressTopics } from "./pages/Express.tsx";
 import { Home } from "./pages/Home.tsx";
-import { Quiz } from "./pages/Quiz.tsx";
 import { Results } from "./pages/Results.tsx";
+import { Run } from "./pages/Run.tsx";
 import { loadProgress, loadSettings, saveProgress, saveSettings, type Settings } from "./store.ts";
 
 function useHash() {
@@ -37,7 +36,7 @@ export function App() {
     saveSettings(s);
   };
   const props: AppProps = { progress, update: setProgress, settings, setSettings };
-  const [route, groupId] = useHash();
+  const [route] = useHash();
 
   return (
     <div className="min-h-svh">
@@ -50,17 +49,7 @@ export function App() {
         </a>
       </header>
       <main className="mx-auto max-w-3xl px-4 pb-16">
-        {route === "express" && groupId ? (
-          <ExpressTopic key={groupId} groupId={groupId} {...props} />
-        ) : route === "express" ? (
-          <ExpressTopics {...props} />
-        ) : route === "quiz" ? (
-          <Quiz {...props} />
-        ) : route === "results" ? (
-          <Results {...props} />
-        ) : (
-          <Home {...props} />
-        )}
+        {route === "start" ? <Run {...props} /> : route === "results" ? <Results {...props} /> : <Home {...props} />}
       </main>
       <footer className="mx-auto flex max-w-3xl flex-wrap justify-between gap-2 border-t px-4 py-6 text-sm text-muted-foreground">
         <span>

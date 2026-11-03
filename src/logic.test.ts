@@ -7,7 +7,8 @@ import {
   parseBackup,
   persona,
   pickVariant,
-  quizQueue,
+  checkQueue,
+  scanSample,
   scan,
   scanAnswer,
   stateOf,
@@ -120,118 +121,121 @@ describe("pickVariant", () => {
   });
 });
 
-describe("quizQueue", () => {
-  const a = group("a", [
-    quizzable("f1"),
-    quizzable("g1"),
-    quizzable("c1"),
-    quizzable("ok"),
-    scanOnly("so"),
-    quizzable("f2"),
-  ]);
-  const b = group("b", [quizzable("b1"), quizzable("b2"), quizzable("b3")]);
-  const p = withStates({ g1: "gap", c1: "claimed", ok: "confirmed", b1: "gap", b2: "gap" });
+// A group "g" with concepts g1..gN; the first is basic.
+const topic = (id: string, n: number, over: Partial<Concept> = {}) =>
+  group(
+    id,
+    Array.from({ length: n }, (_, i) => ({ ...quizzable(`${id}${i + 1}`), basic: i === 0, ...over })),
+  );
+const heard = (...ids: string[]) =>
+  Object.fromEntries(ids.map((id) => [id, { state: "gap" as const, scan: "name" as const }]));
+const fresh = (...ids: string[]) =>
+  Object.fromEntries(ids.map((id) => [id, { state: "gap" as const, scan: "never" as const }]));
+const used = (...ids: string[]) => Object.fromEntries(ids.map((id) => [id, { state: "claimed" as const }]));
+const right = (...ids: string[]) => Object.fromEntries(ids.map((id) => [id, { state: "confirmed" as const }]));
+const wrong = (...ids: string[]) =>
+  Object.fromEntries(ids.map((id) => [id, { state: "gap" as const, seen: { variant: 0, choice: 1 } }]));
+const progress = (...parts: Progress["concepts"][]): Progress => ({
+  ...emptyProgress(),
+  concepts: Object.assign({}, ...parts) as Progress["concepts"],
+});
 
-  it("takes 2 per group, claimed first, then fog, then gap; never confirmed or scan-only", () => {
-    for (let i = 0; i < 20; i++) {
-      const ids = quizQueue([a, b], p, "both", Math.random).map((c) => c.id);
-      expect(ids).toHaveLength(4);
-      expect(ids).toContain("c1");
-      expect(ids.filter((id) => id === "f1" || id === "f2")).toHaveLength(1);
-      expect(ids).toContain("b3");
-      expect(ids.filter((id) => id === "b1" || id === "b2")).toHaveLength(1);
+describe("scanSample", () => {
+  it("deals up to 4 concepts per topic, unexplored first, keeping topic order", () => {
+    const a = topic("a", 6);
+    const b = topic("b", 2);
+    for (let i = 0; i < 10; i++) {
+      const dealt = scanSample([a, b], progress(right("a1"), heard("a2")), Math.random);
+      expect(dealt.map((d) => d.group.group.id)).toEqual(["a", "b"]);
+      expect(dealt[0].concepts.map((c) => c.id).sort()).toEqual(["a3", "a4", "a5", "a6"]);
+      expect(dealt[1].concepts).toHaveLength(2);
     }
-  });
-
-  it("mixes groups instead of running one group in a row", () => {
-    const groups = ["x", "y", "z"].map((g) => group(g, [quizzable(`${g}1`), quizzable(`${g}2`)]));
-    const orders = new Set(
-      Array.from({ length: 30 }, () =>
-        quizQueue(groups, emptyProgress(), "both", Math.random)
-          .map((c) => c.id[0])
-          .join(""),
-      ),
-    );
-    expect(orders.size).toBeGreaterThan(1);
-  });
-
-  it("skips concepts with no variant in the chosen language", () => {
-    const g = group("g", [quizzable("go-only", ["go", "go"]), quizzable("any", [null, null])]);
-    expect(quizQueue([g], emptyProgress(), "ts", first).map((c) => c.id)).toEqual(["any"]);
   });
 });
 
-describe("persona", () => {
-  const a = group("a", [quizzable("a1"), quizzable("a2"), quizzable("a3")]);
-  const b = group("b", [quizzable("b1"), quizzable("b2"), quizzable("b3")]);
-  const c = group("c", [quizzable("c1"), quizzable("c2"), quizzable("c3")]);
-  const right = (...ids: string[]) => Object.fromEntries(ids.map((id) => [id, { state: "confirmed" as const }]));
-  const wrong = (...ids: string[]) =>
-    Object.fromEntries(ids.map((id) => [id, { state: "gap" as const, seen: { variant: 0, choice: 1 } }]));
-  const answers = (...parts: Progress["concepts"][]): Progress => ({
-    ...emptyProgress(),
-    concepts: Object.assign({}, ...parts) as Progress["concepts"],
+describe("checkQueue", () => {
+  const ids = (q: Concept[]) => q.map((c) => c.id).sort();
+
+  it("gives every topic one check: a Used claim, else a Heard, else its basic question", () => {
+    const groups = [topic("a", 4), topic("b", 4), topic("c", 4)];
+    const p = progress(used("a3"), heard("b2"), fresh("c2", "c3", "c4"));
+    expect(ids(checkQueue(groups, p, "both", Math.random))).toEqual(["a3", "b2", "c1"]);
   });
 
-  it("stays locked until every quizzable group has 2 quiz answers", () => {
-    expect(persona([a, b, c], answers(right("a1", "a2", "b1", "b2"), wrong("c1")))).toEqual({ kind: "locked" });
+  it("never re-asks a confirmed concept or a New row", () => {
+    const g = topic("g", 3);
+    expect(ids(checkQueue([g], progress(right("g1"), fresh("g2", "g3")), "both", Math.random))).toEqual([]);
   });
 
-  it("does not wait on a group too small to quiz", () => {
-    const tiny = group("tiny", [quizzable("t1"), scanOnly("t2")]);
-    expect(persona([a, tiny], answers(right("a1", "a2")))).toEqual({ kind: "wanderer" });
+  it("spends up to 3 extra checks on topics with the most unchecked claims", () => {
+    const groups = [topic("a", 6), topic("b", 6), topic("c", 6)];
+    const p = progress(used("a2", "a3", "a4", "a5", "a6", "b2", "b3"), fresh("c2"));
+    const q = checkQueue(groups, p, "both", Math.random);
+    expect(q).toHaveLength(6);
+    expect(q.filter((c) => c.id.startsWith("a"))).toHaveLength(3);
+    expect(q.filter((c) => c.id.startsWith("b"))).toHaveLength(2);
+    expect(ids(q.filter((c) => c.id.startsWith("c")))).toEqual(["c1"]);
   });
 
-  it("only counts quiz answers, not self-reports", () => {
-    expect(persona([a], withStates({ a1: "claimed", a2: "claimed", a3: "claimed" }))).toEqual({ kind: "locked" });
-    expect(persona([a], answers(wrong("a1"), right("a2")))).toEqual({ kind: "apprentice" });
+  it("caps a run at 12 checks", () => {
+    const groups = "abcdefghi".split("").map((g) => topic(g, 5));
+    const p = progress(...groups.map((g) => used(...[2, 3, 4, 5].map((i) => `${g.group.id}${i}`))));
+    expect(checkQueue(groups, p, "both", Math.random)).toHaveLength(12);
   });
 
-  it("is the Apprentice when no group reaches 60%", () => {
-    expect(persona([a, b, c], answers(right("a1", "c1"), wrong("a2", "b1", "b2", "c2")))).toEqual({
-      kind: "apprentice",
-    });
-  });
-
-  it("is the Wanderer when every group reaches 60%", () => {
-    expect(persona([a, b, c], answers(right("a1", "a2", "b1", "b2", "c1", "c2"), wrong("c3")))).toEqual({
-      kind: "wanderer",
-    });
-  });
-
-  it("otherwise is the strongest passing group", () => {
-    expect(persona([a, b, c], answers(right("a1", "b1", "b2", "b3"), wrong("a2", "c1", "c2")))).toEqual({
-      kind: "group",
-      id: "b",
-    });
-  });
-
-  it("breaks a tie by correct answers, then by group order", () => {
-    expect(persona([a, b, c], answers(right("a1", "a2", "b1", "b2", "b3"), wrong("c1", "c2")))).toEqual({
-      kind: "group",
-      id: "b",
-    });
-    expect(persona([a, b, c], answers(right("a1", "a2", "b1", "b2"), wrong("c1", "c2")))).toEqual({
-      kind: "group",
-      id: "a",
-    });
+  it("skips concepts with no variant in the chosen language", () => {
+    const g = group("g", [{ ...quizzable("go-only", ["go", "go"]), basic: true }, quizzable("any", [null, null])]);
+    expect(ids(checkQueue([g], progress(used("go-only", "any")), "ts", Math.random))).toEqual(["any"]);
   });
 });
 
 describe("strength", () => {
-  it("is correct quiz answers over answered, 0 before any answer", () => {
-    const g = group("g", [quizzable("g1"), quizzable("g2"), quizzable("g3"), scanOnly("g4")]);
-    const p: Progress = {
-      ...emptyProgress(),
-      concepts: {
-        g1: { state: "confirmed" },
-        g2: { state: "gap", seen: { variant: 0, choice: 1 } },
-        g3: { state: "claimed" },
-        g4: { state: "gap" },
-      },
-    };
-    expect(strength(g, p)).toBe(0.5);
+  it("averages explored concepts: right 1, Used ¾, Heard ½, New and wrong 0", () => {
+    const g = topic("g", 6);
+    expect(strength(g, progress(right("g1"), used("g2"), heard("g3"), fresh("g4"), wrong("g5")))).toBe(0.45);
     expect(strength(g, emptyProgress())).toBe(0);
+  });
+});
+
+describe("persona", () => {
+  const a = topic("a", 4);
+  const b = topic("b", 4);
+  const c = topic("c", 4);
+  // A finished run: all 4 rows scanned and one quiz answer per topic.
+  const run = (g: string, ...parts: Progress["concepts"][]) =>
+    Object.assign({}, fresh(`${g}1`, `${g}2`, `${g}3`, `${g}4`), ...parts) as Progress["concepts"];
+
+  it("stays locked until every topic is scanned and checked", () => {
+    expect(persona([a, b], progress(run("a", right("a1")), fresh("b1", "b2"), wrong("b4")))).toEqual({
+      kind: "locked",
+    });
+    expect(persona([a, b], progress(run("a", right("a1")), run("b")))).toEqual({ kind: "locked" });
+  });
+
+  it("is the Apprentice when no topic reaches 60%", () => {
+    expect(persona([a, b], progress(run("a", wrong("a1")), run("b", wrong("b1"))))).toEqual({
+      kind: "apprentice",
+    });
+  });
+
+  it("is the Wanderer when every topic reaches 60%", () => {
+    const strong = (g: string) => run(g, right(`${g}1`, `${g}2`), used(`${g}3`, `${g}4`));
+    expect(persona([a, b], progress(strong("a"), strong("b")))).toEqual({ kind: "wanderer" });
+  });
+
+  it("otherwise is the strongest passing topic, ties broken by right answers then topic order", () => {
+    const p = progress(
+      run("a", right("a1", "a2"), used("a3", "a4")),
+      run("b", right("b1", "b2", "b3", "b4")),
+      run("c", wrong("c1")),
+    );
+    expect(persona([a, b, c], p)).toEqual({ kind: "group", id: "b" });
+    const tie = progress(
+      run("a", right("a1", "a2", "a3", "a4")),
+      run("b", right("b1", "b2", "b3", "b4")),
+      run("c", wrong("c1")),
+    );
+    expect(persona([a, b, c], tie)).toEqual({ kind: "group", id: "a" });
   });
 });
 

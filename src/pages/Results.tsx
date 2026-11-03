@@ -97,13 +97,16 @@ export function Results({ progress, update }: AppProps) {
             <>
               <img className="mascot size-44 opacity-30 grayscale" src={mascot("wanderer").src} alt="" />
               <p className="text-2xl font-semibold tracking-[0.25em] uppercase">Keep exploring</p>
-              <p className="text-sm text-muted-foreground">Finish a quiz round to meet your mascot.</p>
+              <p className="text-sm text-muted-foreground">Finish a run to meet your mascot.</p>
             </>
           )}
           <Radar axes={GROUPS.map((g) => ({ id: g.group.id, title: g.group.title, value: strength(g, progress) }))} />
           <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase">Nerdscape</p>
         </div>
         <div className="flex flex-wrap justify-center gap-2">
+          <Button asChild>
+            <a href="#/start">{m ? "Run again" : "Start a run"}</a>
+          </Button>
           <Button variant="outline" onClick={copyImage}>
             Copy image
           </Button>

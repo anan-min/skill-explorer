@@ -17,6 +17,9 @@ export function validateContent(files: { name: string; data: unknown }[]) {
     if (!new RegExp(`^\\d\\d-${group.id}\\.json$`).test(name)) {
       errors.push(`${name}: file name must be NN-${group.id}.json`);
     }
+    if (!skills.some((s) => s.concepts.some((c) => c.basic && c.variants.length))) {
+      errors.push(`${name}: needs at least one quizzable concept with "basic": true`);
+    }
     for (const skill of skills) {
       if (skill.concepts.length > MAX_CONCEPTS) {
         warnings.push(`${name}: skill ${skill.id} has ${skill.concepts.length} concepts (aim for 4–${MAX_CONCEPTS})`);

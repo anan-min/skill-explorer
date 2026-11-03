@@ -16,7 +16,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 ## Stack and hosting
 
 - Vite + React + TypeScript.
-- Hash routing (`#/express`, `#/express/<group>`, `#/quiz`, `#/results`), because GitHub Pages has no SPA fallback.
+- Hash routing (`#/start`, `#/results`), because GitHub Pages has no SPA fallback.
 - UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page so the mascots are the only colour.
 - GitHub Pages at `anan-min.github.io/skill-explorer`, deployed by GitHub Actions on push to `main`.
 - English only.
@@ -80,6 +80,7 @@ One file per group: `content/NN-<group-id>.json` (`01-language-runtime.json` …
       "id": "language-runtime/async/errgroup",   // group/skill/slug
       "title": "errgroup",
       "summary": "One line, shown in the gap list",
+      "basic": true,                              // optional: a foundational question, see "One run"
       "variants": [{                              // [] = scan-only
         "lang": "go",                             // "go" | "ts" | null
         "q": "Markdown, code fences allowed",
@@ -100,6 +101,7 @@ One file per group: `content/NN-<group-id>.json` (`01-language-runtime.json` …
 - Exactly 4 choices, all distinct.
 - `answer` is 0–3; `explain` is non-empty.
 - More than 8 concepts in a skill: warning, not failure.
+- Every group has at least one quizzable concept with `"basic": true`.
 
 ## States
 
@@ -116,32 +118,27 @@ Each concept is in one state:
 - **Explored** = any state except `fog`.
 - Scan-only concepts top out at `claimed`.
 
-## Two routes
+## One run
 
-### Express (the scan)
+Home has one **Start** button. A run covers every topic, takes about 5 minutes, and has two steps; there is no way to finish only one topic and get a result.
 
-A survey, so it goes topic by topic, as a list:
+### Step 1: quick scan (breadth)
 
-- `#/express` lists the groups with "scanned / total" and a progress bar.
-- `#/express/<group>` lists every concept in that group under its skill headings. Each row shows the title and summary and a three-way toggle:
+- One page, **4 concepts from every topic** under topic headings, unexplored concepts first, so repeat runs reach further into each topic.
+- Each row has a three-way toggle:
   - **New** (never heard of it) → `gap`
   - **Heard** (know the name) → `gap`
   - **Used** → `claimed`
-- The row remembers which button was picked (`scan: "never" | "name"` on a gap), so coming back is an edit, not a replay.
-- **?** (not sure) opens one quiz variant inline under the row; correct → `confirmed`, wrong → `gap`. Not shown for scan-only concepts.
-- A sticky bar shows "X of Y scanned" and links to the next topic (the last one links to results).
+- A gap remembers which button made it (`scan: "never" | "name"`), so rows show earlier answers.
+- "Next: quick check" stays disabled until every row is answered.
 
-### In-depth (the quiz)
+### Step 2: quick check (depth, aimed at claims)
 
-The quiz mixes all groups: each session takes **2 concepts from every group** (18 in all), shuffled together, so one session reads every group and nobody does one group in a row.
-
-### In-depth (the quiz)
-
-- 18 questions per session (about 9 minutes): 2 per group.
-- Within a group, picks `claimed` first (checking overconfidence is the quiz's main job), then `fog`, then `gap`. Never `confirmed`. Scan-only concepts are skipped.
+- **Every topic gets one check**, picked in this order: a **Used** claim, else a **Heard**, else the topic's **basic** question. "New" rows are never quizzed (that would be guessing); the basic question is a different, foundational concept.
+- Then up to **3 extra** checks on unchecked Used claims, spread round-robin over the topics with the most claims.
+- At most **12** checks. Never a `confirmed` concept.
 - Choices are shuffled when shown, since LLM-drafted questions tend to put the answer in the same position.
-- After each answer, show the right answer and `explain`.
-- Each answer is saved immediately, so quitting halfway loses nothing.
+- After each answer, show the right answer and `explain`. Each answer is saved immediately.
 - **Language toggle:** Go / TS / Both, default Both. With Both, prefer the language not yet tested for that concept. Variants with `lang: null` always qualify.
 - Each question has a **"Report this question"** link: a prefilled new GitHub issue titled `[report] <concept id> #<variant index>`. Nothing personal in the link.
 
@@ -149,13 +146,14 @@ The quiz mixes all groups: each session takes **2 concepts from every group** (1
 
 ### Hero: persona + radar
 
-- **Strength** per group = right quiz answers ÷ quiz answers in that group (latest answer per concept; Express self-reports don't count).
-- **Radar:** strength per group, no numbers.
-- **Unlock:** the persona appears once every group with at least 2 quizzable concepts has at least 2 quiz answers (one quiz session). Before that, show a silhouette and "keep exploring".
-- **Persona rule:** a group **passes** at ≥ 60% strength.
-  - No group passes → **Apprentice**.
-  - Every group passes → **Wanderer**.
-  - Otherwise → the strongest passing group's mascot. Tie → more right answers wins, then the lower group number.
+- **Strength** per topic = average over its explored concepts of: quiz right 1, unverified Used ¾, Heard ½, New 0, quiz wrong 0. A quiz answer replaces the self-report for that concept; unverified claims count less so claiming everything doesn't pay.
+- **Radar:** strength per topic, no numbers.
+- **Unlock:** once every topic has its scan rows answered and (if it can be quizzed) at least one quiz answer, i.e. one finished run. Before that, a silhouette and "finish a run".
+- **Persona rule:** a topic **passes** at ≥ 60% strength.
+  - No topic passes → **Apprentice**.
+  - Every topic passes → **Wanderer**.
+  - Otherwise → the strongest passing topic's mascot. Tie → more `confirmed` concepts, then the lower group number.
+- Results accumulate across runs (latest answer per concept), so later runs sharpen the result.
 
 ### Your gaps
 

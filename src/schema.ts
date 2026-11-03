@@ -15,6 +15,8 @@ export const Concept = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   summary: z.string().min(1),
+  // A foundational question: asked in a topic where the person claimed nothing.
+  basic: z.boolean().optional(),
   variants: z.array(Variant).refine((v) => v.length !== 1, "needs 0 or at least 2 variants"),
 });
 
