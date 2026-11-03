@@ -18,7 +18,7 @@ import {
 } from "../logic.ts";
 import { Inline } from "../Markdown.tsx";
 import { Question } from "../Question.tsx";
-import type { Concept } from "../schema.ts";
+import { LANG_LABELS, type Concept } from "../schema.ts";
 
 const BUTTONS: [ScanButton, string, string][] = [
   ["never", "New", "Never heard of it"],
@@ -27,9 +27,7 @@ const BUTTONS: [ScanButton, string, string][] = [
 ];
 
 const LANGS: [LangPref, string][] = [
-  ["go", "Go"],
-  ["ts", "TS"],
-  ["both", "Both"],
+  ...Object.entries(LANG_LABELS).map(([lang, label]) => [lang as LangPref, label] as [LangPref, string]),
 ];
 
 const selected = "data-[state=on]:bg-picked data-[state=on]:border-picked-edge";
@@ -37,7 +35,7 @@ const selected = "data-[state=on]:bg-picked data-[state=on]:border-picked-edge";
 function checks(progress: Progress, lang: LangPref) {
   return checkQueue(GROUPS, progress, lang, Math.random).map((concept) => ({
     concept,
-    variant: pickVariant(concept, progress, lang, Math.random)!,
+    variant: pickVariant(concept, lang, Math.random)!,
   }));
 }
 

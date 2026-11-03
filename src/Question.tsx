@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { cn } from "@/lib/utils";
 import { shuffle } from "./logic.ts";
 import { Inline, Markdown } from "./Markdown.tsx";
-import type { Concept } from "./schema.ts";
+import { LANG_LABELS, type Concept } from "./schema.ts";
 
 const REPO = "https://github.com/anan-min/skill-explorer";
 
@@ -37,7 +37,7 @@ export function Question({ concept, variant, onAnswer, onNext, nextLabel = "Next
     <Card>
       <CardHeader className="flex flex-row items-center justify-between text-sm text-muted-foreground">
         <span>{concept.title}</span>
-        {v.lang && <Badge variant="outline">{v.lang === "go" ? "Go" : "TS"}</Badge>}
+        {v.lang && <Badge variant="outline">{LANG_LABELS[v.lang]}</Badge>}
       </CardHeader>
       <CardContent className="space-y-5">
         <Markdown text={v.q} />

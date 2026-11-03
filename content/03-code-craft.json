@@ -1,0 +1,1290 @@
+{
+  "group": {
+    "id": "code-craft",
+    "title": "Code craft"
+  },
+  "skills": [
+    {
+      "id": "readability-standards",
+      "title": "Readability & standards",
+      "concepts": [
+        {
+          "id": "code-craft/readability-standards/magic-numbers",
+          "title": "Magic numbers",
+          "summary": "Unexplained literal values in code, replaced by named constants",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "A reviewer flags `if (user.status == 3) { ... }`. What change are they most likely asking for?",
+              "choices": [
+                "Compare with `>=` in case new statuses are added",
+                "Replace `3` with a named constant such as `STATUS_SUSPENDED`",
+                "Add a comment at the top of the file listing every status",
+                "Store the status as a string instead of a number"
+              ],
+              "answer": 1,
+              "explain": "A bare `3` says nothing about what it means, and every other place using it has to repeat the same guess. A named constant documents it and gives one place to change."
+            },
+            {
+              "lang": null,
+              "q": "`86400` appears in six places in a codebase: cache TTLs, token expiry and a cleanup job. What is the main risk?",
+              "choices": [
+                "Large integer literals are slower to compare at runtime",
+                "The values may overflow on 32-bit machines",
+                "Changing one meaning of \"a day\" misses or wrongly hits others",
+                "Linters reject literals with more than four digits"
+              ],
+              "answer": 2,
+              "explain": "The same literal may mean \"one day\" for unrelated reasons. Named constants (`CACHE_TTL`, `TOKEN_LIFETIME`) let each change independently and make the meaning searchable."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/readability-standards/guard-clauses",
+          "title": "Guard clauses",
+          "summary": "Returning early when a precondition fails, so the main path isn't buried in nested `if`s",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "A function checks that the order exists, then that it's paid, then that it has items, each `if` nested inside the last, with 30 lines of shipping logic at the deepest level. Which change flattens it without changing behaviour?",
+              "choices": [
+                "Wrap the whole body in one `try`/`catch` block",
+                "Turn the three nested checks into one `switch`",
+                "Return early on each failed check, then run the shipping",
+                "Move the shipping logic into the first `else` branch"
+              ],
+              "answer": 2,
+              "explain": "Guard clauses handle each failing precondition first and exit, so the main logic reads straight down with no nesting. A `switch` doesn't fit independent conditions that must all hold."
+            },
+            {
+              "lang": null,
+              "q": "A reviewer asks you to \"keep the happy path left-aligned\". What do they want?",
+              "choices": [
+                "Failures handled first with early returns, success path unindented",
+                "Shorter lines, so every function fits on one screen",
+                "The success case first, inside `if ok { ... } else { ... }`",
+                "Comments and code aligned to the same left margin"
+              ],
+              "answer": 0,
+              "explain": "If every failure returns early, the normal flow sits at the outermost indentation and reads top to bottom. Putting success in the `if` branch is exactly what pushes it to the right."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/readability-standards/units-in-names",
+          "title": "Units in names and types",
+          "summary": "Making the unit of a value (seconds, ms, cents) explicit so callers can't mix them up",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A config has `timeout: 30`, meant as seconds. One caller passes it to an API that expects milliseconds. Which name would most likely have prevented the bug?",
+              "choices": [
+                "`timeoutValue`",
+                "`retryTimeout`",
+                "`TIMEOUT`",
+                "`timeoutSeconds`"
+              ],
+              "answer": 3,
+              "explain": "Putting the unit in the name makes the mismatch visible where the value is used (`ms(timeoutSeconds)`). The other names still leave the unit to guesswork."
+            },
+            {
+              "lang": "go",
+              "q": "`func Dial(addr string, timeout int)` treats `timeout` as milliseconds, and a caller passed `5` meaning seconds. What's the idiomatic Go fix?",
+              "choices": [
+                "Rename the parameter to `timeoutMs` everywhere",
+                "Take a `time.Duration`: callers write `5*time.Second`",
+                "Document the unit in the function's doc comment",
+                "Reject values under 100 at runtime with an error"
+              ],
+              "answer": 1,
+              "explain": "`time.Duration` carries the unit in the type, so the call site has to say `time.Second` or `time.Millisecond`. A name or comment helps, but the compiler can't check it."
+            },
+            {
+              "lang": null,
+              "q": "`charge(user, amount)` is called with dollars from one service and with cents from another. Which change most directly prevents the mix-up?",
+              "choices": [
+                "Add a comment saying which unit callers should use",
+                "Check that `amount` is greater than zero",
+                "Rename the parameter to `amountCents` (and use that unit everywhere)",
+                "Rename the function to `chargeAmount`"
+              ],
+              "answer": 2,
+              "explain": "Putting the unit in the name makes a wrong call look wrong at the call site. A comment is easy to miss, and a positivity check says nothing about units."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/readability-standards/flag-arguments",
+          "title": "Flag arguments",
+          "summary": "Bare `true`/`false` parameters that make call sites unreadable",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "A call site reads `exportReport(data, true, false)`. What is the usual readability fix?",
+              "choices": [
+                "Add a comment at each call: `exportReport(data, true, false) // archived, no gzip`",
+                "Use numbers instead: `exportReport(data, 1, 0)`",
+                "Take an options object: `exportReport(data, { includeArchived: true, compress: false })`",
+                "Read the flags from global config: `exportReport(data)`"
+              ],
+              "answer": 2,
+              "explain": "Named options say what each value means at the call site. If one flag switches between two different behaviours, two separate functions are often clearer still."
+            },
+            {
+              "lang": "go",
+              "q": "`srv := NewServer(addr, true, false, true)` is hard to read, and Go has no named arguments. What's the common idiom?",
+              "choices": [
+                "Pass an options struct: `NewServer(addr, ServerOptions{TLS: true, Gzip: true})`",
+                "Pack the bools into a bitmask: `NewServer(addr, 0b101)`",
+                "Pass a map: `NewServer(addr, map[string]bool{\"tls\": true})`",
+                "One constructor per combination, like `NewServerTLSNoGzip(addr)`"
+              ],
+              "answer": 0,
+              "explain": "A struct literal names every field at the call site and leaves the rest at their zero values. Functional options (`WithTLS()`) are the other common idiom."
+            },
+            {
+              "lang": "python",
+              "q": "Callers write `export(data, True, False)`. Which signature forces them to name those flags?",
+              "choices": [
+                "`def export(data, include_archived: bool = False, compress: bool = False)`",
+                "`def export(data, /, include_archived=False, compress=False)`",
+                "`def export(data, **flags)`",
+                "`def export(data, *, include_archived=False, compress=False)`"
+              ],
+              "answer": 3,
+              "explain": "Parameters after a bare `*` are keyword-only, so `export(data, True, False)` raises a `TypeError`. Defaults alone still allow positional calls, and `/` only makes the parameters before it positional-only."
+            },
+            {
+              "lang": null,
+              "q": "`save(doc, true)` uses the flag to choose between two quite different behaviours: publishing the document or keeping it as a draft. What is the cleanest fix?",
+              "choices": [
+                "Add a trailing comment at every call: `save(doc, true) // publish`",
+                "Make the flag a global setting that callers set before calling",
+                "Split it into two functions, `publish(doc)` and `saveDraft(doc)`",
+                "Replace the boolean with `0` or `1`"
+              ],
+              "answer": 2,
+              "explain": "When a flag selects different behaviour, two named functions say what happens at each call site. A comment or a number leaves the call just as opaque, and a global makes it worse."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/readability-standards/cyclomatic-complexity",
+          "title": "Cyclomatic complexity",
+          "summary": "A count of the independent paths through a function, a rough measure of how hard it is to read and test",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What is the cyclomatic complexity of this function?\n\n```go\nfunc grade(score int) string {\n    if score >= 90 {\n        return \"A\"\n    }\n    if score >= 80 {\n        return \"B\"\n    }\n    if score >= 70 {\n        return \"C\"\n    }\n    return \"F\"\n}\n```",
+              "choices": [
+                "1",
+                "3",
+                "4",
+                "8"
+              ],
+              "answer": 2,
+              "explain": "Cyclomatic complexity is the number of decision points plus one: three `if`s give 4, matching the four ways out of the function. It isn't 2³ = 8, because each `if` returns instead of letting every combination run."
+            },
+            {
+              "lang": null,
+              "q": "A linter reports a cyclomatic complexity of 25 for one function. What does that number count?",
+              "choices": [
+                "The other functions and methods it calls",
+                "The linearly independent paths through its code",
+                "The lines in it that tests never execute",
+                "The variables it reads from outside its scope"
+              ],
+              "answer": 1,
+              "explain": "It counts independent paths (decision points plus one), which is also the minimum number of test cases needed to cover each of them. It says nothing direct about calls, coverage or outside state."
+            },
+            {
+              "lang": null,
+              "q": "A function is one `switch` with five `case` branches and a `default`, and nothing else branches. Counting each `case` as one decision (and not the `default`), what is its cyclomatic complexity?",
+              "choices": [
+                "1",
+                "5",
+                "6",
+                "7"
+              ],
+              "answer": 2,
+              "explain": "Complexity is one for the straight path plus one per decision point: 1 + 5 = 6. 5 forgets the base path, and 7 would count the `default` too."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "simple-design",
+      "title": "Simple design",
+      "concepts": [
+        {
+          "id": "code-craft/simple-design/yagni",
+          "title": "YAGNI",
+          "summary": "\"You aren't gonna need it\": don't build for requirements you don't have yet",
+          "variants": [
+            {
+              "lang": null,
+              "q": "The app uses one payment provider, and none other is planned. A teammate proposes a plugin interface, a registry and a config switch \"so we can add providers later\". What does YAGNI suggest?",
+              "choices": [
+                "Build the plugin system now, while the code is still fresh",
+                "Integrate the one provider directly; abstract when a second arrives",
+                "Integrate a second provider too, so the abstraction gets tested",
+                "Build the plugin system, but hide it behind a feature flag"
+              ],
+              "answer": 1,
+              "explain": "The abstraction costs effort now and has to be maintained, for a need that may never come. When a second provider does arrive, you'll know which parts actually vary."
+            },
+            {
+              "lang": null,
+              "q": "While building a CSV export, you add options for delimiter, encoding, quoting style and a JSON mode. Nobody asked for any of them. What's the YAGNI concern?",
+              "choices": [
+                "The options should be environment variables instead",
+                "Each option should get its own export endpoint",
+                "Each option is code to test and maintain for a guessed need",
+                "Extra options make every export run noticeably slower"
+              ],
+              "answer": 2,
+              "explain": "Speculative features carry real cost (tests, docs, bugs, harder changes) for a benefit that's only a guess. Add an option when a real need shows up."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/simple-design/wrong-abstraction",
+          "title": "The wrong abstraction",
+          "summary": "Duplication is cheaper than a shared function that doesn't fit its callers",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A shared `formatAddress(addr, isInvoice, isLabel, legacyMode)` has grown a new flag for almost every caller, and each change breaks some other caller. What's the usual way out?",
+              "choices": [
+                "Add one more flag for the next caller, as before",
+                "Replace the flags with a single options object",
+                "Write tests for every flag combination and leave it",
+                "Inline it into each caller, then extract what's truly shared"
+              ],
+              "answer": 3,
+              "explain": "A function steered by caller-specific flags has stopped being one idea. Undoing it and starting again from the duplicated code is often cheaper than keeping it alive."
+            },
+            {
+              "lang": null,
+              "q": "Signup validation and admin-invite validation have the same five lines today, but they follow different business rules owned by different teams. Should you merge them into one function?",
+              "choices": [
+                "No: they change for different reasons, so keep them apart",
+                "Yes: identical code should always be merged into one",
+                "Yes, and add a flag to handle any future difference",
+                "No: validation logic should never be shared at all"
+              ],
+              "answer": 0,
+              "explain": "Duplication is only a problem when the copies must change together. These change for different reasons, so merging them couples two teams' rules."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/simple-design/command-query-separation",
+          "title": "Command-query separation",
+          "summary": "A function should either change state or return data, not both",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which method breaks command-query separation?",
+              "choices": [
+                "`user.isActive()` that returns a field it reads",
+                "`account.getBalance()` that resets a daily counter",
+                "`cart.add(item)` that updates the cart, returns nothing",
+                "`repo.save(order)` that writes a row, returns nothing"
+              ],
+              "answer": 1,
+              "explain": "`getBalance` reads like a question but has a side effect, so calling it twice, or from a log line, changes behaviour. The others are clean queries or commands."
+            },
+            {
+              "lang": null,
+              "q": "Adding `log.debug(validator.isValid(form))` to debug a bug changed what the form submission did. What's the likely cause?",
+              "choices": [
+                "The logging call is slow enough to cause a race",
+                "Debug logging is configured differently in each environment",
+                "`isValid` also changes state, such as clearing the errors",
+                "The log call converted the boolean result to a string"
+              ],
+              "answer": 2,
+              "explain": "A query that has side effects makes every extra call risky. If `isValid` only returned an answer, calling it from a log line would be harmless."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/simple-design/illegal-states",
+          "title": "Make illegal states unrepresentable",
+          "summary": "Shaping types so invalid combinations of fields can't be built",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What does `B` rule out that `A` allows?\n\n```ts\ntype A = { status: 'loading' | 'ok' | 'error'; data?: User; error?: string }\n\ntype B =\n  | { status: 'loading' }\n  | { status: 'ok'; data: User }\n  | { status: 'error'; error: string }\n```",
+              "choices": [
+                "A `status` value outside the three listed",
+                "A `User` object with some fields missing",
+                "An `'error'` value whose message is an empty string",
+                "An `'ok'` value that has no `data`"
+              ],
+              "answer": 3,
+              "explain": "In `A`, every field is independent, so nonsense like `{ status: 'ok' }` type-checks. The union `B` ties each field to the status it belongs to; both types already reject an unknown status."
+            },
+            {
+              "lang": "ts",
+              "q": "Someone adds `| { status: 'empty' }` to `B`. What happens to this function?\n\n```ts\nfunction label(s: B): string {\n  switch (s.status) {\n    case 'loading': return '...'\n    case 'ok': return s.data.name\n    case 'error': return s.error\n    default: {\n      const unreachable: never = s\n      return unreachable\n    }\n  }\n}\n```",
+              "choices": [
+                "A compile error at `const unreachable: never = s`",
+                "It returns `undefined` for `'empty'` at runtime",
+                "It throws at runtime when it sees `'empty'`",
+                "Nothing: `default` handles the new case"
+              ],
+              "answer": 0,
+              "explain": "`'empty'` reaches `default`, where `s` no longer narrows to `never`, so the assignment fails to compile. This exhaustiveness check makes every switch that uses it handle the new case before the code compiles."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/simple-design/functional-core",
+          "title": "Functional core, imperative shell",
+          "summary": "Keeping decisions in pure functions and pushing I/O, clocks and randomness to the edges",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Tests for this are slow and flaky because they depend on the real clock. Which change makes `IsExpired` a pure function that tests can call with a fixed time?\n\n```go\nfunc IsExpired(t Token) bool {\n    return time.Now().After(t.ExpiresAt)\n}\n```",
+              "choices": [
+                "Run the tests with `-count=10` and keep the passing runs",
+                "Sleep in the test until the token's `ExpiresAt` has passed",
+                "Take the time as a parameter: `IsExpired(t Token, now time.Time)`",
+                "Swap `time.Now` for a package-level `var now = time.Now` in tests"
+              ],
+              "answer": 2,
+              "explain": "Passing `now` in makes the function pure: tests just pass a fixed time, and the caller at the edge calls `time.Now()`. A swappable package variable works for tests, but the function still reads hidden global state, so it isn't pure."
+            },
+            {
+              "lang": null,
+              "q": "A `quotePrice` function loads the customer from the database, calls a tax API, then computes the price. Testing the pricing rules needs a database and an HTTP mock. Which restructure follows \"functional core, imperative shell\"?",
+              "choices": [
+                "Cache the database and API responses inside `quotePrice`",
+                "Fetch customer and tax rate in the caller; pass them to a pure function",
+                "Move `quotePrice` into the database as a stored procedure",
+                "Make the tax API call asynchronous, with a timeout and retry"
+              ],
+              "answer": 1,
+              "explain": "The shell does the I/O and passes plain data to a core that only decides. The pricing rules can then be tested with plain values, no mocks."
+            },
+            {
+              "lang": null,
+              "q": "A handler reads an account row, checks business rules (balance, daily limit), then writes the new balance. Which part should be the pure function in a functional core?",
+              "choices": [
+                "The reading and writing of the row",
+                "The rule checks: take the account and the amount, return the new balance or an error",
+                "The whole handler, wrapped in a transaction",
+                "Nothing: rules that need account data can't be pure"
+              ],
+              "answer": 1,
+              "explain": "The rules are decisions on data, so they can be a pure function of the account and amount, and the handler does the I/O around them. Rules that use data are still pure as long as the data is passed in."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "refactoring",
+      "title": "Refactoring",
+      "concepts": [
+        {
+          "id": "code-craft/refactoring/refactoring-definition",
+          "title": "Refactoring",
+          "summary": "Changing the structure of code without changing what it does",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which of these is a refactoring?",
+              "choices": [
+                "Fixing an off-by-one error in pagination",
+                "Changing an error message users see",
+                "Splitting a long function into three smaller ones",
+                "Adding an optional parameter for a new feature"
+              ],
+              "answer": 2,
+              "explain": "Refactoring improves structure while keeping behaviour the same. Fixing a bug or changing output is a behaviour change, even if it's small."
+            },
+            {
+              "lang": null,
+              "q": "Why do many teams put a refactoring and a behaviour change in separate commits?",
+              "choices": [
+                "Each can be reviewed for one thing: no change, or the right change",
+                "Git can't show a clean diff for a commit that mixes both",
+                "Refactoring-only commits are allowed to skip the CI pipeline",
+                "Smaller commits keep the repository smaller on disk"
+              ],
+              "answer": 0,
+              "explain": "A pure refactoring is reviewed for \"nothing changed\", a feature for \"the right thing changed\"; mixed together, neither check is easy. It also makes `git bisect` and reverts cleaner."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/refactoring/characterization-tests",
+          "title": "Characterization tests",
+          "summary": "Tests that pin down what legacy code does today, so you can refactor it safely",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You have to restructure a 400-line legacy function with no tests and no spec. What should you do first?",
+              "choices": [
+                "Rewrite it from scratch, based on what it should do",
+                "Ask QA to test it manually after you're done",
+                "Add logging and refactor in production",
+                "Write tests that record what it outputs today"
+              ],
+              "answer": 3,
+              "explain": "Characterization tests capture actual behaviour, whatever it is, so any change you make by accident shows up. Without a spec, today's behaviour is the only reference you have."
+            },
+            {
+              "lang": null,
+              "q": "While writing characterization tests you find the function rounds discounts down, which looks like a bug. What do you do?",
+              "choices": [
+                "Fix the rounding now and test the fixed version",
+                "Leave the rounding case out of the tests for now",
+                "Pin today's rounding in a test; fix it in a later change",
+                "Stop the refactoring until product decides on it"
+              ],
+              "answer": 2,
+              "explain": "The tests exist to keep behaviour unchanged during the refactoring. Fixing the bug separately keeps each change reviewable, and some callers may depend on the current rounding."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/refactoring/parallel-change",
+          "title": "Parallel change",
+          "summary": "Changing an interface others use in three steps: add the new one, migrate callers, remove the old one",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Your shared library's `getUser` should become `findUser`, and several other teams' services call it. Which approach avoids breaking them?",
+              "choices": [
+                "Rename it and publish a new major version the same day",
+                "Add `findUser`, deprecate `getUser`, migrate callers, delete it",
+                "Rename it and fix every caller in one large cross-team PR",
+                "Add `findUser` as an alias and keep `getUser` for good"
+              ],
+              "answer": 1,
+              "explain": "Expand, migrate, contract: both names work during the move, so every caller can switch at its own pace. Keeping the old name forever skips the contract step and leaves two names for good."
+            },
+            {
+              "lang": null,
+              "q": "An API response field `user_name` should become `username`, and old mobile app versions still read `user_name`. What's the safe sequence?",
+              "choices": [
+                "Send both; drop `user_name` once no client reads it",
+                "Rename it and force every user to update the app",
+                "Rename it, deploy, and roll back if errors go up",
+                "Keep `user_name` and document it as `username`"
+              ],
+              "answer": 0,
+              "explain": "During the expand phase both fields are present, so old and new clients both work. You contract only once nothing reads the old field."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/refactoring/shotgun-surgery",
+          "title": "Shotgun surgery",
+          "summary": "A code smell where one small change means editing many scattered places",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Adding a currency means editing 12 files across formatting, validation, pricing and reporting. Which smell is this?",
+              "choices": [
+                "Feature envy",
+                "Divergent change",
+                "Shotgun surgery",
+                "Primitive obsession"
+              ],
+              "answer": 2,
+              "explain": "One change spread over many places is shotgun surgery. Divergent change is the opposite: one module that changes for many unrelated reasons."
+            },
+            {
+              "lang": null,
+              "q": "Every new notification channel needs edits in the API, the worker, the settings page and two config files. What's the usual refactoring direction?",
+              "choices": [
+                "Add a checklist to the PR template",
+                "Split each file into smaller files",
+                "Add more comments pointing to the other places",
+                "Pull the channel-specific logic together into one module"
+              ],
+              "answer": 3,
+              "explain": "Moving the related pieces together means the next channel is a change in one place. A checklist only makes it less likely you forget a spot."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/refactoring/feature-envy",
+          "title": "Feature envy",
+          "summary": "A code smell where a function uses another object's data more than its own",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "Which smell does this method show?\n\n```ts\nclass InvoicePrinter {\n  shippingCost(o: Order) {\n    const weight = o.items.reduce((s, i) => s + i.weight, 0)\n    return o.address.country === 'US' ? weight * 2 : weight * 5\n  }\n}\n```",
+              "choices": [
+                "Shotgun surgery",
+                "Feature envy",
+                "Data clumps",
+                "Speculative generality"
+              ],
+              "answer": 1,
+              "explain": "The method uses nothing of `InvoicePrinter` and everything of `Order`. It most likely belongs on `Order` (or near it)."
+            },
+            {
+              "lang": null,
+              "q": "A function in the reporting module reads six fields of `Subscription` and none of its own module's state to work out the renewal date. What is the usual fix?",
+              "choices": [
+                "Move the function to `Subscription`",
+                "Copy the six fields into the reporting module",
+                "Make the six fields private",
+                "Add a comment explaining the dependency"
+              ],
+              "answer": 0,
+              "explain": "Feature envy is fixed by moving the behaviour to the data it uses. Copying the fields duplicates state and makes the coupling worse."
+            },
+            {
+              "lang": null,
+              "q": "`Cart.formatForEmail(customer)` calls `customer.name()`, `customer.address()` and `customer.tier()` and barely touches `Cart`'s own fields. What does that suggest?",
+              "choices": [
+                "`Customer` needs more public fields",
+                "`Cart` should keep its own copy of the customer fields",
+                "The logic probably belongs with the customer data it uses",
+                "Nothing: methods commonly take parameters"
+              ],
+              "answer": 2,
+              "explain": "A method that mostly works on another object's data is a sign it's in the wrong place, which is exactly feature envy. Taking a parameter is fine; the smell is where most of the logic's data comes from."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code-review",
+      "title": "Code review",
+      "concepts": [
+        {
+          "id": "code-craft/code-review/stacked-prs",
+          "title": "Stacked PRs",
+          "summary": "Splitting a large change into a chain of small PRs, each based on the one before",
+          "variants": [
+            {
+              "lang": null,
+              "q": "PR B builds on PR A, which is still in review. Which base branch should B target so its diff shows only B's changes?",
+              "choices": [
+                "`main`, and say in the description that A comes first",
+                "A's branch",
+                "A new branch merged from `main` and A",
+                "B shouldn't be opened until A merges"
+              ],
+              "answer": 1,
+              "explain": "Basing B on A's branch makes the diff show only B's commits. Targeting `main` makes reviewers see A's changes again inside B."
+            },
+            {
+              "lang": null,
+              "q": "PR A was squash-merged into `main`. B's branch still contains A's original commits, and its diff against `main` now shows A's changes again. What's the usual fix?",
+              "choices": [
+                "Close B and open a new PR from the same branch",
+                "Revert A on `main` and merge A and B together",
+                "Nothing: GitHub hides commits that were squashed",
+                "`git rebase --onto main <A's old tip> B`, then force-push"
+              ],
+              "answer": 3,
+              "explain": "The squash created a new commit, so git doesn't see A's original commits as merged. `--onto` replays only the commits after A's old tip onto `main`."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/code-review/automate-style-nits",
+          "title": "Leave style to tooling",
+          "summary": "Formatters and linters handle style, so reviewers spend their time on behaviour and design",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which of these review comments is best left to a tool instead of a person?",
+              "choices": [
+                "\"This query builds SQL by string concatenation\"",
+                "\"This retry loop has no backoff\"",
+                "\"Use single quotes here, not double\"",
+                "\"The test doesn't cover an empty list\""
+              ],
+              "answer": 2,
+              "explain": "Quote style is mechanical and a formatter or linter fixes it every time. The others need judgment about behaviour, which is what review time is for."
+            },
+            {
+              "lang": null,
+              "q": "Half of your team's review comments are about import order and line length. What change helps most?",
+              "choices": [
+                "Run a formatter and linter in CI before review",
+                "Write a longer, more detailed style guide",
+                "Assign one reviewer whose job is style only",
+                "Ask authors to run the linter locally before they push"
+              ],
+              "answer": 0,
+              "explain": "Tools enforce style consistently and instantly, freeing reviewers to look at correctness and design. A style guide still relies on people to apply it."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/code-review/test-fails-without-fix",
+          "title": "A test that fails without the fix",
+          "summary": "Checking a bug-fix test actually catches the bug by running it against the old code",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A PR fixes a bug and adds a test. How do you check the test actually guards against the bug?",
+              "choices": [
+                "Check that coverage went up",
+                "Undo the fix, keep the test, and confirm it fails",
+                "Run the test 10 times in a row",
+                "Check that the test has at least one assertion"
+              ],
+              "answer": 1,
+              "explain": "A regression test must fail on the buggy code and pass on the fixed code. Coverage only shows the lines ran, not that the test checks the right thing."
+            },
+            {
+              "lang": null,
+              "q": "You revert a bug fix locally and can still reproduce the bug by hand, but the new test passes. What does that tell you?",
+              "choices": [
+                "The test is flaky and passed by luck",
+                "The bug only shows up in production",
+                "The test passes because of a stale build cache",
+                "The test doesn't exercise the bug"
+              ],
+              "answer": 3,
+              "explain": "If the test passes either way, it isn't checking the behaviour that was broken. The bug could come back without anything failing."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/code-review/comment-severity",
+          "title": "Labelling review comments",
+          "summary": "Marking each review comment as blocking, a suggestion or a nit, so authors know what must change",
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "git",
+      "title": "Git",
+      "concepts": [
+        {
+          "id": "code-craft/git/rebase-rewrites-history",
+          "title": "Rebase rewrites history",
+          "summary": "`git rebase` replays commits as new ones with new hashes",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "Your feature branch has 3 commits. You run `git rebase main`. What happens to those commits?",
+              "choices": [
+                "They keep their hashes and move to the tip of `main`",
+                "They're squashed into one commit",
+                "They're replaced by 3 new commits with new hashes",
+                "`main` gets your 3 commits"
+              ],
+              "answer": 2,
+              "explain": "A commit's hash covers its parent, so replaying it on a new base creates a new commit. The old ones stay reachable through the reflog for a while."
+            },
+            {
+              "lang": null,
+              "q": "A teammate has pulled your branch and started working on it. You rebase it and force-push. What happens for them?",
+              "choices": [
+                "Their next pull hits diverged history: duplicates or conflicts",
+                "Nothing: git updates their local copy automatically",
+                "Their unpushed local commits are deleted",
+                "Their pull fails until they delete and re-clone"
+              ],
+              "answer": 0,
+              "explain": "Their copy is based on the old commits, which no longer exist on the remote. That's why the usual rule is not to rebase branches others are building on."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/git/reflog",
+          "title": "git reflog",
+          "summary": "The local log of where `HEAD` and branches pointed, used to recover \"lost\" commits",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You ran `git reset --hard HEAD~3` and lost three commits you hadn't pushed. How do you get them back?",
+              "choices": [
+                "You can't: `--hard` deletes them permanently",
+                "`git revert HEAD~3` to undo the reset",
+                "`git stash pop` to restore the lost work",
+                "`git reset --hard` to the old sha from `git reflog`"
+              ],
+              "answer": 3,
+              "explain": "`reset` only moves the branch pointer; the commits still exist and the reflog records where `HEAD` was. They're only removed after the reflog entries expire and gc runs."
+            },
+            {
+              "lang": null,
+              "q": "You deleted a local branch with `git branch -D feature`, and it had commits that were never merged or pushed. What's the fix?",
+              "choices": [
+                "`git checkout -- feature` to restore the branch",
+                "`git branch feature <sha>`, with the sha from `git reflog`",
+                "`git fetch origin feature` to pull it back",
+                "`git revert -D feature` to undo the delete"
+              ],
+              "answer": 1,
+              "explain": "Deleting a branch removes the label, not the commits. The reflog still lists the commit you were last on, and a new branch can point at it. Fetching won't help since it was never pushed."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/git/bisect",
+          "title": "git bisect",
+          "summary": "Binary search through history to find the commit that introduced a bug",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A bug appeared somewhere in the last 1,000 commits. With `git bisect`, about how many commits do you need to test?",
+              "choices": [
+                "About 10",
+                "About 100",
+                "About 500",
+                "All 1,000"
+              ],
+              "answer": 0,
+              "explain": "Each test halves the range, and 2¹⁰ is 1,024. With `git bisect run <script>` git can do all of them automatically."
+            },
+            {
+              "lang": null,
+              "q": "What do you need before starting `git bisect`?",
+              "choices": [
+                "A failing test that's already committed",
+                "A clean, freshly pulled `main` branch",
+                "A known bad commit and an older known good one",
+                "The list of files the bug is likely in"
+              ],
+              "answer": 2,
+              "explain": "Bisect searches between a known-bad and a known-good commit. The test can be any check you run by hand or a script, even one that isn't committed."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/git/force-with-lease",
+          "title": "`--force-with-lease`",
+          "summary": "A force push that refuses to overwrite remote commits you haven't seen",
+          "variants": [
+            {
+              "lang": null,
+              "q": "How does `git push --force-with-lease` differ from `git push --force`?",
+              "choices": [
+                "It only force-pushes branches you created",
+                "It asks for confirmation first",
+                "It keeps a backup of the overwritten commits on the remote",
+                "It refuses if the remote branch moved since you last fetched it"
+              ],
+              "answer": 3,
+              "explain": "The lease is your last-fetched view of the remote branch; if someone pushed since, the push is rejected. Plain `--force` overwrites whatever is there."
+            },
+            {
+              "lang": null,
+              "q": "A teammate pushed a fix to your PR branch. Without fetching, you rebase locally and run `git push --force-with-lease`. What happens?",
+              "choices": [
+                "The push is rejected, and their commit is kept",
+                "Their commit is overwritten",
+                "Git merges their commit into yours automatically",
+                "The push succeeds and their commit moves to a new branch"
+              ],
+              "answer": 0,
+              "explain": "The remote no longer matches what you last fetched, so the lease check fails. A plain `git fetch` in between (including one your editor runs in the background) would update the lease and let the overwrite through; `--force-if-includes` (Git 2.30+) guards against that."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/git/fixup-commits",
+          "title": "Fixup commits",
+          "summary": "`git commit --fixup` plus `rebase --autosquash` to fold a correction into an earlier commit",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You run `git commit --fixup=abc123`, then `git rebase -i --autosquash main`. What does the rebase do with the new commit?",
+              "choices": [
+                "Moves it to the start of the branch",
+                "Puts it right after `abc123`, marked to be folded into it",
+                "Reverts `abc123` and applies the new commit instead",
+                "Leaves it at the end with a `fixup!` message"
+              ],
+              "answer": 1,
+              "explain": "`--autosquash` reorders the todo list so each `fixup!` commit follows its target and is marked `fixup`. The branch ends up as if the correction had been in `abc123` all along."
+            },
+            {
+              "lang": null,
+              "q": "In an interactive rebase's todo list, what's the difference between `squash` and `fixup`?",
+              "choices": [
+                "`squash` merges the changes; `fixup` only keeps the message",
+                "`fixup` drops the commit's changes and keeps its message",
+                "`squash` lets you edit both messages; `fixup` drops its own",
+                "`fixup` works only on the most recent commit"
+              ],
+              "answer": 2,
+              "explain": "Both fold the commit's changes into the one before. `squash` opens an editor with both messages; `fixup` silently discards the folded commit's message."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/git/gitignore-tracked-files",
+          "title": "`.gitignore` and tracked files",
+          "summary": "`.gitignore` only affects untracked files; a file already committed stays tracked",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You added `.env` to `.gitignore`, but `git status` still shows your changes to `.env`. Why?",
+              "choices": [
+                "`.gitignore` only takes effect after a push",
+                "The pattern needs a leading `/`",
+                "Git caches `.gitignore` until you run `git gc`",
+                "`.env` was already tracked before the rule was added"
+              ],
+              "answer": 3,
+              "explain": "Once a file is in the index, ignore rules don't apply to it. You have to remove it from the index first."
+            },
+            {
+              "lang": null,
+              "q": "`config/local.json` is committed and shouldn't be. It's now in `.gitignore`. How do you stop tracking it but keep your local copy?",
+              "choices": [
+                "`git rm --cached config/local.json`, then commit",
+                "`git rm config/local.json`, then commit",
+                "`git reset config/local.json`",
+                "`git update-index --skip-worktree config/local.json`"
+              ],
+              "answer": 0,
+              "explain": "`--cached` removes it from the index only, so the file stays on disk. `skip-worktree` hides local changes but keeps the file tracked for everyone. If it held secrets, they're still in history and need rotating."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "debugging",
+      "title": "Debugging",
+      "concepts": [
+        {
+          "id": "code-craft/debugging/minimal-reproduction",
+          "title": "Minimal reproduction",
+          "summary": "Cutting a failing case down to the smallest input and code that still shows the bug",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A service fails on one customer's 40 MB import file. Before reading the parser's code, what usually gets you to the cause fastest?",
+              "choices": [
+                "Add detailed logging to every function in the parser",
+                "Halve the file repeatedly, keeping whichever half still fails",
+                "Run the import again on a machine with more memory",
+                "Rewrite the parser on top of a different library"
+              ],
+              "answer": 1,
+              "explain": "A tiny failing input points almost directly at the cause and becomes the regression test. Logging everything on a 40 MB file mostly buries the signal."
+            },
+            {
+              "lang": null,
+              "q": "You think you've found a bug in an open-source library and want to report it. What makes the report most useful to the maintainers?",
+              "choices": [
+                "A link to your whole project, with steps to run it",
+                "A detailed account of how your project uses the library",
+                "A tiny standalone program, with expected and actual output",
+                "The full log from the service where it failed"
+              ],
+              "answer": 2,
+              "explain": "Maintainers can run a minimal standalone repro in minutes and see the problem themselves. Making it often shows that the bug is in your own code."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/debugging/heisenbug",
+          "title": "Heisenbug",
+          "summary": "A bug that disappears when you try to observe it, usually because of timing",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A test fails about 1 run in 20 in CI. When you add print statements to investigate, it stops failing. What is the most likely kind of cause?",
+              "choices": [
+                "A timing-dependent bug such as a race condition",
+                "A compiler bug that only appears in CI builds",
+                "CI runs an older version of the code",
+                "A memory leak that builds up across runs"
+              ],
+              "answer": 0,
+              "explain": "Printing changes timing, and timing-dependent bugs like races hide when timing shifts. A race detector, or logging timestamps to a buffer, disturbs less."
+            },
+            {
+              "lang": null,
+              "q": "A bug in a multithreaded service never shows up when you step through it in a debugger. Why might that be?",
+              "choices": [
+                "The debugger catches the failure and silently retries it",
+                "The debugger zeroes memory before each step runs",
+                "Breakpoints reset shared state when they're hit",
+                "Pausing changes how the threads interleave"
+              ],
+              "answer": 3,
+              "explain": "Stepping slows one thread while the others run on, so the window for the race closes and the bad ordering never happens. Shared state and memory are left exactly as they were."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/debugging/conditional-breakpoint",
+          "title": "Conditional breakpoint",
+          "summary": "A breakpoint that only pauses when an expression is true",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A loop processes 50,000 records and crashes on the one with id `A-4821`. What's the quickest way to stop just before it in a debugger?",
+              "choices": [
+                "Put a breakpoint in the loop and press continue until you reach it",
+                "Add a `sleep` in the loop so you have time to pause it",
+                "Put a breakpoint in the loop with the condition `id == \"A-4821\"`",
+                "Log every record's id, then search the output for it"
+              ],
+              "answer": 2,
+              "explain": "A conditional breakpoint only stops when the expression is true, so you skip the other 49,999 iterations. It needs no code change."
+            },
+            {
+              "lang": null,
+              "q": "A function is called thousands of times a second, and the bug only happens when `amount` is negative. A plain breakpoint there makes the program unusable. What do you use?",
+              "choices": [
+                "A breakpoint on the function's first line",
+                "A breakpoint with the condition `amount < 0`",
+                "A watch expression on `amount`",
+                "A CPU profiler"
+              ],
+              "answer": 1,
+              "explain": "The condition is checked on every hit but only pauses when it's true. A watch expression shows a value while you're paused; it doesn't decide when to pause."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/debugging/stack-trace",
+          "title": "Reading a stack trace",
+          "summary": "Finding where an error came from in a trace, and which end of it to read first",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Which line does the out-of-range indexing?\n\n```text\npanic: runtime error: index out of range [5] with length 3\n\ngoroutine 1 [running]:\nmain.lookup(...)\n        /app/main.go:12\nmain.handle(0x5)\n        /app/main.go:20 +0x1d\nmain.main()\n        /app/main.go:25 +0x25\n```",
+              "choices": [
+                "`main.go:25`",
+                "`main.go:20`",
+                "`main.go:12`",
+                "The trace doesn't say"
+              ],
+              "answer": 2,
+              "explain": "Go lists the panicking goroutine's frames with the most recent call first, so the top frame, `lookup` at line 12, is where it happened. The lines below show who called it."
+            },
+            {
+              "lang": "ts",
+              "q": "Where did the failing property access happen?\n\n```text\nTypeError: Cannot read properties of undefined (reading 'id')\n    at toDto (/app/dist/user.js:14:22)\n    at /app/dist/routes.js:30:18\n    at Array.map (<anonymous>)\n    at listUsers (/app/dist/routes.js:30:6)\n```",
+              "choices": [
+                "`listUsers` in `routes.js:30`",
+                "`toDto` in `user.js:14`",
+                "Inside `Array.map`",
+                "The anonymous callback in `routes.js:30:18`"
+              ],
+              "answer": 1,
+              "explain": "Node lists the most recent call first, so the top frame is where the error was raised. The others are the chain of callers that led there."
+            },
+            {
+              "lang": "python",
+              "q": "Which line raised the error?\n\n```text\nTraceback (most recent call last):\n  File \"/app/main.py\", line 25, in <module>\n    handle(5)\n  File \"/app/main.py\", line 20, in handle\n    return lookup(items, i)\n  File \"/app/main.py\", line 12, in lookup\n    return items[i]\nIndexError: list index out of range\n```",
+              "choices": [
+                "`main.py` line 25",
+                "`main.py` line 20",
+                "The trace doesn't say",
+                "`main.py` line 12"
+              ],
+              "answer": 3,
+              "explain": "Python prints the most recent call last, the opposite of Go and Node, so the bottom frame, line 12, is where `IndexError` was raised."
+            },
+            {
+              "lang": null,
+              "q": "Where should you start looking for the root cause?\n\n```text\nOrderError: could not place order\n    at placeOrder (orders:42)\n    at handle (api:17)\nCaused by: ConnectionError: refused 10.0.0.5:5432\n    at connect (db:88)\n    at query (db:61)\n    at placeOrder (orders:40)\n```",
+              "choices": [
+                "`connect` at `db:88`, where the innermost error was raised",
+                "`placeOrder` at `orders:42`, where the outer error was created",
+                "`handle` at `api:17`, the entry point",
+                "`query` at `db:61`, the caller of `connect`"
+              ],
+              "answer": 0,
+              "explain": "The `Caused by:` section holds the original failure, and its top frame is where it was raised. The outer trace only shows where the wrapping error was created."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/debugging/rubber-duck",
+          "title": "Rubber duck debugging",
+          "summary": "Explaining the code line by line, out loud or in writing, until the mistake shows itself",
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "documentation",
+      "title": "Documentation",
+      "concepts": [
+        {
+          "id": "code-craft/documentation/why-comments",
+          "title": "Comments explain why",
+          "summary": "Code says what it does; comments are for the reasons and constraints the code can't show",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which comment adds the most value?",
+              "choices": [
+                "`// loop over the users and process each one`",
+                "`// retry once: vendor 502s on the first call after idle`",
+                "`// increment the retry counter by one`",
+                "`// call the payment API with the order`"
+              ],
+              "answer": 1,
+              "explain": "It records a fact you can't get from the code: why the retry exists. The others repeat what the code already says and go stale when it changes."
+            },
+            {
+              "lang": null,
+              "q": "A reviewer says \"this comment just restates the code\". What should a better comment say?",
+              "choices": [
+                "The same thing, but in more detail",
+                "The author and date of the change",
+                "A one-line summary of each line below it",
+                "The reason behind the code, which it can't show"
+              ],
+              "answer": 3,
+              "explain": "Good comments capture intent, trade-offs and outside constraints. Author and date belong in version control."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/documentation/doc-comments",
+          "title": "Doc comments",
+          "summary": "The comment syntax that docs tools and editors attach to a declaration",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What does `go doc` show as the documentation for `Parse`?\n\n```go\n// Parse reads a config file and fills in defaults.\n\nfunc Parse(path string) (*Config, error) {\n```",
+              "choices": [
+                "`Parse reads a config file and fills in defaults.`",
+                "The first line of the function body",
+                "Nothing: the blank line detaches the comment",
+                "The package comment"
+              ],
+              "answer": 2,
+              "explain": "A doc comment must sit directly above the declaration with no blank line in between. Here the comment is just a free-floating comment."
+            },
+            {
+              "lang": "ts",
+              "q": "Which comment above `function parse()` shows up when someone hovers over `parse` in VS Code or generates docs with TypeDoc?",
+              "choices": [
+                "`// Parses a config file.`",
+                "`/** Parses a config file. */`",
+                "`/* Parses a config file. */`",
+                "`#region Parses a config file.`"
+              ],
+              "answer": 1,
+              "explain": "Tools treat `/** ... */` (JSDoc/TSDoc) as documentation. Plain `//` and `/* */` comments are ignored by doc generators."
+            },
+            {
+              "lang": "python",
+              "q": "What does `help(parse)` show as the documentation?\n\n```python\n# Reads a config file and fills in defaults.\ndef parse(path: str) -> Config:\n    \"\"\"Parse a config file and fill in defaults.\"\"\"\n    ...\n```",
+              "choices": [
+                "The `#` comment above the function",
+                "Both, joined together",
+                "Nothing: it needs a decorator",
+                "The docstring inside the function"
+              ],
+              "answer": 3,
+              "explain": "Python stores the first string literal in the body as `__doc__`, which `help()` and doc tools read. A `#` comment isn't stored on the function; `pydoc` only falls back to reading comments from the source when there's no docstring."
+            },
+            {
+              "lang": null,
+              "q": "Which doc comment best serves callers of `Retry(fn, attempts)`?",
+              "choices": [
+                "Loops `attempts` times, calls `fn` each pass and sleeps between passes in a helper.",
+                "Retries a function. See the wiki page for the full details.",
+                "Uses a counter and a `for` loop, then returns whatever the final call gave back.",
+                "Calls `fn` up to `attempts` times, stops at the first success, and returns the last error if all fail."
+              ],
+              "answer": 3,
+              "explain": "A doc comment states the contract callers rely on: what it does, when it stops and what it returns. A description of the loop is implementation detail that can change without anyone noticing."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/documentation/go-example-tests",
+          "title": "Go example functions",
+          "summary": "`Example` functions in `_test.go` files appear in the docs and are checked by `go test`",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What does `go test` do with this function in `parse_test.go`?\n\n```go\nfunc ExampleParse() {\n    cfg, _ := config.Parse(\"testdata/app.yaml\")\n    fmt.Println(cfg.Port)\n    // Output: 8080\n}\n```",
+              "choices": [
+                "Ignores it: examples are only for documentation",
+                "Compiles it but never runs it",
+                "Runs it and fails if it panics, ignoring the output",
+                "Runs it and fails if its stdout isn't `8080`"
+              ],
+              "answer": 3,
+              "explain": "An example with an `// Output:` comment is run as a test, and its stdout is compared to the comment. That keeps the example in the docs working."
+            },
+            {
+              "lang": "go",
+              "q": "An `Example` function has no `// Output:` comment. What does `go test` do with it?",
+              "choices": [
+                "Compiles it but doesn't run it",
+                "Runs it and expects no output",
+                "Fails the build",
+                "Runs it as a benchmark"
+              ],
+              "answer": 0,
+              "explain": "Without an output comment, the example is compiled (so it can't rot into invalid code) but not executed."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/documentation/diataxis",
+          "title": "Diátaxis",
+          "summary": "Splitting docs into four kinds: tutorials, how-to guides, reference and explanation",
+          "variants": [
+            {
+              "lang": null,
+              "q": "In the Diátaxis framework, a page listing every configuration option with its type and default is which kind of doc?",
+              "choices": [
+                "Tutorial",
+                "How-to guide",
+                "Reference",
+                "Explanation"
+              ],
+              "answer": 2,
+              "explain": "Reference is dry, complete information you look up. A how-to guide walks through achieving one specific goal instead."
+            },
+            {
+              "lang": null,
+              "q": "In the Diátaxis framework, a page discussing why the system uses event sourcing and which alternatives were rejected is which kind of doc?",
+              "choices": [
+                "Explanation",
+                "Reference",
+                "Tutorial",
+                "How-to guide"
+              ],
+              "answer": 0,
+              "explain": "Explanation gives background and reasoning, to be read away from the task at hand. It doesn't tell you what to do, which is what tutorials and how-to guides are for."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/documentation/readme-quick-start",
+          "title": "README quick start",
+          "summary": "A README that gets a newcomer from clone to running in a few copy-paste commands",
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "tech-debt",
+      "title": "Tech debt",
+      "concepts": [
+        {
+          "id": "code-craft/tech-debt/debt-quadrant",
+          "title": "Technical debt quadrant",
+          "summary": "Martin Fowler's split of debt into deliberate or inadvertent, and reckless or prudent",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A team knows its quick fix will need reworking, weighs that against a launch date, and ships it with a plan to clean up afterwards. Where does that fall in Fowler's technical debt quadrant?",
+              "choices": [
+                "Reckless and inadvertent",
+                "Prudent and inadvertent",
+                "Reckless and deliberate",
+                "Prudent and deliberate"
+              ],
+              "answer": 3,
+              "explain": "The team knows it's taking on debt and has weighed the cost, which is deliberate and prudent. Skipping design because \"there's no time\", without weighing anything, is the reckless deliberate kind."
+            },
+            {
+              "lang": null,
+              "q": "A skilled team designed a module carefully. A year in, having learned the domain, they see a different design would have fit much better. Where does that fall in Fowler's technical debt quadrant?",
+              "choices": [
+                "Prudent and inadvertent",
+                "Reckless and deliberate",
+                "Prudent and deliberate",
+                "Reckless and inadvertent"
+              ],
+              "answer": 0,
+              "explain": "The team did careful work and only learned the better design by building it. That's inadvertent but prudent; a team that never knew the basic design practices in the first place is reckless and inadvertent."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/tech-debt/boy-scout-rule",
+          "title": "Boy Scout rule",
+          "summary": "Leave the code a little better than you found it, in the area you're already changing",
+          "variants": [
+            {
+              "lang": null,
+              "q": "While fixing a bug, you find a confusing variable name in the function you're changing. What does the Boy Scout rule suggest?",
+              "choices": [
+                "Leave it: the PR should only touch the bug",
+                "Rename it as part of the same change",
+                "Open a ticket to rename it next quarter",
+                "Rename it across the whole codebase in this PR"
+              ],
+              "answer": 1,
+              "explain": "A small cleanup in code you're already touching keeps quality improving steadily. The rule is about small steps where you work, not codebase-wide changes."
+            },
+            {
+              "lang": null,
+              "q": "While fixing a bug, you realise the whole module needs restructuring, a two-week job. What fits the Boy Scout rule?",
+              "choices": [
+                "Restructure the whole module in the bug-fix PR",
+                "Leave it all as is: the rule only covers new code",
+                "Tidy a little now; propose the restructure separately",
+                "Add a `TODO` comment to every function in the module"
+              ],
+              "answer": 2,
+              "explain": "The rule asks for something better, not a rewrite: small, safe improvements as you pass through. Bundling a large restructure into a bug fix makes both harder to review and roll back."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/tech-debt/hotspot-analysis",
+          "title": "Hotspot analysis",
+          "summary": "Prioritising debt where high complexity meets frequent change",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You have time to clean up one file. Which should it be?",
+              "choices": [
+                "A very complex file nobody has changed in three years",
+                "A simple file that changes every week",
+                "A very complex file that changes every week",
+                "A simple file nobody has changed in three years"
+              ],
+              "answer": 2,
+              "explain": "Debt costs you when you work in it, so complex code that changes often costs the most. Version-control history (churn) shows which files those are."
+            },
+            {
+              "lang": null,
+              "q": "Why is a messy but stable module, untouched for years, usually low priority to clean up?",
+              "choices": [
+                "Code that old has had all its bugs found by now",
+                "Its mess only costs you when you change it",
+                "Refactoring old code breaks `git blame` history",
+                "A module that stable must already be well tested"
+              ],
+              "answer": 1,
+              "explain": "The \"interest\" on debt is extra effort and bugs during changes. If code isn't changing, the payoff of cleaning it up is small compared with active hotspots."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/tech-debt/debt-register",
+          "title": "Tech debt register",
+          "summary": "Recording known debt with its cost and owner, so it can be weighed against feature work",
+          "variants": []
+        }
+      ]
+    }
+  ]
+}

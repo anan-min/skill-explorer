@@ -64,7 +64,7 @@ describe("states", () => {
     const c = quizzable("c");
     expect(stateOf(answer(emptyProgress(), c, 1, 0), "c")).toBe("confirmed");
     const wrong = answer(emptyProgress(), c, 1, 2);
-    expect(wrong.concepts.c).toEqual({ state: "gap", seen: { variant: 1, choice: 2 }, tested: ["ts"] });
+    expect(wrong.concepts.c).toEqual({ state: "gap", seen: { variant: 1, choice: 2 } });
   });
 
   it("lets later answers move a concept between states", () => {
@@ -101,26 +101,14 @@ describe("states", () => {
 });
 
 describe("pickVariant", () => {
-  it("with Both, prefers a language not yet tested", () => {
-    const c = quizzable("c", ["go", "ts"]);
-    const p = answer(emptyProgress(), c, 0, 1);
-    expect(pickVariant(c, p, "both", first)).toBe(1);
-  });
-
-  it("with Both and every language tested, picks from all", () => {
-    const c = quizzable("c", ["go", "ts"]);
-    const p = answer(answer(emptyProgress(), c, 0, 1), c, 1, 1);
-    expect([0, 1]).toContain(pickVariant(c, p, "both", Math.random));
-  });
-
   it("restricts to the chosen language plus null variants", () => {
     const c = quizzable("c", ["go", "ts", null]);
-    for (let i = 0; i < 20; i++) expect([1, 2]).toContain(pickVariant(c, emptyProgress(), "ts", Math.random));
+    for (let i = 0; i < 20; i++) expect([1, 2]).toContain(pickVariant(c, "ts", Math.random));
   });
 
   it("returns null when nothing qualifies", () => {
-    expect(pickVariant(quizzable("c", ["go", "go"]), emptyProgress(), "ts", first)).toBeNull();
-    expect(pickVariant(scanOnly("c"), emptyProgress(), "both", first)).toBeNull();
+    expect(pickVariant(quizzable("c", ["go", "go"]), "ts", first)).toBeNull();
+    expect(pickVariant(scanOnly("c"), "ts", first)).toBeNull();
   });
 });
 
@@ -162,18 +150,18 @@ describe("checkQueue", () => {
   it("gives every topic one check: a Used claim, else a Heard, else its basic question", () => {
     const groups = [topic("a", 4), topic("b", 4), topic("c", 4)];
     const p = progress(used("a3"), heard("b2"), fresh("c2", "c3", "c4"));
-    expect(ids(checkQueue(groups, p, "both", Math.random))).toEqual(["a3", "b2", "c1"]);
+    expect(ids(checkQueue(groups, p, "ts", Math.random))).toEqual(["a3", "b2", "c1"]);
   });
 
   it("never re-asks a confirmed concept or a New row", () => {
     const g = topic("g", 3);
-    expect(ids(checkQueue([g], progress(right("g1"), fresh("g2", "g3")), "both", Math.random))).toEqual([]);
+    expect(ids(checkQueue([g], progress(right("g1"), fresh("g2", "g3")), "ts", Math.random))).toEqual([]);
   });
 
   it("spends up to 3 extra checks on topics with the most unchecked claims", () => {
     const groups = [topic("a", 6), topic("b", 6), topic("c", 6)];
     const p = progress(used("a2", "a3", "a4", "a5", "a6", "b2", "b3"), fresh("c2"));
-    const q = checkQueue(groups, p, "both", Math.random);
+    const q = checkQueue(groups, p, "ts", Math.random);
     expect(q).toHaveLength(6);
     expect(q.filter((c) => c.id.startsWith("a"))).toHaveLength(3);
     expect(q.filter((c) => c.id.startsWith("b"))).toHaveLength(2);
@@ -183,7 +171,7 @@ describe("checkQueue", () => {
   it("caps a run at 12 checks", () => {
     const groups = "abcdefghi".split("").map((g) => topic(g, 5));
     const p = progress(...groups.map((g) => used(...[2, 3, 4, 5].map((i) => `${g.group.id}${i}`))));
-    expect(checkQueue(groups, p, "both", Math.random)).toHaveLength(12);
+    expect(checkQueue(groups, p, "ts", Math.random)).toHaveLength(12);
   });
 
   it("skips concepts with no variant in the chosen language", () => {

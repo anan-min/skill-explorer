@@ -1,0 +1,970 @@
+{
+  "group": {
+    "id": "testing",
+    "title": "Testing"
+  },
+  "skills": [
+    {
+      "id": "test-strategy",
+      "title": "Test strategy",
+      "concepts": [
+        {
+          "id": "testing/test-strategy/test-pyramid",
+          "title": "Test pyramid",
+          "summary": "Many fast unit tests, fewer integration tests, a handful of end-to-end tests",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "A team is planning the test suite for a new service. Which mix does the test pyramid recommend?",
+              "choices": [
+                "Mostly end-to-end tests, with a few unit tests to fill in the gaps",
+                "Roughly equal numbers of unit, integration and end-to-end tests",
+                "Mostly unit tests, fewer integration, very few end-to-end",
+                "Only integration tests, since they cover both the units and the wiring"
+              ],
+              "answer": 2,
+              "explain": "Lower layers are faster, cheaper and pinpoint failures, so you want most tests there and only a few slow end-to-end tests on top. An equal split puts too much weight on the slow, flaky layers."
+            },
+            {
+              "lang": null,
+              "q": "A suite has 400 browser-driven end-to-end tests and 30 unit tests. CI takes 50 minutes and a failure rarely says what broke. What is this shape usually called?",
+              "choices": [
+                "A test trophy",
+                "An ice cream cone",
+                "A test diamond",
+                "A healthy pyramid"
+              ],
+              "answer": 1,
+              "explain": "The inverted pyramid, heavy on slow UI tests and light on unit tests, is known as the ice cream cone anti-pattern. The trophy is a different, deliberate shape that favours integration tests, not end-to-end ones."
+            }
+          ]
+        },
+        {
+          "id": "testing/test-strategy/flaky-tests",
+          "title": "Flaky tests",
+          "summary": "Tests that pass or fail on the same code, usually from timing, shared state or ordering",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A test starts a background job, sleeps 100 ms, then asserts the job finished. It fails about one run in twenty on CI. What is the best fix?",
+              "choices": [
+                "Raise the sleep to 1 second so slower CI machines have more headroom",
+                "Mark the test as retry-on-failure in the CI configuration",
+                "Run it in a separate CI job with fewer parallel workers",
+                "Wait on a completion signal, or poll with a timeout"
+              ],
+              "answer": 3,
+              "explain": "A fixed sleep guesses how long the work takes, so any slow run fails. Waiting for the actual completion (or polling with a deadline) removes the race; a longer sleep only makes the race rarer and the suite slower."
+            },
+            {
+              "lang": null,
+              "q": "A test passes when run on its own but fails when the whole suite runs, and only in some orders. What is the most likely cause?",
+              "choices": [
+                "It relies on state another test leaves behind",
+                "The test runner leaks memory that builds up over a long run",
+                "The test is slow and hits the runner's default timeout in big runs",
+                "The assertion library compares objects differently in parallel mode"
+              ],
+              "answer": 0,
+              "explain": "Order-dependent failures almost always come from shared mutable state between tests. Each test should set up and clean up what it needs so it can run alone or in any order."
+            }
+          ],
+          "basic": true
+        },
+        {
+          "id": "testing/test-strategy/coverage-limits",
+          "title": "Limits of code coverage",
+          "summary": "Coverage shows which lines ran, not whether any test checked the result",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A test calls `calculateInvoice(order)` and has no assertions. What does this do to line coverage for `calculateInvoice`?",
+              "choices": [
+                "Nothing: lines only count as covered when an assertion follows them",
+                "Only the function's return statement counts as covered",
+                "Every line that ran counts as covered, though nothing is checked",
+                "It fails the coverage report with a missing-assertion warning"
+              ],
+              "answer": 2,
+              "explain": "Coverage tools record which lines executed, not whether a test verified anything. That is why high coverage can sit on top of tests that catch nothing."
+            },
+            {
+              "lang": null,
+              "q": "`if (isAdmin && isActive) { grant() }` is on one line. Tests only ever pass `isAdmin = true, isActive = true`. Line coverage reports 100% for it. Which metric would expose the untested path?",
+              "choices": [
+                "Statement coverage",
+                "Branch coverage",
+                "Function coverage",
+                "Line coverage with a stricter threshold"
+              ],
+              "answer": 1,
+              "explain": "Branch coverage tracks whether both the true and false outcomes of each decision were taken. Statement and line coverage are satisfied as soon as the line runs once."
+            }
+          ]
+        },
+        {
+          "id": "testing/test-strategy/mutation-testing",
+          "title": "Mutation testing",
+          "summary": "Making small changes to the code to check whether the tests notice",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A mutation testing tool changes `if (qty > 10)` to `if (qty >= 10)` and the whole suite still passes. What does that tell you?",
+              "choices": [
+                "The tool found a bug in the original condition",
+                "The mutant was killed, so the tests are strong here",
+                "The mutation tool failed to apply the change",
+                "No test checks the boundary at `qty = 10`"
+              ],
+              "answer": 3,
+              "explain": "A surviving mutant means the tests can't tell the original from the changed code, so the boundary isn't tested. It says nothing about which version is correct."
+            },
+            {
+              "lang": null,
+              "q": "A module has 100% line coverage. Why might a team still run mutation testing on it?",
+              "choices": [
+                "To find code paths that coverage tools can't instrument at all",
+                "To check the tests fail when the behaviour changes",
+                "To measure how fast the tests run under heavy load",
+                "To generate the missing test cases automatically from the code"
+              ],
+              "answer": 1,
+              "explain": "Coverage proves code ran; mutation testing proves the tests would catch a change in it. Tests with weak or missing assertions reach full coverage but let mutants survive."
+            }
+          ]
+        },
+        {
+          "id": "testing/test-strategy/contract-testing",
+          "title": "Consumer-driven contract testing",
+          "summary": "Consumers record what they expect from an API, and the provider verifies it in its own build (Pact)",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Service A calls service B's API. With consumer-driven contract testing (for example Pact), what happens in B's CI?",
+              "choices": [
+                "B runs A's whole test suite against a shared staging deployment",
+                "B checks A's recorded expectations against B's real code",
+                "B generates A's client code from its OpenAPI spec and compiles it",
+                "B deploys both services and runs end-to-end tests against them"
+              ],
+              "answer": 1,
+              "explain": "The consumer's tests produce a contract (the requests it makes and the responses it relies on), and the provider verifies that contract against its own implementation. That catches breaking changes without a shared end-to-end environment."
+            },
+            {
+              "lang": null,
+              "q": "A provider team wants to rename a response field. Contract tests from three consumers are in place. What do they let the team find out before deploying?",
+              "choices": [
+                "Whether the new field name follows the team's API style guide",
+                "How much traffic each consumer sends to that endpoint today",
+                "Which consumers read that field: their contracts fail",
+                "Whether the change needs a new major API version number"
+              ],
+              "answer": 2,
+              "explain": "Each contract lists only the fields its consumer relies on, so verification fails exactly for the consumers that read the renamed field. Consumers that ignore it are unaffected."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unit",
+      "title": "Unit",
+      "concepts": [
+        {
+          "id": "testing/unit/test-doubles",
+          "title": "Test doubles: stub, mock, fake, spy",
+          "summary": "The different kinds of stand-ins for real dependencies and what each one is for",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "A test replaces the real database repository with a class that stores records in an in-memory map and supports the same queries. What kind of test double is this?",
+              "choices": [
+                "A stub",
+                "A mock",
+                "A fake",
+                "A spy"
+              ],
+              "answer": 2,
+              "explain": "A fake is a working, simplified implementation. A stub only returns canned answers and has no real logic behind them."
+            },
+            {
+              "lang": null,
+              "q": "A test replaces the email sender with an object that is set up to expect `send` to be called once with a given address, and the test fails if that doesn't happen. What kind of test double is this?",
+              "choices": [
+                "A mock",
+                "A stub",
+                "A fake",
+                "A dummy"
+              ],
+              "answer": 0,
+              "explain": "A mock carries expectations about how it is called and verifies them. A stub just supplies return values and doesn't care whether or how it was called."
+            }
+          ]
+        },
+        {
+          "id": "testing/unit/table-driven-tests",
+          "title": "Table-driven tests",
+          "summary": "One test body run over a list of input/expected cases, each reported separately",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "In a table-driven test, each case runs as `t.Run(tc.name, func(t *testing.T) { ... })`. What does `t.Run` give you over a plain loop?",
+              "choices": [
+                "The cases run in parallel automatically, one goroutine each",
+                "Named subtests that report and run on their own",
+                "Failed cases are retried once before the whole test is failed",
+                "Go caches each case's result separately between test runs"
+              ],
+              "answer": 1,
+              "explain": "Subtests get their own name, pass/fail status and filter path. They only run in parallel if you call `t.Parallel()` inside them."
+            },
+            {
+              "lang": "ts",
+              "q": "What does this Vitest code do?\n\n```ts\nit.each([\n  [1, 1, 2],\n  [2, 3, 5],\n])('add(%i, %i) = %i', (a, b, sum) => {\n  expect(add(a, b)).toBe(sum)\n})\n```",
+              "choices": [
+                "Runs one test that loops over both rows in order",
+                "Runs the test only with the first row of the table",
+                "Fails, because `it.each` needs objects, not arrays",
+                "Two separate tests, named from the format string"
+              ],
+              "answer": 3,
+              "explain": "`it.each` creates one test per row and fills the `%i` placeholders from the row, so each case passes or fails on its own with a readable name."
+            },
+            {
+              "lang": "python",
+              "q": "How many tests does pytest report for this?\n\n```python\n@pytest.mark.parametrize(\"a, b, total\", [\n    (1, 1, 2),\n    (2, 3, 5),\n    (0, 0, 0),\n])\ndef test_add(a, b, total):\n    assert add(a, b) == total\n```",
+              "choices": [
+                "1, which loops over the three rows in order",
+                "3, one per row, each reported on its own",
+                "3, but they stop at the first row that fails",
+                "6, one for each argument value in the table"
+              ],
+              "answer": 1,
+              "explain": "`parametrize` generates a separate test per row (shown as `test_add[1-1-2]` and so on), so one bad case doesn't hide the others. Rows are independent; a failure doesn't stop the rest."
+            },
+            {
+              "lang": null,
+              "q": "A pricing function has eight input/expected cases in a table-driven test. QA reports a ninth edge case: a zero-quantity order. What is the usual change?",
+              "choices": [
+                "Wrap the loop in a retry so the new case gets a second chance",
+                "Add a ninth row to the table; the test body stays the same",
+                "Copy the test function and edit the copy for the new input",
+                "Add a second assertion for it inside the first case"
+              ],
+              "answer": 1,
+              "explain": "The point of the table style is that a new case is data, not new code, and each row is reported on its own. Copying the function brings back the duplication the table was meant to remove."
+            }
+          ]
+        },
+        {
+          "id": "testing/unit/controlling-time",
+          "title": "Controlling time in tests",
+          "summary": "Injecting a clock or using fake timers so time-based code is tested without real waiting",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "`IsExpired(token)` compares `token.IssuedAt` with `time.Now()` directly. Testing the 24-hour boundary is awkward. What is the usual fix?",
+              "choices": [
+                "Pass the current time in, so tests can set it",
+                "Sleep in the test until the 24-hour boundary is reached",
+                "Set the `TZ` environment variable at the start of the test",
+                "Use `time.Since` instead, which tests are able to override"
+              ],
+              "answer": 0,
+              "explain": "Making \"now\" an input turns the function into something a test can drive to any instant. `time.Since` still reads the real clock, so it doesn't help."
+            },
+            {
+              "lang": "ts",
+              "q": "A search box debounces input by 300 ms. How do you test that it calls the API once, without the test taking 300 ms?",
+              "choices": [
+                "Await `new Promise(r => setTimeout(r, 300))` before asserting",
+                "Mock `Date.now` so it returns a time 300 ms later",
+                "Fake timers: `vi.useFakeTimers()`, then advance 300 ms",
+                "Set the test timeout to 0 so all timers fire at once"
+              ],
+              "answer": 2,
+              "explain": "Fake timers replace `setTimeout` and friends, and advancing them runs the due callbacks synchronously. Mocking `Date.now` alone doesn't fire pending timeouts."
+            },
+            {
+              "lang": "python",
+              "q": "`is_expired(token)` calls `datetime.now(UTC)` inside the function. Testing the 24-hour boundary is awkward. Which change makes it straightforward to test?",
+              "choices": [
+                "Call `time.sleep` in the test until the boundary has passed",
+                "Switch to `datetime.utcnow()`, which tests can override",
+                "Add a `now` parameter that tests pass explicitly",
+                "Set the `TZ` environment variable before the test runs"
+              ],
+              "answer": 2,
+              "explain": "Making the current time an input lets a test place it exactly on either side of the boundary. `utcnow()` still reads the real clock (and is deprecated since 3.12), so it changes nothing."
+            },
+            {
+              "lang": null,
+              "q": "A retry helper waits 30 seconds between attempts, and the test of its third attempt takes 60 seconds of real waiting. Which change keeps the behaviour while making the test fast?",
+              "choices": [
+                "Assert only that the helper eventually returns, not how long it waited",
+                "Skip the retry test and rely on manual testing of the wait",
+                "Pass the sleep or clock in as a dependency, and use a fake in tests",
+                "Wrap the test in a 60-second timeout and run it in parallel"
+              ],
+              "answer": 2,
+              "explain": "When waiting goes through an injected sleep or clock, a test can record the requested delays and advance time instantly. Dropping the timing assertions or the test gives up checking the behaviour instead of making it testable."
+            }
+          ]
+        },
+        {
+          "id": "testing/unit/go-test-cache",
+          "title": "Go test caching",
+          "summary": "`go test` reuses passing results when nothing it tracks has changed; `-count=1` forces a rerun",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "A test talks to a local database. You change rows in the database and rerun `go test ./...`. The output shows `ok  myapp/store  (cached)`. Why?",
+              "choices": [
+                "The database driver cached the results of the earlier queries",
+                "Go reused the earlier pass: nothing it tracks had changed",
+                "`./...` skips packages whose tests talk to the network",
+                "The test binary wasn't rebuilt, but the tests did run again"
+              ],
+              "answer": 1,
+              "explain": "In package-list mode Go caches successful test results keyed on the build, flags, and files and environment variables the test read. External state like a database isn't tracked, so the old pass is reported."
+            },
+            {
+              "lang": "go",
+              "q": "Which flag is the usual way to make `go test ./...` actually rerun tests instead of printing cached results?",
+              "choices": [
+                "`-v`",
+                "`-short`",
+                "`-failfast`",
+                "`-count=1`"
+              ],
+              "answer": 3,
+              "explain": "`-count=1` disables the test result cache. `-v` only changes output, and cached results can still be shown with it."
+            }
+          ]
+        },
+        {
+          "id": "testing/unit/vi-mock-hoisting",
+          "title": "Module mock hoisting",
+          "summary": "`vi.mock` and `jest.mock` calls are moved above the imports, which changes what their factory can use",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "This Vitest file fails with an error about accessing `fakeUser` before it is initialized. Why?\n\n```ts\nimport { getUser } from './api'\n\nconst fakeUser = { id: 1 }\nvi.mock('./api', () => ({ getUser: vi.fn().mockReturnValue(fakeUser) }))\n```",
+              "choices": [
+                "`vi.mock` is hoisted above the `const`",
+                "`vi.mock` has to be called inside a `beforeEach` block",
+                "Mock factories can't return functions, only plain values",
+                "The import of `./api` must come after `vi.mock` in the source"
+              ],
+              "answer": 0,
+              "explain": "Vitest moves `vi.mock` to the top of the file so the mock is in place before imports run, so the factory runs and reads `fakeUser` before the `const` line has executed. Use `vi.hoisted` to declare values the factory needs."
+            },
+            {
+              "lang": "ts",
+              "q": "A Vitest file imports `./mailer` on line 1 and calls `vi.mock('./mailer')` at the very bottom, after all the tests. Do the tests get the mocked module?",
+              "choices": [
+                "No: the import on line 1 already loaded the real module",
+                "Only tests defined after the `vi.mock` line",
+                "Yes: `vi.mock` is hoisted to the top of the file",
+                "No: it throws because `vi.mock` must be the first statement"
+              ],
+              "answer": 2,
+              "explain": "`vi.mock` calls are hoisted before the imports wherever they sit at the top level of the file. The same goes for `jest.mock` under babel-jest or ts-jest."
+            }
+          ]
+        },
+        {
+          "id": "testing/unit/patch-where-looked-up",
+          "title": "Patching where a name is looked up",
+          "summary": "`mock.patch` must target the module that uses a name, not the module that defines it",
+          "variants": [
+            {
+              "lang": "python",
+              "q": "`orders.py` does `from payments import charge` and calls `charge(...)`. A test uses `mock.patch(\"payments.charge\")`, but the real `charge` still runs. Why?",
+              "choices": [
+                "Patch `orders.charge`: `orders` holds its own reference",
+                "`mock.patch` only works on methods, not on plain functions",
+                "`mock.patch` can't replace names imported with `from`",
+                "`mock.patch` needs `autospec=True` to replace a function"
+              ],
+              "answer": 0,
+              "explain": "`from payments import charge` copies the reference into `orders`' namespace at import time; patching `payments.charge` rebinds the original module's name only. Patch the name where it's looked up: `orders.charge`."
+            },
+            {
+              "lang": "python",
+              "q": "`report.py` does `import storage` and calls `storage.upload(...)` inside a function. Which statement about patching that call in a test is right?",
+              "choices": [
+                "Patch `report.upload`, because the call happens in `report`",
+                "Patch `storage.upload`: `report` looks it up at call time",
+                "It can't be patched until `report` switches to `from storage import upload`",
+                "Patch `storage.upload`, but only before `report` is first imported"
+              ],
+              "answer": 1,
+              "explain": "`report` holds the `storage` module and reads its `upload` attribute on every call, so patching `storage.upload` works whenever it is applied. `report.upload` doesn't exist, because only `storage` was imported into `report`."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "integration",
+      "title": "Integration",
+      "concepts": [
+        {
+          "id": "testing/integration/real-database",
+          "title": "Testing against the real database engine",
+          "summary": "Running repository tests on the same database as production (Testcontainers), not a stand-in",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Repository tests run against in-memory SQLite and pass. In production on PostgreSQL, a query using `jsonb` operators fails. What is the lesson?",
+              "choices": [
+                "Add more unit tests around the query builder's SQL output",
+                "Mock the database layer fully so the dialect doesn't matter",
+                "Switch production to SQLite so both environments match",
+                "Test against the production engine and version"
+              ],
+              "answer": 3,
+              "explain": "Different engines differ in SQL dialect, types, locking and constraint behaviour, so a stand-in can pass where production fails. Tools like Testcontainers make a throwaway real database cheap to start."
+            },
+            {
+              "lang": null,
+              "q": "A queue worker claims jobs with `SELECT ... FOR UPDATE SKIP LOCKED`. Its tests mock the repository. Two workers in production sometimes claim the same job. What kind of test would have caught it?",
+              "choices": [
+                "A unit test that asserts the exact SQL string sent to the driver",
+                "Concurrent workers against a real database",
+                "A snapshot test of the repository's return value for one job",
+                "A contract test between the worker and the queue's API"
+              ],
+              "answer": 1,
+              "explain": "Locking behaviour only exists in the real database, so only a test that hits it with concurrent sessions can show whether claims overlap. Asserting the SQL text checks the query was written, not that it behaves."
+            }
+          ]
+        },
+        {
+          "id": "testing/integration/transaction-rollback-isolation",
+          "title": "Rollback-per-test isolation",
+          "summary": "Wrapping each test in a transaction that is rolled back, and the cases where that breaks",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Each test opens a transaction, inserts fixtures in it, and rolls back at the end. The code under test takes its own connection from the pool and can't find the fixtures. Why?",
+              "choices": [
+                "Uncommitted rows are invisible to other connections",
+                "Connection pools cache query results for a few seconds at a time",
+                "Rollback ran before the code under test was even called",
+                "The fixtures went to a different schema by default"
+              ],
+              "answer": 0,
+              "explain": "Uncommitted rows are visible only inside the transaction that wrote them. The code under test must use the test's transaction (or connection), or the tests need a different cleanup strategy such as truncating tables."
+            },
+            {
+              "lang": null,
+              "q": "Tests use rollback-per-test isolation. The code under test runs `COMMIT` on the test's connection as part of its logic. What happens to the test data?",
+              "choices": [
+                "The outer rollback still undoes everything the test wrote",
+                "The database rejects the inner `COMMIT` with an error",
+                "Committed rows stay and can leak into later tests",
+                "The commit is ignored because the test owns the transaction"
+              ],
+              "answer": 2,
+              "explain": "In most databases a plain `COMMIT` ends the open transaction, so there is nothing left for the test to roll back. Code that manages its own transactions needs savepoints or a different cleanup approach."
+            }
+          ]
+        },
+        {
+          "id": "testing/integration/http-handler-tests",
+          "title": "In-process HTTP tests",
+          "summary": "Testing HTTP handlers through the real router without deploying (`httptest`, supertest)",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What does this test exercise?\n\n```go\nreq := httptest.NewRequest(\"GET\", \"/orders/42\", nil)\nrec := httptest.NewRecorder()\nrouter.ServeHTTP(rec, req)\n```",
+              "choices": [
+                "A real TCP connection to a server on a random local port",
+                "Only the handler function, bypassing the router entirely",
+                "A mocked router that returns canned responses for each path",
+                "The router and handlers, in-process, into `rec`"
+              ],
+              "answer": 3,
+              "explain": "`ServeHTTP` runs the real routing and handler chain directly, and `NewRecorder` captures status, headers and body. No socket is opened; `httptest.NewServer` is the variant that listens on a real port."
+            },
+            {
+              "lang": "ts",
+              "q": "With supertest, `await request(app).get('/health').expect(200)` is called on an Express `app` that was never started with `listen`. What happens?",
+              "choices": [
+                "It fails, because nothing is listening for connections",
+                "supertest binds the app to a temporary port",
+                "supertest calls the route handler without running middleware",
+                "It sends the request to `localhost:3000` by default"
+              ],
+              "answer": 1,
+              "explain": "If the app isn't already listening, supertest starts it on an ephemeral port, so the full middleware chain runs over real HTTP. That is why you export `app` separately from the code that calls `listen`."
+            },
+            {
+              "lang": "python",
+              "q": "A Flask test does `client = app.test_client()` then `resp = client.get(\"/orders/42\")`. What does that exercise?",
+              "choices": [
+                "A real server that Flask starts on port 5000 for the test",
+                "Only the view function, skipping URL routing and hooks",
+                "Routing, hooks and views, in-process, no server",
+                "A recorded response replayed from the last real request"
+              ],
+              "answer": 2,
+              "explain": "The test client calls the WSGI app directly, so routing, `before_request` hooks and error handlers all run without starting a server. FastAPI's `TestClient` works the same way for ASGI apps."
+            },
+            {
+              "lang": null,
+              "q": "A team tests an endpoint by calling the handler function directly with a fake request. A bug ships where the route's path parameter was named `:orderId` but the handler read `id`. Which test style would have caught it?",
+              "choices": [
+                "Calling the handler with a larger set of fake requests",
+                "Mocking the router so it returns the handler's response",
+                "Measuring statement coverage of the handler",
+                "Sending a request through the real router in-process"
+              ],
+              "answer": 3,
+              "explain": "Going through the real router exercises path matching, parameter extraction and middleware, which a direct call skips. More fake requests to the handler still bypass the routing layer where this bug lives."
+            }
+          ]
+        },
+        {
+          "id": "testing/integration/dont-mock-what-you-dont-own",
+          "title": "Don't mock what you don't own",
+          "summary": "Wrap third-party APIs in your own adapter, mock the adapter, and integration-test the adapter for real",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Tests mock the payment provider's SDK directly. The provider changes a response field and production breaks, while every test stays green. What does \"don't mock what you don't own\" suggest?",
+              "choices": [
+                "Never mock external services in any kind of test",
+                "Pin the SDK version so its behaviour can never change",
+                "Mock your own thin wrapper; test the wrapper for real",
+                "Copy the SDK's source into the repo so your team owns it"
+              ],
+              "answer": 2,
+              "explain": "Mocking a third-party API encodes your guess about how it behaves, and the guess doesn't update when they change. An adapter you own gives unit tests a stable seam, while its own integration tests check the real contract."
+            },
+            {
+              "lang": null,
+              "q": "Why is mocking a cloud SDK's client methods in many unit tests considered risky?",
+              "choices": [
+                "Nothing checks the mocks against the real service",
+                "SDK mocks always run slower than the real network calls",
+                "Mocks can't check which arguments the code passed",
+                "Mock-heavy suites need a separate test runner from other tests"
+              ],
+              "answer": 0,
+              "explain": "Your mocks freeze your understanding of someone else's API; when theirs differs or changes, tests still pass. Confining the SDK to one adapter limits how many mocks can drift."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tdd",
+      "title": "TDD",
+      "concepts": [
+        {
+          "id": "testing/tdd/red-green-refactor",
+          "title": "Red, green, refactor",
+          "summary": "The TDD cycle: a failing test, the least code to pass it, then clean up with tests green",
+          "variants": [
+            {
+              "lang": null,
+              "q": "In the red-green-refactor cycle, what do you do in the green step?",
+              "choices": [
+                "Write the cleanest, most general implementation you can",
+                "Write the smallest change that passes the test",
+                "Refactor the existing code before adding the new test",
+                "Add several more tests to cover the edge cases first"
+              ],
+              "answer": 1,
+              "explain": "Green is about getting to passing quickly with minimal code; cleaning it up is the refactor step, done once the tests are green. Aiming for the general solution straight away skips the feedback TDD relies on."
+            },
+            {
+              "lang": null,
+              "q": "You are midway through a TDD cycle and one test is failing. You notice duplicated code you'd like to clean up. When should you refactor it?",
+              "choices": [
+                "Now, since the refactor might also fix the failing test",
+                "Before writing any new test, even while one is failing",
+                "Never during TDD: refactoring is a phase after the feature",
+                "Once the failing test passes"
+              ],
+              "answer": 3,
+              "explain": "Refactoring means changing structure without changing behaviour, and you can only confirm that with a green suite. Mixing it with a red test makes it unclear which change broke or fixed what."
+            }
+          ],
+          "basic": true
+        },
+        {
+          "id": "testing/tdd/see-it-fail",
+          "title": "Watching the test fail first",
+          "summary": "Running a new test before the code exists, to prove it can fail",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You write a new test for behaviour you haven't implemented yet, run it, and it passes immediately. What should you suspect first?",
+              "choices": [
+                "The test doesn't check what you think it does",
+                "The test runner is reusing a cached result from earlier",
+                "Your implementation from a previous branch was merged",
+                "Nothing: a passing test is the goal of TDD"
+              ],
+              "answer": 0,
+              "explain": "Seeing a test fail first proves it can detect the missing behaviour. A test that passes before the code exists is often asserting the wrong thing, or nothing at all."
+            },
+            {
+              "lang": null,
+              "q": "Why does TDD ask you to run a new test and see it fail before writing the implementation?",
+              "choices": [
+                "It measures how long the test takes to run before the code exists",
+                "It gives CI a baseline failure to show in its reports",
+                "It shows the test can fail, so a pass means something",
+                "It checks that the test compiles against the old interface"
+              ],
+              "answer": 2,
+              "explain": "A test you've never seen fail might pass no matter what the code does. The red step is a test of the test."
+            }
+          ]
+        },
+        {
+          "id": "testing/tdd/triangulation",
+          "title": "Fake it, then triangulate",
+          "summary": "Passing the first test with a hard-coded value, then adding examples that force the real logic",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Your only test is `expect(add(2, 3)).toBe(5)`, and you make it pass with `return 5`. In TDD, what is the next step?",
+              "choices": [
+                "Delete the test, since it allowed a fake implementation",
+                "Add an example like `add(1, 1) = 2` that breaks the fake",
+                "Mark the function as unfinished with a TODO comment and move on",
+                "Replace the example test with a property-based test"
+              ],
+              "answer": 1,
+              "explain": "Triangulation adds a new example that breaks the fake, forcing a general implementation that's driven by the tests. The hard-coded value was a legitimate step, not a flaw in the test."
+            },
+            {
+              "lang": null,
+              "q": "In TDD, why might someone deliberately make a first test pass by returning a constant?",
+              "choices": [
+                "To hit the coverage target before writing the real code",
+                "Because the test framework needs some return value to compile",
+                "To keep the build green while the real code is on another branch",
+                "To get green fast and let more examples drive the logic"
+              ],
+              "answer": 3,
+              "explain": "\"Fake it till you make it\" keeps steps tiny: get green with the simplest thing, then add examples until the fake no longer works. Each generalisation is then demanded by a test."
+            }
+          ]
+        },
+        {
+          "id": "testing/tdd/outside-in-vs-classicist",
+          "title": "Outside-in vs classicist TDD",
+          "summary": "London-style TDD starts at the edge and mocks collaborators; classicist TDD builds up from real objects",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A developer starts with a test for the HTTP endpoint, mocks the service it calls, then writes the service test-first, mocking the repository, and so on inward. Which TDD style is this?",
+              "choices": [
+                "Classicist (Detroit/Chicago) TDD",
+                "Test-last development with mocks",
+                "Outside-in (London/mockist) TDD",
+                "Property-based TDD"
+              ],
+              "answer": 2,
+              "explain": "Outside-in starts at the user-facing edge and uses mocks to design the collaborators each layer needs. Classicist TDD typically grows the system from the core with real objects and fewer mocks."
+            },
+            {
+              "lang": null,
+              "q": "A team doing classicist TDD prefers real collaborators over mocks in their unit tests. What trade-off are they accepting?",
+              "choices": [
+                "A bug can fail several tests, not only the broken class's",
+                "Their tests can no longer run without a network connection",
+                "They can't refactor internals without rewriting their tests",
+                "They can only test one class in each test file"
+              ],
+              "answer": 0,
+              "explain": "With real collaborators, a bug in one class can fail tests for its callers too, so failures are less pinpointed. In exchange, the tests are less tied to internal calls, which makes refactoring easier, not harder."
+            }
+          ]
+        },
+        {
+          "id": "testing/tdd/test-list",
+          "title": "Keeping a test list",
+          "summary": "Writing down the cases you plan to test before starting, then working through them one at a time",
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "test-maintainability",
+      "title": "Test maintainability",
+      "concepts": [
+        {
+          "id": "testing/test-maintainability/test-behaviour-not-implementation",
+          "title": "Testing behaviour, not implementation",
+          "summary": "Asserting on outcomes instead of internal calls, so refactors don't break tests",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You split one private helper into two without changing what the class does. Twelve tests fail because they assert the exact internal calls through mocks. What does that say about the tests?",
+              "choices": [
+                "They're doing their job: any change at all should fail a test",
+                "They're coupled to implementation, not behaviour",
+                "They need more mocks to cover the two new helpers",
+                "They should be rewritten as end-to-end tests instead"
+              ],
+              "answer": 1,
+              "explain": "A refactor keeps behaviour the same, so tests that break on it are checking how the code works, not what it does. Asserting on return values, state and outgoing effects survives refactoring."
+            },
+            {
+              "lang": null,
+              "q": "A test for `checkout()` asserts that `calculateTax` was called exactly once with specific arguments, and nothing about the returned total. What is the main risk?",
+              "choices": [
+                "The test will be slow because of the extra mock",
+                "The test can't run in parallel with the rest of the suite",
+                "The mock has to be reset by hand after every test",
+                "Wrong totals pass, and harmless refactors fail it"
+              ],
+              "answer": 3,
+              "explain": "Checking internal calls instead of the result both misses real bugs and fails on harmless restructuring. Assert the outcome the caller cares about."
+            }
+          ]
+        },
+        {
+          "id": "testing/test-maintainability/test-data-builders",
+          "title": "Test data builders",
+          "summary": "Helpers like `aUser().withRole('admin').build()` that fill defaults so tests set only what matters",
+          "variants": [
+            {
+              "lang": null,
+              "q": "The `User` type gains a new required field. 200 tests build users with object literals and all stop compiling. What pattern would have limited the change to one place?",
+              "choices": [
+                "Snapshot testing of every user object the tests create",
+                "A shared global `testUser` constant each test mutates",
+                "A test data builder that supplies defaults",
+                "Generating users from a copy of the production database"
+              ],
+              "answer": 2,
+              "explain": "A builder owns the defaults, so a new field is added once and tests only override what they care about. A shared mutable constant creates order-dependent tests instead."
+            },
+            {
+              "lang": null,
+              "q": "A test reads `const order = anOrder().withStatus('shipped').build()`. What is the main readability benefit over listing every field?",
+              "choices": [
+                "It shows the one field this test depends on",
+                "It makes the test run faster than building literals",
+                "It guarantees the order is valid in the database",
+                "It removes the need for assertions on the order itself"
+              ],
+              "answer": 0,
+              "explain": "Builders highlight the one detail the test depends on and hide irrelevant noise. Listing every field makes the reader guess which of them affect the outcome."
+            }
+          ]
+        },
+        {
+          "id": "testing/test-maintainability/snapshot-test-pitfalls",
+          "title": "Snapshot test pitfalls",
+          "summary": "Large snapshots get updated without being read, so they stop catching anything",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "A component has a 400-line `toMatchSnapshot()` file. Most PRs that touch it fail the snapshot and the author reruns with `-u`. What has gone wrong?",
+              "choices": [
+                "Snapshots must be regenerated on every CI run to stay valid",
+                "It's too big to review, so updates are accepted blindly",
+                "Running with `-u` slowly corrupts snapshot files over time",
+                "Snapshot tests should only be used for pure functions"
+              ],
+              "answer": 1,
+              "explain": "When a snapshot changes with every edit and nobody can read the diff, updating it becomes a reflex. Small, focused snapshots or explicit assertions keep the intent reviewable."
+            },
+            {
+              "lang": "ts",
+              "q": "Which use of snapshot testing tends to stay useful over time?",
+              "choices": [
+                "Snapshotting a whole page's rendered HTML after each change",
+                "Snapshotting every API response, timestamps included",
+                "Snapshotting the full Redux store after every action",
+                "A small inline snapshot of a stable output"
+              ],
+              "answer": 3,
+              "explain": "Small, stable snapshots are easy to review when they change. Large or volatile ones (timestamps, IDs, whole pages) churn constantly and get rubber-stamped."
+            }
+          ]
+        },
+        {
+          "id": "testing/test-maintainability/damp-over-dry",
+          "title": "DAMP over DRY in tests",
+          "summary": "Preferring readable, slightly repetitive tests to heavily shared setup that hides what's being tested",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A test reads `setupScenario(3); expect(run()).toBe(42)`. To understand why 42 is right, you must read three nested helpers. What principle does this break?",
+              "choices": [
+                "Arrange-act-assert",
+                "One logical assertion per test",
+                "DAMP over DRY in tests",
+                "The test pyramid"
+              ],
+              "answer": 2,
+              "explain": "Tests are read far more than they are written, so the values that explain the expected result should be visible in the test itself. Removing repetition is less important in tests than in production code."
+            },
+            {
+              "lang": null,
+              "q": "Five tests repeat the same 3-line setup but each sets a different discount value that drives its assertion. A reviewer suggests moving the setup and the discounts into one shared `beforeEach`. What is the best response?",
+              "choices": [
+                "Keep each discount in its test, share the rest",
+                "Move everything into `beforeEach` to remove the duplication",
+                "Merge the five tests into one test with several assertions",
+                "Move the discounts into a shared JSON fixture file"
+              ],
+              "answer": 0,
+              "explain": "Shared setup is fine for details that don't matter, but the value that determines the expected result belongs next to the assertion. Hiding it in `beforeEach` forces readers to jump around to understand each test."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "atdd-bdd",
+      "title": "ATDD/BDD",
+      "concepts": [
+        {
+          "id": "testing/atdd-bdd/given-when-then",
+          "title": "Given / When / Then",
+          "summary": "Describing a scenario as starting state, action, and expected outcome",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "In the scenario \"Given a cart with one item, When the user applies code SAVE10, Then the total is reduced by 10%\", what does the `When` line describe?",
+              "choices": [
+                "The precondition that must already be true",
+                "The expected outcome to check",
+                "The data used to set up the test",
+                "The action or event being tested"
+              ],
+              "answer": 3,
+              "explain": "`Given` sets up context, `When` is the single action under test, and `Then` states the observable result. Putting setup in `When` blurs what the scenario is about."
+            },
+            {
+              "lang": null,
+              "q": "Which line belongs in the `Then` part of a scenario?",
+              "choices": [
+                "The user is logged in as an admin",
+                "The invoice shows a late fee of 5",
+                "The user clicks \"Pay now\"",
+                "The account has an overdue balance"
+              ],
+              "answer": 1,
+              "explain": "`Then` states the outcome you check. Being logged in and having an overdue balance are `Given` context, and clicking \"Pay now\" is the `When` action."
+            }
+          ]
+        },
+        {
+          "id": "testing/atdd-bdd/scenario-outline",
+          "title": "Scenario Outline",
+          "summary": "A Gherkin scenario template run once per row of an `Examples` table",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A Gherkin `Scenario Outline` uses `<age>` and `<allowed>` in its steps and has an `Examples` table with 4 data rows. How many scenarios run?",
+              "choices": [
+                "1, with every row checked inside it",
+                "4, one per row",
+                "2, one per placeholder",
+                "8, one per placeholder per row"
+              ],
+              "answer": 1,
+              "explain": "The outline is a template: each `Examples` row produces one scenario with the `<...>` placeholders replaced by that row's values."
+            },
+            {
+              "lang": null,
+              "q": "You have six near-identical scenarios that differ only in the input amount and the expected fee. What is the idiomatic Gherkin way to express them?",
+              "choices": [
+                "A `Scenario Outline` with an `Examples` table",
+                "One scenario with six `Then` steps, one per amount",
+                "Six `Background` sections, one per amount and fee",
+                "A `Rule` block that contains each of the six scenarios"
+              ],
+              "answer": 0,
+              "explain": "A `Scenario Outline` keeps the steps once and lists the varying data as rows, so each case still runs and reports separately. A `Background` is shared setup, not a way to vary data."
+            }
+          ]
+        },
+        {
+          "id": "testing/atdd-bdd/declarative-scenarios",
+          "title": "Declarative vs imperative scenarios",
+          "summary": "Writing scenarios in business terms instead of UI steps like clicks and field IDs",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which step is written in the declarative style that BDD recommends?",
+              "choices": [
+                "When I type \"bob@example.com\" into `#email` and click `#submit`",
+                "When I press Tab twice and hit Enter",
+                "When I register with a valid email address",
+                "When I wait 2 seconds for the spinner to disappear"
+              ],
+              "answer": 2,
+              "explain": "Declarative steps say what the user does in domain terms, leaving the how to step definitions. Imperative UI steps break whenever the page layout changes and hide the business rule."
+            },
+            {
+              "lang": null,
+              "q": "A redesign moves the checkout button. 80 Gherkin scenarios fail, though checkout still works. What does that suggest about the scenarios?",
+              "choices": [
+                "They have too few `Given` steps to set up the page state",
+                "They describe UI mechanics instead of behaviour",
+                "They should have used `Scenario Outline` with examples",
+                "They share too much setup through one `Background`"
+              ],
+              "answer": 1,
+              "explain": "When scenarios spell out clicks and selectors, UI changes break the specification itself. Declarative steps put UI detail in one step definition, so one fix covers every scenario."
+            }
+          ]
+        },
+        {
+          "id": "testing/atdd-bdd/three-amigos",
+          "title": "Three amigos",
+          "summary": "A short conversation between business, development and testing to agree on examples before building a story",
+          "variants": [
+            {
+              "lang": null,
+              "q": "In BDD, what is a \"three amigos\" session?",
+              "choices": [
+                "A pairing session where three developers review one PR together",
+                "A retrospective held at the end of every third sprint",
+                "A meeting where QA signs off a finished feature before release",
+                "Business, dev and testing agreeing on examples up front"
+              ],
+              "answer": 3,
+              "explain": "The point is shared understanding up front: the business view says what's needed, development how it might work, and testing what could go wrong. It happens before building, not as a sign-off afterwards."
+            },
+            {
+              "lang": null,
+              "q": "A story keeps bouncing back from QA because developers and the product owner understood \"refund\" differently. Which BDD practice targets this directly?",
+              "choices": [
+                "Add more unit tests around the refund module's edge cases",
+                "Agree on concrete examples together before building",
+                "Run the acceptance tests nightly instead of on every commit",
+                "Write the Gherkin scenarios after the code is merged"
+              ],
+              "answer": 1,
+              "explain": "Misunderstandings are cheapest to fix before code exists. Agreeing on concrete examples together surfaces different readings of words like \"refund\" early."
+            }
+          ]
+        },
+        {
+          "id": "testing/atdd-bdd/example-mapping",
+          "title": "Example mapping",
+          "summary": "Breaking a story into rules, examples and open questions on cards before building it",
+          "variants": []
+        }
+      ]
+    }
+  ]
+}

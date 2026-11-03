@@ -1,0 +1,1042 @@
+{
+  "group": {
+    "id": "backend",
+    "title": "Backend"
+  },
+  "skills": [
+    {
+      "id": "rest",
+      "title": "REST",
+      "concepts": [
+        {
+          "id": "backend/rest/idempotent-methods",
+          "title": "Idempotent HTTP methods",
+          "summary": "Methods where repeating a request leaves the server in the same state as sending it once",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "A client library automatically retries timed-out requests, but only for methods the HTTP spec defines as idempotent. Which one will it **not** retry?",
+              "choices": [
+                "`POST`",
+                "`PUT`",
+                "`DELETE`",
+                "`HEAD`"
+              ],
+              "answer": 0,
+              "explain": "`PUT`, `DELETE` and the safe methods (`GET`, `HEAD`, `OPTIONS`) are idempotent by definition; `POST` isn't, so a blind retry could create a second order or charge. `PUT` is idempotent because it sets the full state rather than adding to it."
+            },
+            {
+              "lang": null,
+              "q": "`DELETE /orders/42` returns `204`. The client retries and gets `404`. Is `DELETE` still idempotent here?",
+              "choices": [
+                "No: an idempotent request must return the same status each time",
+                "Yes: idempotency is about server state, not the status code",
+                "Only if the server returns `204` the second time as well",
+                "No: the HTTP spec doesn't define `DELETE` as idempotent"
+              ],
+              "answer": 1,
+              "explain": "After one call or two, the order is gone, so the effect on the server is the same. The response can differ; idempotency doesn't promise identical responses."
+            }
+          ]
+        },
+        {
+          "id": "backend/rest/put-vs-patch",
+          "title": "PUT vs PATCH",
+          "summary": "PUT replaces the whole resource with the body; PATCH applies a partial change",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A user resource is `{ name, email, phone }`. A client sends `PUT /users/7` with only `{ \"email\": \"new@example.com\" }`. Under HTTP semantics, what does this request ask for?",
+              "choices": [
+                "Change `email` and keep `name` and `phone` as they are",
+                "Create another user that has only an email address",
+                "Replace user 7 with a version that has only `email`",
+                "Merge the body into user 7 for fields that already exist"
+              ],
+              "answer": 2,
+              "explain": "PUT means 'make the resource look like this body', so missing fields are, by the semantics, removed. Servers often validate and reject incomplete PUT bodies; partial updates are what PATCH is for."
+            },
+            {
+              "lang": null,
+              "q": "Clients should be able to change only a user's phone number without sending the other fields. Which request fits?",
+              "choices": [
+                "`PUT /users/7` with `{ \"phone\": \"...\" }`",
+                "`POST /users` with `{ \"id\": 7, \"phone\": \"...\" }`",
+                "`GET /users/7?phone=...` with an empty body",
+                "`PATCH /users/7` with `{ \"phone\": \"...\" }`"
+              ],
+              "answer": 3,
+              "explain": "PATCH carries a partial change. A PUT with one field asks to replace the whole user with that field, which is how other fields get wiped by mistake."
+            }
+          ],
+          "basic": true
+        },
+        {
+          "id": "backend/rest/safe-methods",
+          "title": "Safe methods",
+          "summary": "GET and HEAD must not change server state, because anything may fetch them automatically",
+          "variants": [
+            {
+              "lang": null,
+              "q": "An email has an unsubscribe link, `GET /unsubscribe?token=...`, that unsubscribes as soon as it's loaded. Users say they were unsubscribed without clicking. What's the likely cause?",
+              "choices": [
+                "Mail scanners and link previews fetch GET links on their own",
+                "Browsers cache GET responses and replay them on later visits",
+                "The unsubscribe token is guessable, so strangers trigger it",
+                "Users double-click the link, so it fires twice"
+              ],
+              "answer": 0,
+              "explain": "Because GET is defined as safe, security scanners, prefetchers and previewers load links freely. An action needs a confirmation page that submits a POST (or the one-click POST from RFC 8058)."
+            },
+            {
+              "lang": null,
+              "q": "Which endpoint breaks HTTP's 'safe method' rule?",
+              "choices": [
+                "`POST /orders/9/cancel` that cancels the order",
+                "`GET /orders/9/cancel` that cancels the order",
+                "`GET /orders/9` that also writes an access log line",
+                "`HEAD /orders/9` that returns headers without a body"
+              ],
+              "answer": 1,
+              "explain": "Safe means the client isn't asking for a state change. Logging or counting as a side effect is explicitly allowed; cancelling an order on GET isn't."
+            }
+          ]
+        },
+        {
+          "id": "backend/rest/etag-if-match",
+          "title": "ETag and If-Match",
+          "summary": "Conditional updates that reject a write if the resource changed since the client read it",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Two admins open the same product. Both edit it and save; the second save silently overwrites the first. Which HTTP mechanism prevents this?",
+              "choices": [
+                "Send `Cache-Control: no-cache` with the update request",
+                "Send `If-Modified-Since` on the read request",
+                "Send the read's `ETag` in `If-Match` on the update",
+                "Use `PATCH` instead of `PUT` for every update"
+              ],
+              "answer": 2,
+              "explain": "With `If-Match`, the server applies the update only if the resource still has the version the client saw; otherwise the second admin is told to reload. PATCH narrows what's overwritten but still loses a concurrent change to the same field."
+            },
+            {
+              "lang": null,
+              "q": "A client sends `PUT /products/3` with `If-Match: \"v5\"`, but the product's current ETag is `\"v6\"`. What should the server return?",
+              "choices": [
+                "`409 Conflict`",
+                "`304 Not Modified`",
+                "`428 Precondition Required`",
+                "`412 Precondition Failed`"
+              ],
+              "answer": 3,
+              "explain": "A failed `If-Match` precondition is 412 by definition. 428 is for when the server requires a condition and the client sent none; 304 belongs to conditional GETs."
+            }
+          ]
+        },
+        {
+          "id": "backend/rest/retry-after-429",
+          "title": "429 and Retry-After",
+          "summary": "Telling clients they're over a limit, and when they may try again",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A client exceeds its per-minute rate limit. What does the server typically return?",
+              "choices": [
+                "`429 Too Many Requests`",
+                "`503 Service Unavailable`",
+                "`403 Forbidden` until the quota resets",
+                "`400 Bad Request`"
+              ],
+              "answer": 0,
+              "explain": "429 means this client sent too many requests. 503 means the server itself is unavailable, which is a different signal for clients and dashboards."
+            },
+            {
+              "lang": null,
+              "q": "Your client gets `429` with `Retry-After: 30`. What should it do?",
+              "choices": [
+                "Retry right away, but from a different IP address",
+                "Wait at least 30 seconds before retrying",
+                "Retry up to 30 times with no delay between them",
+                "Treat it as permanent and drop the request"
+              ],
+              "answer": 1,
+              "explain": "`Retry-After` is the server telling you when it's willing to take the request again. Retrying sooner just burns more of your quota and adds load."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "authn-authz",
+      "title": "Authn & authz",
+      "concepts": [
+        {
+          "id": "backend/authn-authz/401-vs-403",
+          "title": "401 vs 403",
+          "summary": "401: we don't know who you are. 403: we know, and you're not allowed",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "A request carries a valid login token, but the user isn't allowed to open this admin page. Which status fits?",
+              "choices": [
+                "`401 Unauthorized`",
+                "`405 Method Not Allowed`",
+                "`403 Forbidden`",
+                "`400 Bad Request`"
+              ],
+              "answer": 2,
+              "explain": "The user is authenticated but not authorised, which is 403. Despite its name, 401 means authentication is missing or invalid."
+            },
+            {
+              "lang": null,
+              "q": "A request with no `Authorization` header reaches an endpoint that requires login. Which status fits?",
+              "choices": [
+                "`403 Forbidden`",
+                "`407 Proxy Authentication Required`",
+                "`400 Bad Request`",
+                "`401 Unauthorized`"
+              ],
+              "answer": 3,
+              "explain": "401 means 'authenticate and try again' and comes with a `WWW-Authenticate` header. 407 is the same idea for a proxy, not the origin server."
+            }
+          ]
+        },
+        {
+          "id": "backend/authn-authz/jwt-not-encrypted",
+          "title": "JWTs are signed, not encrypted",
+          "summary": "Anyone holding a JWT can read its claims; the signature only stops them changing it",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A teammate puts a user's internal credit limit in a signed JWT (HS256) and says 'it's signed, so users can't see it'. What's true?",
+              "choices": [
+                "Anyone with the token can read it; signing only stops edits",
+                "Users can neither read nor change it without the secret key",
+                "Users can change it, and the server will still trust the token",
+                "It's hidden from users as long as it's sent over HTTPS only"
+              ],
+              "answer": 0,
+              "explain": "A JWS payload is just base64url-encoded JSON. The signature proves it wasn't modified; it hides nothing. Use encryption (JWE) or keep the value server-side."
+            },
+            {
+              "lang": "ts",
+              "q": "In Node 16+, you run this on a JWT you found in a log, without knowing the secret. What does it print?\n\n```ts\nconst [, payload] = token.split('.')\nconsole.log(JSON.parse(Buffer.from(payload, 'base64url').toString()))\n```",
+              "choices": [
+                "Random-looking encrypted bytes",
+                "The token's claims as plain JSON",
+                "An error: decoding needs the secret",
+                "Only the header's `alg` and `typ`"
+              ],
+              "answer": 1,
+              "explain": "The middle segment is the claims, base64url-encoded. Decoding needs no key; only verifying the signature does."
+            },
+            {
+              "lang": null,
+              "q": "Which value is appropriate as a claim in a signed-only (not encrypted) JWT that the browser holds?",
+              "choices": [
+                "The user's password hash, for offline checks",
+                "An API key the service uses with a third party",
+                "The user's id and the token's expiry",
+                "The user's full home address, to save a lookup"
+              ],
+              "answer": 2,
+              "explain": "Anyone holding the token can decode its claims, so only data the holder may already see belongs there. A user id and an expiry are fine; secrets and personal data need server-side storage or encryption."
+            }
+          ]
+        },
+        {
+          "id": "backend/authn-authz/jwt-revocation",
+          "title": "Revoking JWTs",
+          "summary": "Stateless tokens stay valid until they expire unless you add short lifetimes or server-side state",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Your API uses JWT access tokens that expire after 24 hours and are checked only by signature. A user's laptop is stolen and they click 'log out everywhere'. What happens to the stolen token?",
+              "choices": [
+                "It stops working because logout ends the user's session",
+                "It stops working once the browser deletes its cookie",
+                "It works until it expires, unless you add a denylist",
+                "It only works from the IP address it was issued to"
+              ],
+              "answer": 2,
+              "explain": "Signature-only checks consult no server state, so nothing can mark the token as revoked. A denylist or short-lived tokens are the usual answers."
+            },
+            {
+              "lang": null,
+              "q": "Which design cuts off a user's access within minutes while still checking access tokens without a database lookup?",
+              "choices": [
+                "Long-lived access tokens that are signed with a larger key size",
+                "Rotating the signing key once a year",
+                "Encrypting the token so it can't be copied elsewhere",
+                "Short-lived access tokens plus revocable refresh tokens"
+              ],
+              "answer": 3,
+              "explain": "Access tokens are verified statelessly but expire in minutes; getting a new one requires a refresh token, which the server can revoke. Encryption doesn't stop a stolen token from being replayed."
+            }
+          ]
+        },
+        {
+          "id": "backend/authn-authz/jwt-algorithm-pinning",
+          "title": "Pinning the JWT algorithm",
+          "summary": "Verifying tokens with algorithms you choose, never the one named in the token's header",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A JWT library picks the verification algorithm from the token's own `alg` header. An attacker sends a token with `\"alg\": \"none\"` and no signature. What stops this?",
+              "choices": [
+                "Verifying with an allow-list, e.g. only `RS256`",
+                "Checking that the `exp` claim is still in the future",
+                "Requiring HTTPS for every request to the API",
+                "Rejecting any token that is longer than 4 KB"
+              ],
+              "answer": 0,
+              "explain": "The header is attacker-controlled, so it can't decide how the token is checked. `exp` is part of the payload the attacker also wrote."
+            },
+            {
+              "lang": null,
+              "q": "Your service verifies RS256 tokens with a public key. Its library lets the token's header choose the algorithm. An attacker signs a token with HS256, using your public key as the HMAC secret. Why can this pass?",
+              "choices": [
+                "HS256 is weaker, so its signatures are easy to forge",
+                "The server runs HMAC keyed with your public key",
+                "The private key can be derived from the public key",
+                "HMAC signatures can't be checked, so the step is skipped"
+              ],
+              "answer": 1,
+              "explain": "With HS256 the verification key is the shared secret, and here the 'secret' is your public key, which the attacker has. HS256 itself isn't broken; pinning the expected algorithm closes this algorithm-confusion attack."
+            }
+          ]
+        },
+        {
+          "id": "backend/authn-authz/oauth-pkce",
+          "title": "OAuth authorization code flow with PKCE",
+          "summary": "The recommended OAuth flow for apps that can't keep a client secret, like SPAs and mobile apps",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A single-page app with no backend secret lets users log in through an OAuth 2.0 provider. Which flow does current security guidance recommend?",
+              "choices": [
+                "Implicit flow, with the token in the URL fragment",
+                "Resource owner password credentials flow",
+                "Authorization code flow with PKCE",
+                "Client credentials flow, with the secret in the bundle"
+              ],
+              "answer": 2,
+              "explain": "The OAuth 2.0 Security Best Current Practice (RFC 9700) says not to use the implicit or password grants. Code + PKCE keeps tokens out of the URL and doesn't need a secret in the browser."
+            },
+            {
+              "lang": null,
+              "q": "What does PKCE protect against?",
+              "choices": [
+                "Phishing pages that copy the provider's login screen",
+                "XSS reading access tokens from browser storage",
+                "Brute-force guessing of the user's password",
+                "An intercepted authorization code being redeemed"
+              ],
+              "answer": 3,
+              "explain": "The app sends a hash (`S256`) of a random secret with the authorization request, and the secret itself when exchanging the code. An attacker who steals only the code can't complete the exchange."
+            }
+          ]
+        },
+        {
+          "id": "backend/authn-authz/idor",
+          "title": "Broken object-level authorization (IDOR)",
+          "summary": "Checking that a user is logged in, but not that the record they asked for is theirs",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What's the security bug?\n\n```ts\napp.get('/invoices/:id', requireLogin, async (req, res) => {\n  const invoice = await db.invoices.findById(req.params.id)\n  if (!invoice) return res.sendStatus(404)\n  res.json(invoice)\n})\n```",
+              "choices": [
+                "Any logged-in user can read any invoice by changing the id",
+                "The ids are sequential, and switching to random UUIDs would fix it",
+                "A missing invoice should return `403` instead of `404`",
+                "`requireLogin` runs after the handler, so it's skipped"
+              ],
+              "answer": 0,
+              "explain": "Authentication says who the user is; nothing checks that this invoice belongs to them. UUIDs make ids harder to guess but leaked or shared ids still work, so the ownership check is the fix."
+            },
+            {
+              "lang": "go",
+              "q": "The logged-in user is available as `auth.UserFrom(r.Context())`. What's missing from this handler?\n\n```go\nfunc (h *Handler) DeleteAddress(w http.ResponseWriter, r *http.Request) {\n    id := r.PathValue(\"id\")\n    _, err := h.db.ExecContext(r.Context(),\n        \"DELETE FROM addresses WHERE id = $1\", id)\n    // ...\n}\n```",
+              "choices": [
+                "A transaction around the `DELETE` statement",
+                "`AND user_id = $2`, bound to the logged-in user's id",
+                "Escaping `id` before passing it as `$1`",
+                "A check that `r.Method` is `DELETE` inside the handler"
+              ],
+              "answer": 1,
+              "explain": "Any logged-in user can delete anyone's address by guessing ids. Scoping the query to the owner is the authorization check; `$1` is already a safe parameter."
+            },
+            {
+              "lang": "python",
+              "q": "What's the security bug?\n\n```python\n@app.get(\"/invoices/{invoice_id}\")\nasync def get_invoice(invoice_id: int, user: User = Depends(current_user)):\n    invoice = await db.get_invoice(invoice_id)\n    if invoice is None:\n        raise HTTPException(status_code=404)\n    return invoice\n```",
+              "choices": [
+                "`invoice_id` should be a random UUID; that alone would fix it",
+                "A missing invoice should raise `403` instead of `404`",
+                "Any logged-in user can read any invoice by changing the id",
+                "`Depends(current_user)` runs after the handler body"
+              ],
+              "answer": 2,
+              "explain": "`user` is resolved but never compared with the invoice's owner. Unguessable ids only hide the hole; the query or a check must scope the invoice to `user`."
+            },
+            {
+              "lang": null,
+              "q": "A support tool serves tickets at `GET /tickets/{id}`. Agents may only see their own team's tickets. Which test would reveal broken object-level authorization?",
+              "choices": [
+                "Log in as a team A agent and request a team B ticket's id",
+                "Request an id that doesn't exist and check for a `404`",
+                "Send the request with no token and expect a `401`",
+                "Put SQL metacharacters in the id and check the response"
+              ],
+              "answer": 0,
+              "explain": "IDOR only shows up when a valid user asks for someone else's record. The other checks cover missing records, missing authentication and injection, which are different bugs."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "background-jobs-queues",
+      "title": "Background jobs & queues",
+      "concepts": [
+        {
+          "id": "backend/background-jobs-queues/at-least-once",
+          "title": "At-least-once delivery",
+          "summary": "Queues guarantee a message isn't lost, which means it may arrive more than once",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A consumer takes a message, writes to the database, and crashes before it acks. What does an at-least-once queue do?",
+              "choices": [
+                "Drops it, since it was already delivered once",
+                "Rolls back the consumer's database write",
+                "Marks it acked once its deadline passes",
+                "Redelivers it, so the write may happen twice"
+              ],
+              "answer": 3,
+              "explain": "With no ack, the broker can't know the work was done, so it delivers again. The consumer has to make that second delivery harmless."
+            },
+            {
+              "lang": null,
+              "q": "A broker advertises at-least-once delivery. What must its consumers be built to handle?",
+              "choices": [
+                "The same message arriving twice",
+                "Messages that never arrive at all",
+                "Payloads corrupted in transit",
+                "Only one consumer running at a time"
+              ],
+              "answer": 0,
+              "explain": "At-least-once trades duplicates for never losing a message. Loss is what it rules out; duplicates are what you design for."
+            }
+          ]
+        },
+        {
+          "id": "backend/background-jobs-queues/idempotent-consumer",
+          "title": "Idempotent consumer",
+          "summary": "Making a message handler safe to run twice, e.g. by recording processed ids in the same transaction",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "Messages can be delivered twice, sometimes to two consumers at once. What's the most robust fix?\n\n```ts\nasync function handle(msg: Msg) {\n  if (await db.processed.exists(msg.id)) return\n  await db.orders.markPaid(msg.orderId)\n  await db.processed.insert(msg.id)\n}\n```",
+              "choices": [
+                "Move the `exists` check so it runs after `markPaid`",
+                "Insert `msg.id` (unique) in the `markPaid` transaction",
+                "Add a short random sleep before the `exists` check",
+                "Keep the processed ids in an in-memory `Set` per consumer"
+              ],
+              "answer": 1,
+              "explain": "Check-then-insert races when two consumers run at once, and a crash between the two writes loses the marker. A unique id written in the same transaction as the effect makes the duplicate fail atomically."
+            },
+            {
+              "lang": null,
+              "q": "Which handler is naturally idempotent, so it's safe to run twice for the same `shipment.delivered` event (carrying the shipment id and delivery time)?",
+              "choices": [
+                "`UPDATE couriers SET deliveries = deliveries + 1 WHERE id = $1`",
+                "`INSERT INTO delivery_log (shipment_id, at) VALUES ($1, $2)`",
+                "`UPDATE shipments SET delivered_at = $2 WHERE id = $1`",
+                "Sending the customer a 'your parcel arrived' push notification"
+              ],
+              "answer": 2,
+              "explain": "Setting a column to a value from the event gives the same row however often it runs. Incrementing, inserting a row without a unique key, or sending a notification repeats the effect."
+            },
+            {
+              "lang": null,
+              "q": "A payment consumer de-duplicates by storing a key for each processed event. Which key works?",
+              "choices": [
+                "The event's own id, assigned once by the producer",
+                "A random id the consumer generates on receipt",
+                "The time the consumer received it",
+                "The consumer's host name plus a local counter"
+              ],
+              "answer": 0,
+              "explain": "A redelivery must map to the same key as the first delivery. An id the consumer makes up, a receive time or a local counter differs per delivery, so duplicates would slip through."
+            }
+          ]
+        },
+        {
+          "id": "backend/background-jobs-queues/dead-letter-queue",
+          "title": "Dead-letter queue",
+          "summary": "Where messages go after too many failed attempts, so one bad message can't block the rest",
+          "variants": [
+            {
+              "lang": null,
+              "q": "One message's payload always makes the consumer throw. It's redelivered every few seconds, forever, tying up a consumer slot. What's the standard fix?",
+              "choices": [
+                "Give the consumer more memory and CPU",
+                "Delete the queue and recreate it empty",
+                "Ack every message before processing it",
+                "A max delivery count, then a dead-letter queue"
+              ],
+              "answer": 3,
+              "explain": "A poison message will never succeed, so after N attempts it's parked for a human. Acking before processing would make every crash lose messages."
+            },
+            {
+              "lang": null,
+              "q": "Three months after adding a dead-letter queue, you find 40,000 messages in it, the oldest from the first week. Nobody noticed. What was missing?",
+              "choices": [
+                "An alert on its depth, and a team that owns it",
+                "A higher max delivery count on the main queue",
+                "A shorter retention period on the dead-letter queue",
+                "A larger instance size for the main consumer"
+              ],
+              "answer": 0,
+              "explain": "A DLQ only parks failures; unless someone is paged when it grows and is responsible for draining it, it's a slower way to lose messages. A higher delivery count only delays when each message lands there."
+            }
+          ]
+        },
+        {
+          "id": "backend/background-jobs-queues/message-ordering",
+          "title": "Message ordering",
+          "summary": "Parallel consumers and retries reorder messages; ordering holds only per partition or by version checks",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A product's price changes twice: event #41 sets it to 10, then event #42 sets it to 12. Two parallel workers handle them, and #42 is written first. The stored price ends up 10. Which fix keeps the newest value?",
+              "choices": [
+                "Add more workers so events are handled faster",
+                "Apply an event only if its sequence number is higher",
+                "Retry failed writes with exponential backoff",
+                "Pull events in larger batches"
+              ],
+              "answer": 1,
+              "explain": "With a sequence check, the late #41 is ignored because the row already holds #42's value. More workers make reordering more likely, not less."
+            },
+            {
+              "lang": null,
+              "q": "In Kafka, what makes all events for one order get consumed in the order they were produced?",
+              "choices": [
+                "Using a single consumer group for the topic",
+                "Setting `acks=all` on the producer",
+                "Using the order id as the message key",
+                "Having more partitions than consumers"
+              ],
+              "answer": 2,
+              "explain": "Kafka orders messages only within a partition, and the key decides the partition, so one key means one ordered stream. `acks=all` is about durability, not order."
+            }
+          ]
+        },
+        {
+          "id": "backend/background-jobs-queues/visibility-timeout",
+          "title": "Visibility timeout",
+          "summary": "How long a received message stays hidden from other consumers before it's redelivered",
+          "variants": [
+            {
+              "lang": null,
+              "q": "An SQS queue has a 30-second visibility timeout. A job sometimes takes 2 minutes. What happens?",
+              "choices": [
+                "SQS waits, because the first worker hasn't deleted it",
+                "The message goes to the dead-letter queue at 30 s",
+                "SQS kills the first worker when the timeout ends",
+                "Another worker gets it and runs it too"
+              ],
+              "answer": 3,
+              "explain": "SQS doesn't know the worker is still busy; once the timeout passes, the message is visible again. The job now runs twice in parallel."
+            },
+            {
+              "lang": null,
+              "q": "A worker knows a job may run longer than its queue's lease (visibility timeout or ack deadline). What should it do?",
+              "choices": [
+                "Extend the lease while still working",
+                "Ack the message first, then do the job",
+                "Ignore it, since duplicates are deduplicated",
+                "Use one queue per worker instead"
+              ],
+              "answer": 0,
+              "explain": "A heartbeat that extends the lease keeps the message hidden only while the worker is alive; if it crashes, the message comes back. Acking first loses the job on a crash."
+            }
+          ]
+        },
+        {
+          "id": "backend/background-jobs-queues/skip-locked",
+          "title": "FOR UPDATE SKIP LOCKED",
+          "summary": "Letting many workers pull jobs from a Postgres table without blocking on each other",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Ten workers run this at once, each in its own transaction. What does `SKIP LOCKED` change?\n\n```sql\nSELECT id FROM jobs\nWHERE status = 'queued'\nORDER BY id\nLIMIT 1\nFOR UPDATE SKIP LOCKED;\n```",
+              "choices": [
+                "Workers skip jobs older than the lock timeout",
+                "Workers claim different jobs instead of waiting",
+                "No rows come back while any job is locked",
+                "Rows are locked only once the transaction commits"
+              ],
+              "answer": 1,
+              "explain": "Rows locked by another transaction are passed over, so workers claim different jobs in parallel. Without it, they'd all wait on the first worker's row."
+            },
+            {
+              "lang": null,
+              "q": "The same query without `SKIP LOCKED`, just `FOR UPDATE`, is run by ten workers at once. What happens?",
+              "choices": [
+                "Each gets a different job, just a little slower",
+                "All ten receive the same job and process it",
+                "They wait on the first worker's row lock",
+                "Postgres aborts all but one with a deadlock error"
+              ],
+              "answer": 2,
+              "explain": "`FOR UPDATE` waits for the lock holder to finish, so the workers queue up one by one on the same row. That's the bottleneck `SKIP LOCKED` removes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "caching",
+      "title": "Caching",
+      "concepts": [
+        {
+          "id": "backend/caching/cache-aside",
+          "title": "Cache-aside",
+          "summary": "The application checks the cache, loads from the database on a miss, and fills the cache itself",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "Which caching pattern is this?\n\n```ts\nasync function getUser(id: string) {\n  const hit = await redis.get(`user:${id}`)\n  if (hit) return JSON.parse(hit)\n  const user = await db.users.find(id)\n  await redis.set(`user:${id}`, JSON.stringify(user), 'EX', 300)\n  return user\n}\n```",
+              "choices": [
+                "Write-through",
+                "Write-behind",
+                "Read-through",
+                "Cache-aside"
+              ],
+              "answer": 3,
+              "explain": "The application code handles the miss and fills the cache. In read-through, the cache itself would load from the database."
+            },
+            {
+              "lang": null,
+              "q": "In cache-aside, who loads data from the database on a cache miss?",
+              "choices": [
+                "The application code",
+                "The cache, via a configured loader",
+                "A background job that pre-warms keys",
+                "The database, by pushing changes"
+              ],
+              "answer": 0,
+              "explain": "Cache-aside keeps the cache dumb: the app reads it, and on a miss reads the database and writes the cache."
+            },
+            {
+              "lang": null,
+              "q": "In cache-aside, a user updates their profile and the application writes the new row to the database. What happens to the cached copy of that profile?",
+              "choices": [
+                "The cache notices the database change and refreshes itself",
+                "Nothing, unless the application deletes or overwrites it",
+                "The database tells the cache to drop the key",
+                "It stays correct because reads always check the database first"
+              ],
+              "answer": 1,
+              "explain": "The cache knows nothing about the database; keeping them consistent is the application's job, usually by deleting the key after the write. If it doesn't, readers keep getting the old copy until the TTL expires."
+            }
+          ],
+          "basic": true
+        },
+        {
+          "id": "backend/caching/invalidate-on-write",
+          "title": "Cache invalidation on write",
+          "summary": "Deleting the cache key after a database write, with a TTL as a backstop for races",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Each request writes the database, then **sets** the cache key to the value it just wrote. Requests A and B run concurrently; afterwards the cache holds A's value and the database holds B's. What's the usual fix?",
+              "choices": [
+                "Set the cache first, then write to the database",
+                "Delete the key after the write; the next read refills it",
+                "Put the database write and the cache set in one SQL transaction",
+                "Use a longer TTL so updates happen less often"
+              ],
+              "answer": 1,
+              "explain": "Two sets can land in a different order from the two writes (A's set arrives last). A delete doesn't depend on order: the next reader loads whatever the database holds. Redis isn't part of your SQL transaction."
+            },
+            {
+              "lang": null,
+              "q": "You delete the key on every write. A slow reader misses, reads the old row, then the writer commits and deletes the key, then the reader stores the old row in the cache. What limits the damage?",
+              "choices": [
+                "Reading from a replica instead of the primary",
+                "Deleting the key before the write, not after",
+                "A TTL on every key, so stale entries expire",
+                "Using `SETNX` so the reader can't overwrite"
+              ],
+              "answer": 2,
+              "explain": "Delete-on-write narrows the window but can't close this race, so a TTL bounds how long a stale value can live. `SETNX` succeeds here because the key was just deleted."
+            }
+          ]
+        },
+        {
+          "id": "backend/caching/cache-stampede",
+          "title": "Cache stampede",
+          "summary": "A hot key expires and every concurrent request misses and hits the database at once",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "100 goroutines call this at the same moment for the same key on a cache miss. How many times does `loadProductFromDB` run?\n\n```go\nvar g singleflight.Group\n\nv, err, _ := g.Do(\"product:42\", func() (any, error) {\n    return loadProductFromDB(42)\n})\n```",
+              "choices": [
+                "100 times, once per goroutine",
+                "Once, and the other 99 get an error",
+                "Twice: once to load, and once more to verify the value",
+                "Once; all callers share its result"
+              ],
+              "answer": 3,
+              "explain": "`singleflight` collapses concurrent calls with the same key into one execution and hands every caller its result. That's request coalescing, a standard stampede defence."
+            },
+            {
+              "lang": "ts",
+              "q": "A hot product's cache entry expires under heavy traffic. What problem does this code address?\n\n```ts\nconst inflight = new Map<string, Promise<Product>>()\n\nfunction getProduct(id: string) {\n  let p = inflight.get(id)\n  if (!p) {\n    p = loadFromDb(id).finally(() => inflight.delete(id))\n    inflight.set(id, p)\n  }\n  return p\n}\n```",
+              "choices": [
+                "Concurrent misses all hitting the database",
+                "Attackers writing bad values into the cache",
+                "Promises that are never garbage collected",
+                "Stale reads right after a database write"
+              ],
+              "answer": 0,
+              "explain": "Concurrent callers share one in-flight load instead of each querying the database. This is a cache stampede (thundering herd) defence."
+            },
+            {
+              "lang": "python",
+              "q": "A hot product's cache entry expires under heavy traffic. What problem does this code address?\n\n```python\ninflight: dict[str, asyncio.Task[Product]] = {}\n\nasync def get_product(pid: str) -> Product:\n    task = inflight.get(pid)\n    if task is None:\n        task = asyncio.create_task(load_from_db(pid))\n        inflight[pid] = task\n        task.add_done_callback(lambda _: inflight.pop(pid, None))\n    return await task\n```",
+              "choices": [
+                "Attackers writing bad values into the cache",
+                "Concurrent misses all hitting the database",
+                "Tasks that are never garbage collected",
+                "Stale reads right after a database write"
+              ],
+              "answer": 1,
+              "explain": "Every concurrent caller awaits the same task, so one database load serves them all. It's request coalescing against a cache stampede."
+            },
+            {
+              "lang": null,
+              "q": "Ten thousand product pages are cached at deploy time, all with a TTL of exactly 300 seconds. Five minutes later the database falls over. Which change helps most?",
+              "choices": [
+                "Raise every TTL to a full hour",
+                "Lower every TTL to 60 seconds",
+                "Add random jitter to each TTL so expiries spread out",
+                "Store the pages in a second cache as well"
+              ],
+              "answer": 2,
+              "explain": "Identical TTLs make every entry expire in the same moment, so all the misses reach the database together. Randomised TTLs spread the reloads over time; a longer TTL only delays the same cliff."
+            }
+          ]
+        },
+        {
+          "id": "backend/caching/cache-control-no-cache",
+          "title": "Cache-Control: no-cache vs no-store",
+          "summary": "`no-cache` allows storing but forces revalidation; `no-store` forbids storing at all",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A response has `Cache-Control: no-cache`. What may a browser do with it?",
+              "choices": [
+                "Never store it, neither in memory nor on disk",
+                "Reuse it freely until the browser is closed",
+                "Store it, but revalidate before each reuse",
+                "Store it in a shared CDN only, not the browser"
+              ],
+              "answer": 2,
+              "explain": "Despite the name, `no-cache` permits caching; it just requires a check (e.g. a conditional request) before reuse. Forbidding storage is `no-store`."
+            },
+            {
+              "lang": null,
+              "q": "A page shows a user's bank balance. Which header tells every cache not to keep a copy?",
+              "choices": [
+                "`Cache-Control: no-cache`",
+                "`Cache-Control: max-age=0`",
+                "`Cache-Control: must-revalidate`",
+                "`Cache-Control: no-store`"
+              ],
+              "answer": 3,
+              "explain": "Only `no-store` forbids storing the response. The others all allow a stored copy that's revalidated before use."
+            }
+          ]
+        },
+        {
+          "id": "backend/caching/negative-caching",
+          "title": "Negative caching",
+          "summary": "Caching 'not found' results so repeated lookups of missing keys don't reach the database",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Bots request millions of random product ids that don't exist. Every request misses the cache and hits the database. What's a common fix?",
+              "choices": [
+                "Cache the 'not found' result, with a short TTL",
+                "Give the cache more memory so it holds more keys",
+                "Load every product into the cache at startup",
+                "Add an index on the product id column"
+              ],
+              "answer": 0,
+              "explain": "Without negative entries, missing keys always fall through to the database, index or not. A short TTL keeps a newly created product from looking missing for long."
+            },
+            {
+              "lang": null,
+              "q": "You cache 'user not found' for an hour and don't touch the cache on signup. What's the main risk?",
+              "choices": [
+                "The cache fills up with full user records",
+                "New signups look missing for up to an hour",
+                "Existing users' rows are evicted from the database",
+                "Lookups for existing users become slower"
+              ],
+              "answer": 1,
+              "explain": "The cached miss outlives the fact it recorded. Keep negative TTLs short, or delete the entry when the record is created."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Security",
+      "concepts": [
+        {
+          "id": "backend/security/sql-injection",
+          "title": "SQL injection",
+          "summary": "User input changing the structure of a query; prevented by passing values as parameters",
+          "basic": true,
+          "variants": [
+            {
+              "lang": "go",
+              "q": "`name` comes from the query string. What's the fix?\n\n```go\nrows, err := db.QueryContext(ctx,\n    \"SELECT id FROM users WHERE name = '\"+name+\"'\")\n```",
+              "choices": [
+                "Strip single quotes from `name` before concatenating",
+                "Quote it with `fmt.Sprintf` and the `%q` verb",
+                "Use `WHERE name = $1` and pass `name` as an argument",
+                "Run the query inside a transaction"
+              ],
+              "answer": 2,
+              "explain": "With a placeholder, the driver sends the value separately from the SQL, so it can never become SQL. Escaping by hand misses cases, and `%q` produces Go string syntax, not SQL quoting."
+            },
+            {
+              "lang": "ts",
+              "q": "`email` comes from the user. Which `pg` call is safe from SQL injection?",
+              "choices": [
+                "`` db.query(`SELECT * FROM users WHERE email = '${email}'`) ``",
+                "`db.query(\"SELECT * FROM users WHERE email = '\" + email + \"'\")`",
+                "`db.query('SELECT * FROM users WHERE email = ' + JSON.stringify(email))`",
+                "`db.query('SELECT * FROM users WHERE email = $1', [email])`"
+              ],
+              "answer": 3,
+              "explain": "Only the parameterised call keeps the value out of the SQL text. A template literal is still string concatenation, and `JSON.stringify` quoting isn't SQL quoting."
+            },
+            {
+              "lang": "python",
+              "q": "`email` comes from the user. Which psycopg call is safe from SQL injection?",
+              "choices": [
+                "`cur.execute(\"SELECT * FROM users WHERE email = %s\", (email,))`",
+                "`cur.execute(f\"SELECT * FROM users WHERE email = '{email}'\")`",
+                "`cur.execute(\"SELECT * FROM users WHERE email = '%s'\" % email)`",
+                "`cur.execute(\"SELECT * FROM users WHERE email = \" + repr(email))`"
+              ],
+              "answer": 0,
+              "explain": "Passing the value as the second argument lets the driver bind it as data. The `%` operator looks similar but formats the string before psycopg ever sees it."
+            },
+            {
+              "lang": null,
+              "q": "Which part of a SQL statement can a placeholder like `$1` or `?` bind?",
+              "choices": [
+                "A table name, such as in `FROM $1`",
+                "A column name, such as in `ORDER BY $1`",
+                "A whole condition, such as `$1` after `WHERE`",
+                "A value, such as the id in `WHERE id = $1`"
+              ],
+              "answer": 3,
+              "explain": "Placeholders carry values that are sent separately from the SQL text. Names and clauses are part of the statement's structure, so if they come from user input they must be checked against a fixed allow-list."
+            }
+          ]
+        },
+        {
+          "id": "backend/security/password-hashing",
+          "title": "Password hashing",
+          "summary": "Storing passwords with a deliberately slow, salted algorithm like Argon2id or bcrypt",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Why is `SHA-256(salt + password)` a poor way to store passwords?",
+              "choices": [
+                "SHA-256 has known collisions that reveal the password",
+                "It's fast, so leaked hashes can be guessed very quickly",
+                "A salt makes it impossible to check the password at login",
+                "Its output is too long to fit in most database columns"
+              ],
+              "answer": 1,
+              "explain": "General-purpose hashes are built for speed, and GPUs test enormous numbers of guesses per second. Password hashes are slow and tunable on purpose; the salt only stops precomputed tables and identical hashes."
+            },
+            {
+              "lang": null,
+              "q": "Which is a suitable way to store user passwords today?",
+              "choices": [
+                "AES-256 encryption, key in the config",
+                "SHA-512 with a per-user random salt",
+                "Argon2id or bcrypt with a tuned cost",
+                "MD5 applied 1,000 times in a loop"
+              ],
+              "answer": 2,
+              "explain": "Argon2id and bcrypt are designed to be slow and have a work factor you raise over time. Encryption is reversible by whoever has the key, and fast hashes stay fast even when salted or repeated a little."
+            }
+          ]
+        },
+        {
+          "id": "backend/security/ssrf",
+          "title": "Server-side request forgery (SSRF)",
+          "summary": "Tricking your server into making requests to internal addresses on the attacker's behalf",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Users can register a webhook URL, and your server POSTs to it. Someone registers `http://169.254.169.254/latest/meta-data/`. What's the attack?",
+              "choices": [
+                "CSRF: forging a request from the victim's own browser",
+                "XSS: running script in an admin's browser via the URL",
+                "Open redirect: sending users on to a malicious site",
+                "SSRF: making your server call internal-only addresses"
+              ],
+              "answer": 3,
+              "explain": "That address is the cloud metadata service, reachable only from inside, which can hand out credentials. CSRF abuses a user's browser; SSRF abuses your server."
+            },
+            {
+              "lang": null,
+              "q": "Your SSRF defence resolves the webhook's hostname, checks the IP isn't private, then calls `fetch(url)`. The attacker's DNS returns a public IP for the check and `10.0.0.5` for the fetch. What fixes it?",
+              "choices": [
+                "Check the IP the connection actually uses",
+                "Match the hostname against a regex of internal domain names",
+                "Resolve the hostname twice and compare the two answers",
+                "Only allow URLs that start with `https://`"
+              ],
+              "answer": 0,
+              "explain": "This is DNS rebinding: the name resolves differently between check and use. Validate the address at connect time (or connect to the IP you checked). Resolving twice can be gamed the same way."
+            }
+          ]
+        },
+        {
+          "id": "backend/security/mass-assignment",
+          "title": "Mass assignment",
+          "summary": "Copying request fields straight onto a model, letting users set fields they shouldn't",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What can a user do with this endpoint?\n\n```ts\napp.patch('/me', requireLogin, async (req, res) => {\n  await db.users.update(req.user.id, req.body)\n  res.sendStatus(204)\n})\n```",
+              "choices": [
+                "Edit another user's profile by changing the URL",
+                "Set fields like `role` by adding them to the body",
+                "Nothing harmful: it only ever updates their own row",
+                "Crash the server by sending an empty JSON body"
+              ],
+              "answer": 1,
+              "explain": "The whole body is written to the user row, so any column name the user guesses becomes writable. Pick the allowed fields explicitly, e.g. with a schema that lists them."
+            },
+            {
+              "lang": "go",
+              "q": "`UpdateProfile` writes every field of `u`. What's the safest fix?\n\n```go\ntype User struct {\n    Name    string `json:\"name\"`\n    Email   string `json:\"email\"`\n    IsAdmin bool   `json:\"is_admin\"`\n}\n\nvar u User\njson.NewDecoder(r.Body).Decode(&u)\nstore.UpdateProfile(currentUserID, u)\n```",
+              "choices": [
+                "Call `DisallowUnknownFields()` on the decoder first",
+                "Check that `r.Method` is `PATCH` before decoding",
+                "Decode into a struct with only the editable fields",
+                "Validate `Email` with a regex before saving"
+              ],
+              "answer": 2,
+              "explain": "A request struct that has no `IsAdmin` field can't carry one. `DisallowUnknownFields` doesn't help, because `is_admin` is a known field."
+            },
+            {
+              "lang": "python",
+              "q": "What can a user do with this handler?\n\n```python\n@app.patch(\"/me\")\nasync def update_me(body: dict, user: User = Depends(current_user)):\n    for key, value in body.items():\n        setattr(user, key, value)\n    await session.commit()\n```",
+              "choices": [
+                "Edit another user's profile by changing the URL",
+                "Nothing harmful: it only changes their own object",
+                "Crash the server by sending an empty JSON body",
+                "Set `is_admin` by adding it to the body"
+              ],
+              "answer": 3,
+              "explain": "Every key in the body becomes an attribute on the model. Declare a request model with only the editable fields and copy those."
+            },
+            {
+              "lang": null,
+              "q": "`POST /orders` creates an order straight from the JSON body, including `total` and `status`. A client sends `{\"items\": [...], \"total\": 0, \"status\": \"paid\"}` and gets a free paid order. What's the root cause?",
+              "choices": [
+                "`POST` requests aren't idempotent",
+                "The endpoint lacks CSRF protection",
+                "The server copies every body field onto the model instead of picking allowed ones",
+                "The JSON body has no size limit"
+              ],
+              "answer": 2,
+              "explain": "Fields the client shouldn't control were bound from the request. The fix is an explicit allow-list of input fields, with `total` and `status` computed on the server."
+            }
+          ]
+        },
+        {
+          "id": "backend/security/timing-safe-compare",
+          "title": "Constant-time comparison",
+          "summary": "Comparing secrets so the time taken doesn't reveal how many bytes matched",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "You verify a webhook by computing an HMAC and comparing it with the signature header. Which comparison should you use?",
+              "choices": [
+                "`hmac.Equal(expected, got)`",
+                "`bytes.Equal(expected, got)`",
+                "`string(expected) == string(got)`",
+                "`reflect.DeepEqual(expected, got)`"
+              ],
+              "answer": 0,
+              "explain": "`hmac.Equal` takes the same time whatever the input. The others can return as soon as a byte differs, letting an attacker learn the signature byte by byte from timing."
+            },
+            {
+              "lang": "ts",
+              "q": "Why compare signatures with `crypto.timingSafeEqual(a, b)` instead of `a.toString('hex') === b.toString('hex')`?",
+              "choices": [
+                "`===` on hex strings can give false positives",
+                "`===` may exit early on a mismatch, leaking timing",
+                "`timingSafeEqual` is faster when the buffers are long",
+                "`===` can't compare strings made from buffers"
+              ],
+              "answer": 1,
+              "explain": "An early exit makes the comparison time depend on how much of the guess was right. Note that `timingSafeEqual` throws if the lengths differ, so check lengths first."
+            },
+            {
+              "lang": "python",
+              "q": "You verify a webhook by computing an HMAC and comparing it with the signature header. `a` is the computed digest and `b` the one from the header. Which comparison should you use?",
+              "choices": [
+                "`a == b`",
+                "`a.startswith(b)`",
+                "`hmac.compare_digest(a, b)`",
+                "`a.lower() == b.lower()`"
+              ],
+              "answer": 2,
+              "explain": "`compare_digest` is designed so its time doesn't depend on where the inputs differ. `==` can return early on the first mismatch."
+            },
+            {
+              "lang": null,
+              "q": "An API compares a client's key with the stored key using `==`, which stops at the first differing byte. Why is that exploitable?",
+              "choices": [
+                "`==` ignores letter case, so many keys are equal",
+                "Response time grows with the matching prefix, so guesses can be refined byte by byte",
+                "`==` only compares the first 8 bytes of each value",
+                "`==` writes the compared values to the process log"
+              ],
+              "answer": 1,
+              "explain": "An early exit makes timing depend on how much of the guess was right. Network noise hides a single measurement, but averaged over many requests the difference can be recovered; constant-time comparison removes it."
+            }
+          ]
+        },
+        {
+          "id": "backend/security/threat-modeling",
+          "title": "Threat modeling",
+          "summary": "Walking through a design to list what could be attacked and how (e.g. with STRIDE) before building it",
+          "variants": []
+        }
+      ]
+    }
+  ]
+}
