@@ -64,7 +64,7 @@ Aim for 4–8 concepts per skill. First release: all groups, about 350 concepts 
 
 ### Files
 
-One file per group: `content/NN-<group-id>.json` (`01-language-runtime.json` … `09-frontend.json`).
+One file per group: `content/NN-<group-id>.json` (`01-language-runtime.json` … `09-frontend.json`). Group IDs, in order: `language-runtime`, `data-structures-algorithms`, `code-craft`, `design-architecture`, `backend`, `data-storage`, `testing`, `delivery-ops`, `frontend`.
 
 ```jsonc
 {
@@ -164,11 +164,12 @@ Every `gap` concept, grouped by group → skill, with groups sorted by gap count
 - Buttons: **Copy image** (`ClipboardItem`), **Download**, **Share** (`navigator.share` with the file, on mobile).
 - No share links: a per-user Slack/OG preview would need a backend.
 - If `html-to-image` renders badly, switch to drawing the card by hand on `<canvas>`.
+- `html-to-image` drops SVG paint set through CSS classes, so the radar sets `fill`/`stroke` as attributes.
 
 ## Mascots
 
 - The owner draws them by hand. Until then, ship placeholders.
-- Placeholders: `public/mascots/<id>.svg`, where `<id>` is the group ID or `wanderer`. Each is a coloured circle with the animal emoji and job name (e.g. 🐙 Interpreter).
+- Placeholders: `public/mascots/<id>.svg`, where `<id>` is the group ID or `wanderer`. Each is a coloured circle with the animal emoji and job name (e.g. 🐙 Interpreter). There is no meerkat or husky emoji, so those two use 🦦 and 🐺 until drawn.
 - `src/mascots.ts` maps each ID to its file, so swapping in a drawing (PNG or SVG) is a one-line change.
 - No external placeholder services: cross-origin images break the PNG export.
 

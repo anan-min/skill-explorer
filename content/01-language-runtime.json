@@ -1,0 +1,182 @@
+{
+  "group": { "id": "language-runtime", "title": "Language & runtime", "hidden": false },
+  "skills": [
+    {
+      "id": "types-memory",
+      "title": "Types & memory",
+      "concepts": [
+        {
+          "id": "language-runtime/types-memory/heap-profile",
+          "title": "Heap profiling",
+          "summary": "Finding what allocates memory with a heap profile (pprof, Chrome DevTools)",
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "functions-scope",
+      "title": "Functions & scope",
+      "concepts": [
+        {
+          "id": "language-runtime/functions-scope/loop-variable-capture",
+          "title": "Loop variable capture in closures",
+          "summary": "Whether a closure created in a loop sees one shared variable or a fresh one per iteration",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "With Go 1.22 or later, what does this print?\n\n```go\nvar fns []func()\nfor i := 0; i < 3; i++ {\n    fns = append(fns, func() { fmt.Print(i) })\n}\nfor _, f := range fns {\n    f()\n}\n```",
+              "choices": ["`012`", "`333`", "`222`", "It doesn't compile"],
+              "answer": 0,
+              "explain": "Since Go 1.22 each loop iteration gets its own `i`, so every closure captures a different variable. Before 1.22 the loop shared one `i` and this printed `333`."
+            },
+            {
+              "lang": "ts",
+              "q": "What does this log?\n\n```ts\nfor (var i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i))\n}\n```",
+              "choices": ["`0 1 2`", "`3 3 3`", "`2 2 2`", "`undefined` three times"],
+              "answer": 1,
+              "explain": "`var` is function-scoped, so all three callbacks close over the same `i`, which is `3` by the time they run. With `let`, each iteration gets its own binding and it logs `0 1 2`."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "error-handling",
+      "title": "Error handling",
+      "concepts": [
+        {
+          "id": "language-runtime/error-handling/error-wrapping",
+          "title": "Error wrapping",
+          "summary": "Adding context to an error while keeping the original inspectable",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\nerr := fmt.Errorf(\"load config: %w\", fs.ErrNotExist)\nfmt.Println(errors.Is(err, fs.ErrNotExist))\n```",
+              "choices": ["`true`", "`false`", "It doesn't compile", "`load config: file does not exist`"],
+              "answer": 0,
+              "explain": "`%w` wraps the original error, and `errors.Is` walks the wrap chain. With `%v` the original would be flattened into the message and this would print `false`."
+            },
+            {
+              "lang": "ts",
+              "q": "Given `const err = new Error('load config', { cause: original })`, how do you get `original` back?",
+              "choices": ["`err.cause`", "`err.inner`", "`err.stack[0]`", "You can't: only the message is kept"],
+              "answer": 0,
+              "explain": "The `cause` option (ES2022) stores the wrapped error on `err.cause`, so callers can inspect what went wrong underneath."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "async",
+      "title": "Asynchronous programming",
+      "concepts": [
+        {
+          "id": "language-runtime/async/errgroup",
+          "title": "errgroup",
+          "summary": "Running goroutines together and collecting the first error, optionally cancelling the rest",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Several functions started with `g.Go` on an `errgroup.Group` return errors. What does `g.Wait()` return?",
+              "choices": [
+                "All the errors joined together",
+                "The first non-nil error returned",
+                "The last error returned",
+                "`nil`: errors are read from a channel"
+              ],
+              "answer": 1,
+              "explain": "`Wait` blocks until every function has returned, then returns the first non-nil error. The others are dropped."
+            },
+            {
+              "lang": "go",
+              "q": "After `g, ctx := errgroup.WithContext(parent)`, when is `ctx` cancelled (assuming `parent` isn't)?",
+              "choices": [
+                "Never: you have to cancel it yourself",
+                "Only once every function has returned an error",
+                "When the first function passed to `g.Go` returns a non-nil error, or when `Wait` returns",
+                "As soon as any function passed to `g.Go` returns"
+              ],
+              "answer": 2,
+              "explain": "The derived context is cancelled on the first error (or when `Wait` returns), so the other goroutines can stop early by watching `ctx`."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/async/promise-allsettled",
+          "title": "Promise.allSettled",
+          "summary": "Waiting for every promise to finish and getting each outcome, even when some reject",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What happens with `await Promise.allSettled([p1, p2])` if `p1` rejects?",
+              "choices": [
+                "It rejects with `p1`'s reason straight away",
+                "It resolves with `p2`'s value only",
+                "It resolves with `undefined` in place of `p1`",
+                "It waits for both, then resolves with one `{ status, value | reason }` object per promise"
+              ],
+              "answer": 3,
+              "explain": "`allSettled` never rejects. It waits for every promise and reports each one's outcome; `Promise.all` is the one that rejects on the first failure."
+            },
+            {
+              "lang": "ts",
+              "q": "What does this log?\n\n```ts\nconst results = await Promise.allSettled([\n  Promise.resolve(1),\n  Promise.reject(new Error('x')),\n])\nconsole.log(results.map((r) => r.status))\n```",
+              "choices": [
+                "`['fulfilled', 'rejected']`",
+                "`['resolved', 'rejected']`",
+                "`['fulfilled', 'failed']`",
+                "It throws `Error: x`"
+              ],
+              "answer": 0,
+              "explain": "Each result has `status: 'fulfilled'` with a `value`, or `status: 'rejected'` with a `reason`."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "concurrency",
+      "title": "Concurrency",
+      "concepts": [
+        {
+          "id": "language-runtime/concurrency/data-race",
+          "title": "Data race",
+          "summary": "Unsynchronised concurrent access to the same memory where at least one access is a write",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which of these is a data race?",
+              "choices": [
+                "Two threads read the same variable at the same time",
+                "Two threads access the same memory concurrently, at least one writes, and nothing synchronises them",
+                "Two tasks finish in an unpredictable order",
+                "A thread waits forever for a lock another thread holds"
+              ],
+              "answer": 1,
+              "explain": "A data race needs concurrent access, at least one write, and no synchronisation. Concurrent reads alone are safe; waiting forever on a lock is a deadlock."
+            },
+            {
+              "lang": null,
+              "q": "Two threads run `count++` on a shared counter with no lock. Why can increments be lost?",
+              "choices": [
+                "The compiler removes the second increment",
+                "`count++` is a read, an add and a write, and the threads can interleave between those steps",
+                "The integer overflows",
+                "CPU caches never write back to memory"
+              ],
+              "answer": 1,
+              "explain": "Both threads can read the same old value, add one, and write back the same result, so one increment disappears. A lock or an atomic increment fixes it."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/concurrency/race-detector",
+          "title": "Race detector",
+          "summary": "Running tests with a race detector, such as `go test -race`",
+          "variants": []
+        }
+      ]
+    }
+  ]
+}
