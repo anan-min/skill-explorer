@@ -45,51 +45,71 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
   const [sample] = useState(() => scanSample(GROUPS, progress, Math.random));
   const [queue, setQueue] = useState<ReturnType<typeof checks> | null>(null);
   const [index, setIndex] = useState(0);
+  // The scan shows one topic per page.
+  const [page, setPage] = useState(0);
   const finished = queue !== null && index >= queue.length;
   useEffect(() => {
     if (finished) window.location.hash = "#/results";
   }, [finished]);
 
   if (queue === null) {
-    const rows = sample.flatMap((s) => s.concepts);
-    const done = rows.filter((c) => stateOf(progress, c.id) !== "fog").length;
+    const { group, concepts } = sample[page];
+    const last = page === sample.length - 1;
+    const done = concepts.filter((c) => stateOf(progress, c.id) !== "fog").length;
+    // Keep the topic's own skill order, showing only skills with a row in this sample.
+    const skills = group.skills
+      .map((skill) => ({ skill, rows: concepts.filter((c) => skill.concepts.includes(c)) }))
+      .filter((s) => s.rows.length);
+    const go = (to: number) => {
+      setPage(to);
+      window.scrollTo(0, 0);
+    };
     return (
-      <section className="space-y-8 pb-24">
+      <section className="space-y-5 pb-24">
         <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">{mode === "quiz" ? "Step 1 of 2 · Quick scan" : "Quick scan"}</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Have you met these?</h1>
-          <p className="text-muted-foreground">
-            A few from every topic. Never heard of it, heard the name, or used it?
+          <p className="text-sm text-muted-foreground">
+            {mode === "quiz" ? "Step 1 of 2 · " : ""}Quick scan · Topic {page + 1} of {sample.length}
           </p>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{group.group.title}</h1>
+          <p className="hidden text-muted-foreground sm:block">Never heard of it, heard the name, or used it?</p>
         </div>
-        {sample.map(({ group, concepts }) => (
-          <div key={group.group.id} className="space-y-2">
-            <h2 className="text-xs tracking-widest text-muted-foreground uppercase">{group.group.title}</h2>
-            <ul className="divide-y rounded-lg border">
-              {concepts.map((concept) => (
-                <ScanRow
-                  key={concept.id}
-                  concept={concept}
-                  value={scanAnswer(progress, concept.id)}
-                  confirmed={stateOf(progress, concept.id) === "confirmed"}
-                  onPick={(button) => update((p) => scan(p, concept, button))}
-                />
-              ))}
-            </ul>
-          </div>
-        ))}
+        <ul className="divide-y rounded-lg border">
+          {skills.flatMap(({ skill, rows }) =>
+            rows.map((concept) => (
+              <ScanRow
+                key={concept.id}
+                skill={skill.title}
+                concept={concept}
+                value={scanAnswer(progress, concept.id)}
+                confirmed={stateOf(progress, concept.id) === "confirmed"}
+                onPick={(button) => update((p) => scan(p, concept, button))}
+              />
+            )),
+          )}
+        </ul>
         <StickyBar>
           <span className="text-sm text-muted-foreground tabular-nums">
-            {done} of {rows.length} answered
+            {done} of {concepts.length} answered
           </span>
-          <Button
-            disabled={done < rows.length}
-            onClick={() =>
-              mode === "quiz" ? setQueue(checks(progress, settings.lang)) : (window.location.hash = "#/results")
-            }
-          >
-            {mode === "quiz" ? "Next: quick check →" : "See my result →"}
-          </Button>
+          <div className="flex gap-2">
+            {page > 0 && (
+              <Button variant="outline" onClick={() => go(page - 1)}>
+                ← Back
+              </Button>
+            )}
+            <Button
+              disabled={done < concepts.length}
+              onClick={() =>
+                !last
+                  ? go(page + 1)
+                  : mode === "quiz"
+                    ? setQueue(checks(progress, settings.lang))
+                    : (window.location.hash = "#/results")
+              }
+            >
+              {!last ? "Next topic →" : mode === "quiz" ? "Next: quick check →" : "See my result →"}
+            </Button>
+          </div>
         </StickyBar>
       </section>
     );
@@ -137,16 +157,18 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
 }
 
 type RowProps = {
+  skill: string;
   concept: Concept;
   value: ScanButton | null;
   confirmed: boolean;
   onPick: (button: ScanButton) => void;
 };
 
-function ScanRow({ concept, value, confirmed, onPick }: RowProps) {
+function ScanRow({ skill, concept, value, confirmed, onPick }: RowProps) {
   return (
-    <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+    <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-4 py-2.5">
       <div className="min-w-0 flex-1 basis-56">
+        <p className="text-[0.7rem] tracking-widest text-muted-foreground uppercase">{skill}</p>
         <p className="font-medium">
           {concept.title}
           {confirmed && <span className="ml-2 text-xs text-muted-foreground">✓ quiz</span>}
