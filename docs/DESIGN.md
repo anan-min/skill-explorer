@@ -195,6 +195,7 @@ Below the gaps, never on the share card: right and missed answers, skills rated 
 - **Copy gap list** as plain text (it doubles as a personal growth note).
 - **Download report:** a Markdown file (`nerdscape-report.md`) with the persona and how many claims are checked, then every topic → skill with its rating and score → concept with its level and result (Right, Missed or Not asked). Each missed concept also has the question, the picked choice, the answer and the explanation.
 - **Backup / Restore:** the progress as a JSON file.
+- **Start over:** after a confirm, clears all progress in this browser (the language choice stays) and goes to Home.
 - One line on the first screen saying the data lives in this browser. No export nagging.
 
 ## Sharing
