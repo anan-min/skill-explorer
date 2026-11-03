@@ -1,7 +1,7 @@
-import type { AppProps } from '../App.tsx'
-import { GROUPS } from '../content.ts'
-import { conceptsOf, stateOf, visibleGroups } from '../logic.ts'
-import { mascot } from '../mascots.ts'
+import type { AppProps } from "../App.tsx";
+import { GROUPS } from "../content.ts";
+import { conceptsOf, stateOf, visibleGroups } from "../logic.ts";
+import { mascot } from "../mascots.ts";
 
 export function Home({ progress, settings, setSettings }: AppProps) {
   return (
@@ -24,9 +24,9 @@ export function Home({ progress, settings, setSettings }: AppProps) {
       </section>
       <ul className="groups">
         {visibleGroups(GROUPS, settings.frontend).map((g) => {
-          const concepts = conceptsOf(g)
-          const explored = concepts.filter((c) => stateOf(progress, c.id) !== 'fog').length
-          const m = mascot(g.group.id)
+          const concepts = conceptsOf(g);
+          const explored = concepts.filter((c) => stateOf(progress, c.id) !== "fog").length;
+          const m = mascot(g.group.id);
           return (
             <li key={g.group.id} className="group-card">
               <img src={m.src} alt={`${m.animal} ${m.job}`} width={56} height={56} />
@@ -45,9 +45,9 @@ export function Home({ progress, settings, setSettings }: AppProps) {
                 </a>
               </div>
             </li>
-          )
+          );
         })}
       </ul>
     </>
-  )
+  );
 }

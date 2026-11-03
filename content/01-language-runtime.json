@@ -122,7 +122,12 @@
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nconst results = await Promise.allSettled([\n  Promise.resolve(1),\n  Promise.reject(new Error('x')),\n])\nconsole.log(results.map((r) => r.status))\n```",
-              "choices": ["`['fulfilled', 'rejected']`", "`['resolved', 'rejected']`", "`['fulfilled', 'failed']`", "It throws `Error: x`"],
+              "choices": [
+                "`['fulfilled', 'rejected']`",
+                "`['resolved', 'rejected']`",
+                "`['fulfilled', 'failed']`",
+                "It throws `Error: x`"
+              ],
               "answer": 0,
               "explain": "Each result has `status: 'fulfilled'` with a `value`, or `status: 'rejected'` with a `reason`."
             }

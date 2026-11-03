@@ -1,83 +1,83 @@
-import { toBlob } from 'html-to-image'
-import { useRef, useState } from 'react'
-import type { AppProps } from '../App.tsx'
-import { GROUPS } from '../content.ts'
-import { coverage, gapsByGroup, gapText, parseBackup, persona, visibleGroups, type Persona } from '../logic.ts'
-import { Inline, Markdown } from '../Markdown.tsx'
-import { mascot } from '../mascots.ts'
-import { Radar } from '../Radar.tsx'
+import { toBlob } from "html-to-image";
+import { useRef, useState } from "react";
+import type { AppProps } from "../App.tsx";
+import { GROUPS } from "../content.ts";
+import { coverage, gapsByGroup, gapText, parseBackup, persona, visibleGroups, type Persona } from "../logic.ts";
+import { Inline, Markdown } from "../Markdown.tsx";
+import { mascot } from "../mascots.ts";
+import { Radar } from "../Radar.tsx";
 
 function personaMascot(p: Persona) {
-  if (p.kind === 'locked') return null
-  return mascot(p.kind === 'wanderer' ? 'wanderer' : p.id)
+  if (p.kind === "locked") return null;
+  return mascot(p.kind === "wanderer" ? "wanderer" : p.id);
 }
 
 function download(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob)
-  const a = Object.assign(document.createElement('a'), { href: url, download: name })
-  a.click()
-  URL.revokeObjectURL(url)
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export function Results({ progress, update, settings }: AppProps) {
-  const groups = visibleGroups(GROUPS, settings.frontend)
-  const who = persona(GROUPS, progress, settings.frontend)
-  const m = personaMascot(who)
-  const hero = useRef<HTMLDivElement>(null)
-  const [note, setNote] = useState('')
+  const groups = visibleGroups(GROUPS, settings.frontend);
+  const who = persona(GROUPS, progress, settings.frontend);
+  const m = personaMascot(who);
+  const hero = useRef<HTMLDivElement>(null);
+  const [note, setNote] = useState("");
 
   const flash = (text: string) => {
-    setNote(text)
-    setTimeout(() => setNote(''), 2500)
-  }
+    setNote(text);
+    setTimeout(() => setNote(""), 2500);
+  };
 
   const card = async () => {
-    const blob = await toBlob(hero.current!, { pixelRatio: 2 })
-    if (!blob) throw new Error('Could not render the card')
-    return blob
-  }
-  const cardFile = async () => new File([await card()], 'skill-explorer.png', { type: 'image/png' })
-  const canShare = typeof navigator.canShare === 'function'
+    const blob = await toBlob(hero.current!, { pixelRatio: 2 });
+    if (!blob) throw new Error("Could not render the card");
+    return blob;
+  };
+  const cardFile = async () => new File([await card()], "skill-explorer.png", { type: "image/png" });
+  const canShare = typeof navigator.canShare === "function";
 
   const copyImage = async () => {
     try {
       // Pass the promise straight in: Safari drops the user gesture across an await.
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': card() })])
-      flash('Image copied')
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": card() })]);
+      flash("Image copied");
     } catch {
-      flash("Couldn't copy the image here; try Download")
+      flash("Couldn't copy the image here; try Download");
     }
-  }
+  };
   const share = async () => {
     try {
-      await navigator.share({ files: [await cardFile()] })
+      await navigator.share({ files: [await cardFile()] });
     } catch {
       // Cancelled or unsupported.
     }
-  }
+  };
 
   const copyGaps = async () => {
     try {
-      await navigator.clipboard.writeText(gapText(GROUPS, progress, settings.frontend))
-      flash('Gap list copied')
+      await navigator.clipboard.writeText(gapText(GROUPS, progress, settings.frontend));
+      flash("Gap list copied");
     } catch {
-      flash("Couldn't copy here")
+      flash("Couldn't copy here");
     }
-  }
+  };
   const backup = () =>
-    download(new Blob([JSON.stringify(progress, null, 2)], { type: 'application/json' }), 'skill-explorer-backup.json')
+    download(new Blob([JSON.stringify(progress, null, 2)], { type: "application/json" }), "skill-explorer-backup.json");
   const restore = async (file: File | undefined) => {
-    if (!file) return
+    if (!file) return;
     try {
-      const restored = parseBackup(await file.text())
-      update(() => restored)
-      flash('Restored')
+      const restored = parseBackup(await file.text());
+      update(() => restored);
+      flash("Restored");
     } catch {
-      flash("That file isn't a Skill Explorer backup")
+      flash("That file isn't a Skill Explorer backup");
     }
-  }
+  };
 
-  const gaps = gapsByGroup(GROUPS, progress, settings.frontend)
+  const gaps = gapsByGroup(GROUPS, progress, settings.frontend);
 
   return (
     <>
@@ -89,11 +89,11 @@ export function Results({ progress, update, settings }: AppProps) {
               <div className="persona-name">
                 {m.animal} · {m.job}
               </div>
-              {who.kind === 'wanderer' && <div className="muted">You roam every group evenly.</div>}
+              {who.kind === "wanderer" && <div className="muted">You roam every group evenly.</div>}
             </>
           ) : (
             <>
-              <img className="persona-img silhouette" src={mascot('wanderer').src} alt="" width={120} height={120} />
+              <img className="persona-img silhouette" src={mascot("wanderer").src} alt="" width={120} height={120} />
               <div className="persona-name">Keep exploring</div>
               <div className="muted">Explore half of two groups to meet your mascot.</div>
             </>
@@ -103,7 +103,7 @@ export function Results({ progress, update, settings }: AppProps) {
         </div>
         <div className="row center">
           <button onClick={copyImage}>Copy image</button>
-          <button onClick={async () => download(await card(), 'skill-explorer.png')}>Download</button>
+          <button onClick={async () => download(await card(), "skill-explorer.png")}>Download</button>
           {canShare && <button onClick={share}>Share</button>}
         </div>
       </section>
@@ -119,8 +119,8 @@ export function Results({ progress, update, settings }: AppProps) {
                 <h4>{skill.title}</h4>
                 <ul className="gap-list">
                   {gaps.map((c) => {
-                    const seen = progress.concepts[c.id]?.seen
-                    const v = seen && c.variants[seen.variant]
+                    const seen = progress.concepts[c.id]?.seen;
+                    const v = seen && c.variants[seen.variant];
                     return (
                       <li key={c.id}>
                         {v ? (
@@ -130,7 +130,8 @@ export function Results({ progress, update, settings }: AppProps) {
                             </summary>
                             <Markdown text={v.q} />
                             <p>
-                              You picked <Inline text={v.choices[seen.choice]} />. Answer: <Inline text={v.choices[v.answer]} />
+                              You picked <Inline text={v.choices[seen.choice]} />. Answer:{" "}
+                              <Inline text={v.choices[v.answer]} />
                             </p>
                             <Markdown text={v.explain} />
                           </details>
@@ -140,7 +141,7 @@ export function Results({ progress, update, settings }: AppProps) {
                           </>
                         )}
                       </li>
-                    )
+                    );
                   })}
                 </ul>
               </div>
@@ -163,5 +164,5 @@ export function Results({ progress, update, settings }: AppProps) {
         {note}
       </div>
     </>
-  )
+  );
 }
