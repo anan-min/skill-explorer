@@ -7,12 +7,13 @@
     {
       "id": "oo-design",
       "title": "OO design",
+      "summary": "SOLID, DRY and KISS applied to classes and modules",
       "concepts": [
         {
           "id": "design-architecture/oo-design/single-responsibility",
           "title": "Single responsibility principle",
           "summary": "A module should have one reason to change: one owner, one kind of rule",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -44,6 +45,7 @@
           "id": "design-architecture/oo-design/liskov-substitution",
           "title": "Liskov substitution principle",
           "summary": "A subtype must keep the promises of the type it replaces, not just its method signatures",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -72,12 +74,7 @@
             {
               "lang": "python",
               "q": "Code that accepts a `Rectangle` breaks when given a `Square`. Which principle does `Square` break?\n\n```python\nclass Rectangle:\n    def set_size(self, width: int, height: int) -> None:\n        self.width, self.height = width, height\n\nclass Square(Rectangle):\n    def set_size(self, width: int, height: int) -> None:\n        if width != height:\n            raise ValueError(\"a square needs equal sides\")\n        self.width = self.height = width\n```",
-              "choices": [
-                "Liskov substitution",
-                "Interface segregation",
-                "Open/closed",
-                "Single responsibility"
-              ],
+              "choices": ["Liskov substitution", "Interface segregation", "Open/closed", "Single responsibility"],
               "answer": 0,
               "explain": "`Square` narrows what `set_size` accepts, so code written against `Rectangle` fails with valid input. A subtype may accept more than its parent, never less."
             },
@@ -99,6 +96,7 @@
           "id": "design-architecture/oo-design/dependency-inversion",
           "title": "Dependency inversion principle",
           "summary": "High-level code depends on an abstraction it owns; the concrete detail is plugged in from outside",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -154,16 +152,12 @@
           "id": "design-architecture/oo-design/fragile-base-class",
           "title": "Fragile base class",
           "summary": "A subclass breaks because it depends on how its parent calls its own methods internally",
+          "level": "hard",
           "variants": [
             {
               "lang": "ts",
               "q": "What does this print?\n\n```ts\nclass Bag {\n  items: string[] = []\n  add(x: string) { this.items.push(x) }\n  addAll(xs: string[]) { xs.forEach((x) => this.add(x)) }\n}\nclass CountingBag extends Bag {\n  count = 0\n  add(x: string) { this.count++; super.add(x) }\n  addAll(xs: string[]) { this.count += xs.length; super.addAll(xs) }\n}\nconst b = new CountingBag()\nb.addAll(['a', 'b'])\nconsole.log(b.count)\n```",
-              "choices": [
-                "`4`",
-                "`2`",
-                "`0`",
-                "`NaN`"
-              ],
+              "choices": ["`4`", "`2`", "`0`", "`NaN`"],
               "answer": 0,
               "explain": "`Bag.addAll` calls `this.add`, which dispatches to the override, so each item is counted twice. The subclass silently depends on the parent's internal self-calls; wrapping a `Bag` (composition) instead of extending it avoids that."
             },
@@ -209,6 +203,7 @@
           "id": "design-architecture/oo-design/go-embedding-not-inheritance",
           "title": "Struct embedding is not inheritance",
           "summary": "Go promotes an embedded type's methods, but there is no virtual dispatch back to the outer type",
+          "level": "hard",
           "variants": [
             {
               "lang": "go",
@@ -225,12 +220,7 @@
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\ntype Logger struct{}\n\nfunc (Logger) prefix() string  { return \"[base]\" }\nfunc (l Logger) Log(m string)  { fmt.Println(l.prefix(), m) }\n\ntype ReqLogger struct {\n    Logger\n    id string\n}\n\nfunc (r ReqLogger) prefix() string { return \"[\" + r.id + \"]\" }\n\nReqLogger{id: \"r1\"}.Log(\"hi\")\n```",
-              "choices": [
-                "`[r1] hi`",
-                "`[] hi`",
-                "It doesn't compile: `prefix` is defined twice",
-                "`[base] hi`"
-              ],
+              "choices": ["`[r1] hi`", "`[] hi`", "It doesn't compile: `prefix` is defined twice", "`[base] hi`"],
               "answer": 3,
               "explain": "`Log` is promoted from `Logger` and runs with a `Logger` receiver, which knows nothing about `ReqLogger.prefix`. The outer method only wins when called on the outer value directly."
             }
@@ -240,6 +230,7 @@
           "id": "design-architecture/oo-design/law-of-demeter",
           "title": "Law of Demeter",
           "summary": "Talk to your direct collaborators, not to objects reached through them",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -266,52 +257,70 @@
               "explain": "Reaching through the customer into its wallet, then changing the wallet, couples checkout to the structure of two objects it wasn't handed. The others call methods on a parameter or on the method's own fields."
             }
           ]
+        },
+        {
+          "id": "design-architecture/oo-design/dry",
+          "title": "DRY (don't repeat yourself)",
+          "summary": "Each piece of knowledge, such as a business rule, lives in one authoritative place",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "The rule 'orders over $100 ship free' is written as `if total > 100` in the checkout service, the cart page and the confirmation email. Marketing lowers it to $75, and only two of the three places get updated. Which principle was broken?",
+              "choices": [
+                "Liskov substitution",
+                "Don't repeat yourself (DRY)",
+                "Interface segregation",
+                "Law of Demeter"
+              ],
+              "answer": 1,
+              "explain": "DRY says each piece of knowledge should have one authoritative representation; the threshold was one business rule copied into three places, so a change had to find every copy. Liskov substitution is about subtypes keeping their parent's promises, which isn't involved here."
+            },
+            {
+              "lang": null,
+              "q": "Two modules each contain the same three validation lines today: one checks shipping addresses, the other billing addresses. Different teams own the two rules, and they're expected to diverge. A reviewer says DRY requires one shared helper. What does DRY actually ask for?",
+              "choices": [
+                "One helper, since any repeated code breaks DRY",
+                "One helper with a flag parameter for each caller",
+                "A shared base class that both modules inherit",
+                "One home per piece of knowledge, so these can stay apart"
+              ],
+              "answer": 3,
+              "explain": "DRY is about duplicated knowledge, not code that happens to look alike. Two rules that change for different reasons are separate knowledge, and merging them would couple changes that should stay independent."
+            }
+          ]
         }
       ]
     },
     {
       "id": "design-patterns",
       "title": "Design patterns",
+      "summary": "Common patterns like strategy, adapter and decorator, and when they fit",
       "concepts": [
         {
           "id": "design-architecture/design-patterns/strategy",
           "title": "Strategy pattern",
           "summary": "Swapping one algorithm for another behind a shared interface, chosen at runtime",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "A `price()` function has a `switch` on customer type (`retail`, `wholesale`, `staff`), and every new pricing rule adds a case. You want each rule in its own object, chosen at runtime, behind one interface. Which pattern is that?",
-              "choices": [
-                "Observer",
-                "Decorator",
-                "Strategy",
-                "Singleton"
-              ],
+              "choices": ["Observer", "Decorator", "Strategy", "Singleton"],
               "answer": 2,
               "explain": "Strategy puts each interchangeable algorithm behind one interface and lets the caller pick one. Decorator also shares an interface, but it wraps another object to add behaviour rather than replacing the algorithm."
             },
             {
               "lang": "go",
               "q": "Which pattern is `Upload` using?\n\n```go\ntype Compressor interface {\n    Compress(data []byte) ([]byte, error)\n}\n\nfunc Upload(data []byte, c Compressor) error {\n    out, err := c.Compress(data)\n    // ...\n}\n\n// Upload(data, GzipCompressor{}) or Upload(data, ZstdCompressor{})\n```",
-              "choices": [
-                "Adapter",
-                "Template method",
-                "Facade",
-                "Strategy"
-              ],
+              "choices": ["Adapter", "Template method", "Facade", "Strategy"],
               "answer": 3,
               "explain": "The caller passes in the algorithm, and `Upload` works with any of them through one interface. Template method would fix the steps in a base type and let subclasses fill some in, which isn't what happens here."
             },
             {
               "lang": null,
               "q": "`items.sort(byPrice)` and `items.sort(byDate)`: `sort` is written once, and the caller passes in the comparison rule. Which pattern fits best?",
-              "choices": [
-                "Decorator",
-                "Strategy",
-                "Observer",
-                "Adapter"
-              ],
+              "choices": ["Decorator", "Strategy", "Observer", "Adapter"],
               "answer": 1,
               "explain": "The comparison is one interchangeable algorithm the caller selects, with the rest of the routine unchanged. A decorator would wrap `sort` to add behaviour around it rather than swap a step inside."
             }
@@ -321,6 +330,7 @@
           "id": "design-architecture/design-patterns/decorator-order",
           "title": "Decorator (wrapper) order",
           "summary": "Wrapping something in a layer with the same interface to add behaviour; the outer layer runs first",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -376,28 +386,19 @@
           "id": "design-architecture/design-patterns/adapter",
           "title": "Adapter pattern",
           "summary": "A thin wrapper that makes an existing interface look like the one your code expects",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "Your code depends on a `Notifier` interface with `send(userId, text)`. A vendor SDK you're adopting exposes `postMessage({ recipient, body, channel })`. You write a small class that implements `Notifier` by calling the SDK. Which pattern is that?",
-              "choices": [
-                "Facade",
-                "Bridge",
-                "Observer",
-                "Adapter"
-              ],
+              "choices": ["Facade", "Bridge", "Observer", "Adapter"],
               "answer": 3,
               "explain": "An adapter converts one interface into another that callers already expect. A facade offers a new, simpler interface over a complex subsystem; here the target interface already existed."
             },
             {
               "lang": "go",
               "q": "The standard library's `http.HandlerFunc` type lets an ordinary `func(w http.ResponseWriter, r *http.Request)` be used anywhere an `http.Handler` is required. Which pattern is that?",
-              "choices": [
-                "Adapter",
-                "Decorator",
-                "Strategy",
-                "Factory method"
-              ],
+              "choices": ["Adapter", "Decorator", "Strategy", "Factory method"],
               "answer": 0,
               "explain": "`HandlerFunc` gives a plain function the `ServeHTTP` method the `Handler` interface needs, converting one shape into another; Go's own docs call it an adapter. It adds no behaviour, so it isn't a decorator."
             },
@@ -419,6 +420,7 @@
           "id": "design-architecture/design-patterns/functional-options",
           "title": "Functional options",
           "summary": "Go pattern: configure a constructor with variadic `func(*T)` options over defaults",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -450,16 +452,12 @@
           "id": "design-architecture/design-patterns/eventemitter-sync",
           "title": "EventEmitter is synchronous",
           "summary": "Node's `emit` calls every listener immediately, in order, before it returns",
+          "level": "hard",
           "variants": [
             {
               "lang": "ts",
               "q": "What's logged?\n\n```ts\nimport { EventEmitter } from 'node:events'\n\nconst e = new EventEmitter()\ne.on('order', () => console.log('A'))\ne.emit('order')\nconsole.log('B')\n```",
-              "choices": [
-                "`B` then `A`",
-                "Only `B`",
-                "The order varies between runs",
-                "`A` then `B`"
-              ],
+              "choices": ["`B` then `A`", "Only `B`", "The order varies between runs", "`A` then `B`"],
               "answer": 3,
               "explain": "`emit` runs listeners synchronously, so `A` is logged before `emit` returns. It isn't queued like a promise callback or `setTimeout`."
             },
@@ -476,17 +474,51 @@
               "explain": "Listeners are plain synchronous calls inside `emit`, so a throw unwinds straight to the caller and skips the rest. `EventEmitter` doesn't turn a listener's synchronous throw into an `'error'` event."
             }
           ]
+        },
+        {
+          "id": "design-architecture/design-patterns/wrapper-hides-interfaces",
+          "title": "Wrappers hide optional interfaces",
+          "summary": "In Go, wrapping a value in your own struct drops the extra interfaces the original implemented, like `http.Flusher`",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Metrics middleware wraps every `http.ResponseWriter`:\n\n```go\ntype statusRecorder struct {\n    http.ResponseWriter\n    status int\n}\n\nfunc (r *statusRecorder) WriteHeader(code int) {\n    r.status = code\n    r.ResponseWriter.WriteHeader(code)\n}\n```\n\nAfterwards, a server-sent events handler's `w.(http.Flusher)` assertion fails. Why?",
+              "choices": [
+                "Type assertions fail on any struct that embeds an interface",
+                "The field's static type is `ResponseWriter`, so `Flush` isn't promoted",
+                "The assertion only succeeds after `WriteHeader` has run",
+                "Only HTTP/2 connections implement `http.Flusher`"
+              ],
+              "answer": 1,
+              "explain": "Embedding promotes the method set of the field's declared type, and `http.ResponseWriter` has no `Flush`, even though the value inside does. Assertions on structs that embed interfaces work fine for the methods that are promoted. Fix it by forwarding `Flush` yourself, or with an `Unwrap` method and `http.ResponseController`."
+            },
+            {
+              "lang": "go",
+              "q": "Since Go 1.20, what lets `http.NewResponseController(w).Flush()` reach the real writer through a wrapper like `statusRecorder`, without the wrapper defining `Flush` itself?",
+              "choices": [
+                "A `Hijack()` method that returns the raw connection",
+                "Registering the wrapper with `http.RegisterWrapper`",
+                "An `Unwrap() http.ResponseWriter` method on the wrapper",
+                "Embedding `*http.response` instead of the interface"
+              ],
+              "answer": 2,
+              "explain": "`ResponseController` checks the writer for the method it needs and, if it's missing, follows `Unwrap()` to the wrapped writer. `http.RegisterWrapper` doesn't exist, and `*http.response` is unexported, so other packages can't embed it."
+            }
+          ]
         }
       ]
     },
     {
       "id": "api-design",
       "title": "API design",
+      "summary": "Clear, consistent APIs: naming, errors, pagination and versioning",
       "concepts": [
         {
           "id": "design-architecture/api-design/idempotency-keys",
           "title": "Idempotency keys",
           "summary": "A client-chosen key that lets the server recognise a retried request and replay its first result",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -518,6 +550,7 @@
           "id": "design-architecture/api-design/cursor-pagination",
           "title": "Cursor (keyset) pagination",
           "summary": "Paging by 'rows after this one' instead of by offset, so inserts don't shift pages",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -549,6 +582,7 @@
           "id": "design-architecture/api-design/backward-compatible-changes",
           "title": "Backward-compatible API changes",
           "summary": "Which changes existing clients survive, and which ones break them",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -574,13 +608,13 @@
               "answer": 2,
               "explain": "Old clients still put data under number 7. If a later field reuses it with a different meaning, they'll be misread; reserving the number (and name) prevents that. Deleting alone is safe today but leaves that trap."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "design-architecture/api-design/long-running-operations",
           "title": "202 Accepted for long-running work",
           "summary": "Accepting a slow job right away and giving the client a status resource to check",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -612,29 +646,122 @@
           "id": "design-architecture/api-design/spec-first-openapi",
           "title": "Spec-first API design (OpenAPI)",
           "summary": "Writing and reviewing the OpenAPI spec before the code, then generating clients or validators from it",
+          "level": "medium",
           "variants": []
+        },
+        {
+          "id": "design-architecture/api-design/error-responses",
+          "title": "Consistent error responses",
+          "summary": "Failures use the right HTTP status plus one stable, machine-readable error body across the API",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "When a payment fails, an API returns `200 OK` with `{\"ok\": false, \"error\": \"card declined\"}`. What's the main problem?",
+              "choices": [
+                "Clients, proxies and monitors all see it as a success",
+                "Error responses aren't allowed to carry a JSON body",
+                "Browsers will cache the failed response indefinitely",
+                "Clients can't reliably parse a boolean error flag"
+              ],
+              "answer": 0,
+              "explain": "Everything that looks at the status line (HTTP clients, retries, gateways, dashboards, alerts) counts this as a success. A 4xx status with an error body tells both machines and people that it failed."
+            },
+            {
+              "lang": null,
+              "q": "A mobile app must show one screen when a coupon has expired and a different one when the coupon doesn't exist. Which error design supports that best?",
+              "choices": [
+                "Return 400 and let the app match on the message text",
+                "Return 422 with an empty body and document the meaning",
+                "Return 500 so the app retries until the coupon works",
+                "Return 400 with a stable `code` such as `coupon_expired`"
+              ],
+              "answer": 3,
+              "explain": "A stable code is a contract clients can branch on, while the message stays free to change and be translated. Matching on message text breaks the first time someone rewords it."
+            }
+          ]
+        },
+        {
+          "id": "design-architecture/api-design/hyrums-law",
+          "title": "Hyrum's law",
+          "summary": "With enough users, every observable behaviour of an API gets depended on, whatever the docs promise",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Your API docs say list results come back 'in no particular order'. For years they happened to be sorted by id. You're about to move to a new store that returns them unsorted, and the API has thousands of integrators. How should you treat the change?",
+              "choices": [
+                "As safe, since the order was never documented",
+                "As safe for clients that use the official SDK",
+                "As breaking: assume someone relies on the id order",
+                "As breaking only if the response schema changes too"
+              ],
+              "answer": 2,
+              "explain": "Hyrum's law: with enough users, every observable behaviour is depended on by someone, whatever the docs say. You may still ship it, but announce it or keep the sort, rather than assume nobody notices."
+            },
+            {
+              "lang": null,
+              "q": "You want to reword an error message from 'User not found' to 'No such user'. The docs say only the `code` field is stable. With many clients, what's the realistic expectation?",
+              "choices": [
+                "No client can break, since the message is undocumented",
+                "Only clients on an older API version can be affected",
+                "Clients break only if the HTTP status changes too",
+                "Some clients likely match on the text and may break"
+              ],
+              "answer": 3,
+              "explain": "Documentation doesn't stop people depending on what they can observe, so at scale even message text becomes part of the de facto contract. You may still decide to change it, but expect breakage and announce it."
+            }
+          ]
         }
       ]
     },
     {
       "id": "system-design",
       "title": "System design",
+      "summary": "Designing whole systems for scale and failure, and weighing trade-offs",
       "concepts": [
+        {
+          "id": "design-architecture/system-design/horizontal-vs-vertical-scaling",
+          "title": "Horizontal vs vertical scaling",
+          "summary": "Scaling up to a bigger machine vs scaling out to more instances, which works best when instances are stateless",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A web service keeps each user's shopping cart in an in-memory map. The team adds two more instances behind a round-robin load balancer, and users report carts that empty and refill at random. Which fix lets the service keep scaling out?",
+              "choices": [
+                "Move the service to one bigger machine instead",
+                "Keep cart state in a shared store such as Redis",
+                "Shorten the load balancer's health-check interval",
+                "Send each request to all three instances at once"
+              ],
+              "answer": 1,
+              "explain": "Each instance has its own memory, so consecutive requests from one user land on instances holding different carts. Moving state to a shared store makes instances interchangeable; one bigger machine works too, but that's scaling up, with a hardware ceiling and a single point of failure."
+            },
+            {
+              "lang": null,
+              "q": "A single API server is at 90% CPU. The team can move it to a machine with twice the cores (vertical scaling) or run several copies behind a load balancer (horizontal scaling). What's true of the vertical option?",
+              "choices": [
+                "Usually no code changes, but capped by the largest machine",
+                "It removes the single point of failure of one server",
+                "It always costs less per unit of capacity than adding servers",
+                "It only works once the service has become stateless"
+              ],
+              "answer": 0,
+              "explain": "Scaling up keeps the same single process, so code rarely changes, but there's a largest machine you can buy and it's still one point of failure. Statelessness is what horizontal scaling needs, not vertical."
+            }
+          ]
+        },
         {
           "id": "design-architecture/system-design/cascading-failure",
           "title": "Cascading failure",
           "summary": "One slow or failing service exhausts its callers' resources, and the failure spreads upstream",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "Service A calls B with no timeout. B's database slows down, B's answers take over a minute, and soon A runs out of threads and connections and fails health checks, even for requests that don't need B. What is this called?",
-              "choices": [
-                "Thundering herd",
-                "Cascading failure",
-                "Split brain",
-                "Head-of-line blocking"
-              ],
+              "choices": ["Thundering herd", "Cascading failure", "Split brain", "Head-of-line blocking"],
               "answer": 1,
               "explain": "B's slowness consumed A's resources until A failed too, and A's callers are next. A thundering herd is many clients waking at once for one resource, which is a different trigger."
             },
@@ -655,17 +782,13 @@
         {
           "id": "design-architecture/system-design/retry-storm",
           "title": "Retry storm",
-          "summary": "Retries at many layers multiply load on a struggling dependency and keep it down",
+          "summary": "Retries at many layers, or in lockstep, multiply load on a struggling dependency and keep it down",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
               "q": "A request goes A → B → C → database. Each service makes up to 4 attempts at its downstream call. The database is down. How many database calls can one user request cause?",
-              "choices": [
-                "16",
-                "4",
-                "12",
-                "64"
-              ],
+              "choices": ["16", "4", "12", "64"],
               "answer": 3,
               "explain": "A makes 4 calls to B; each makes 4 to C (16); each of those makes 4 to the database (64). Retries multiply per layer, so retry at a single layer, or give each layer a retry budget."
             },
@@ -680,14 +803,7 @@
               ],
               "answer": 0,
               "explain": "The extra load is the retries themselves, all landing as the service comes back. Limiting how many retries are allowed and spacing them out lets it recover."
-            }
-          ]
-        },
-        {
-          "id": "design-architecture/system-design/backoff-jitter",
-          "title": "Exponential backoff with jitter",
-          "summary": "Waiting longer after each failure, with randomness, so clients don't retry in lockstep",
-          "variants": [
+            },
             {
               "lang": "go",
               "q": "Thousands of clients run this loop and all fail at the same moment when a server restarts. What's still wrong with this backoff?\n\n```go\nfor attempt := 0; attempt < 5; attempt++ {\n    if err = call(); err == nil {\n        break\n    }\n    time.Sleep(50 * time.Millisecond << attempt)\n}\n```",
@@ -701,37 +817,13 @@
               "explain": "Exponential delays alone keep clients synchronised: they all wake after 50 ms, then 100 ms, and hit the server together; random jitter spreads them out. The shift is legal because `Duration` is an integer type, and the delays only reach 800 ms."
             },
             {
-              "lang": "ts",
-              "q": "Which delay (ms) before retry attempt `n` best avoids synchronised retries across many clients?",
-              "choices": [
-                "`50 * 2 ** n`",
-                "`50 * n + 50 * Math.random()`",
-                "`Math.random() * 50 * 2 ** n`",
-                "`Math.min(50 * 2 ** n, 2000)`"
-              ],
-              "answer": 2,
-              "explain": "This is 'full jitter': a random delay between zero and an exponential bound, so the spread between clients doubles with each attempt. Plain or capped exponential keeps them in step, and linear growth with a fixed 50 ms of noise keeps them bunched in a narrow window."
-            },
-            {
-              "lang": "python",
-              "q": "Which delay (seconds) before retry attempt `n` best avoids synchronised retries across many clients?",
-              "choices": [
-                "`0.05 * 2 ** n`",
-                "`0.05 * n + random.uniform(0, 0.05)`",
-                "`min(0.05 * 2 ** n, 2.0)`",
-                "`random.uniform(0, 0.05 * 2 ** n)`"
-              ],
-              "answer": 3,
-              "explain": "A random delay up to an exponential bound ('full jitter') spreads clients that failed together over a window that doubles each attempt. Plain or capped exponential keeps them in step; linear growth with 50 ms of noise keeps them bunched."
-            },
-            {
               "lang": null,
               "q": "5,000 clients lose their connection at the same instant and all retry with exponential backoff (1 s, 2 s, 4 s...). Why add random jitter to each delay?",
               "choices": [
-                "Otherwise they retry at the same instants and hit the server in synchronised waves",
+                "Otherwise they all retry at the same instants, in synchronised waves",
                 "Random delays make each individual retry more likely to succeed",
-                "It lets the server tell which client is retrying",
-                "It keeps the delays from growing past the cap"
+                "It lets the server tell which client is retrying each time",
+                "It keeps the delays from growing past the configured cap"
               ],
               "answer": 0,
               "explain": "Identical schedules keep clients in lockstep, so every wave lands at once. Jitter spreads the same retries over time; it doesn't make any single retry more likely to succeed."
@@ -742,6 +834,7 @@
           "id": "design-architecture/system-design/backpressure",
           "title": "Backpressure",
           "summary": "A slow consumer pushing back so the producer slows down, instead of a buffer growing without limit",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -783,10 +876,10 @@
               "lang": null,
               "q": "A service accepts jobs into an unbounded in-memory queue. A downstream system is slower than the arrival rate, and hours later the process dies with out-of-memory. Which change adds backpressure?",
               "choices": [
-                "Bound the queue, and make producers wait or return 'try later' when it's full",
-                "Raise the memory limit so the queue can hold more",
+                "Bound the queue; make producers wait or get 'try later' when full",
+                "Raise the memory limit so the queue can hold more jobs",
                 "Write the queued jobs to a log file so they survive a restart",
-                "Retry each failed job immediately in a tight loop"
+                "Retry each failed job immediately in a tight loop forever"
               ],
               "answer": 0,
               "explain": "The queue grew because nothing pushed back on producers; a bound turns overload into waiting or an explicit rejection. More memory or a durable log only delays the same problem."
@@ -797,6 +890,7 @@
           "id": "design-architecture/system-design/blast-radius",
           "title": "Blast radius",
           "summary": "How much of the system, or how many users, one failure or bad change can affect",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -828,6 +922,7 @@
           "id": "design-architecture/system-design/circuit-breaker",
           "title": "Circuit breaker",
           "summary": "Stops calling a failing dependency for a while, then lets a few trial calls through",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -853,13 +948,13 @@
               "answer": 2,
               "explain": "Half-open is a probe: a small number of calls test whether the dependency has recovered before full traffic returns."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "design-architecture/system-design/upstream-downstream-contracts",
           "title": "Upstream/downstream contracts",
           "summary": "What a service promises the services that depend on it, and how to change it without breaking them",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -891,6 +986,7 @@
           "id": "design-architecture/system-design/deadline-propagation",
           "title": "Deadline propagation",
           "summary": "Passing the caller's remaining time budget down the call chain so nobody works past it",
+          "level": "hard",
           "variants": [
             {
               "lang": "go",
@@ -935,17 +1031,45 @@
     {
       "id": "architecture-decisions",
       "title": "Architecture decisions",
+      "summary": "Choosing between options, recording why (ADRs) and the trade-offs",
       "concepts": [
         {
           "id": "design-architecture/architecture-decisions/adr",
           "title": "Architecture decision record (ADR)",
           "summary": "Writing down a significant decision with its context, options and consequences, kept with the code",
-          "variants": []
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Two years ago an ADR recorded the choice of RabbitMQ. The team is now moving to Kafka. What's the usual way to handle the old ADR?",
+              "choices": [
+                "Edit it to say Kafka, so the record stays current",
+                "Delete it, since the decision no longer applies",
+                "Leave it and mention the move in the README",
+                "Write a new ADR for Kafka and mark the old one superseded"
+              ],
+              "answer": 3,
+              "explain": "ADRs are an append-only log: the old one still explains why RabbitMQ made sense then, and the new one links to it. Editing or deleting it loses the history that ADRs exist to keep."
+            },
+            {
+              "lang": null,
+              "q": "Which of these is most worth an ADR?",
+              "choices": [
+                "Renaming a private helper function in one package",
+                "Choosing Postgres over DynamoDB for orders",
+                "Fixing a typo in the team's onboarding guide",
+                "Bumping a library's patch version this week"
+              ],
+              "answer": 1,
+              "explain": "ADRs are for significant decisions that are costly to reverse and that future engineers will ask 'why?' about. The others are small, reversible changes a commit message covers."
+            }
+          ]
         },
         {
           "id": "design-architecture/architecture-decisions/distributed-monolith",
           "title": "Distributed monolith",
           "summary": "Services that are separate on the network but still have to change and deploy together",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -977,16 +1101,12 @@
           "id": "design-architecture/architecture-decisions/conways-law",
           "title": "Conway's law",
           "summary": "Systems end up mirroring the communication structure of the teams that build them",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "A company has a web team, a mobile team and a backend team. Without anyone planning it, the system grows a separate API layer owned by each client team. Which law predicts this?",
-              "choices": [
-                "Hyrum's law",
-                "Conway's law",
-                "Gall's law",
-                "Brooks's law"
-              ],
+              "choices": ["Hyrum's law", "Conway's law", "Gall's law", "Brooks's law"],
               "answer": 1,
               "explain": "The boundaries in the software followed the boundaries between teams. Hyrum's law is about users depending on any observable behaviour of an API."
             },
@@ -1008,6 +1128,7 @@
           "id": "design-architecture/architecture-decisions/saga",
           "title": "Saga",
           "summary": "Splitting a cross-service operation into local steps, and undoing finished steps with compensating actions if a later one fails",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -1039,16 +1160,12 @@
           "id": "design-architecture/architecture-decisions/strangler-fig",
           "title": "Strangler fig pattern",
           "summary": "Replacing a legacy system piece by piece behind a router, instead of a big-bang rewrite",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "You're replacing a legacy billing system. A proxy sends `/invoices` to the new service while everything else still goes to the old one, and more routes move over time. Which pattern is this?",
-              "choices": [
-                "Blue-green deployment",
-                "Strangler fig",
-                "Branch by abstraction",
-                "Big-bang rewrite"
-              ],
+              "choices": ["Blue-green deployment", "Strangler fig", "Branch by abstraction", "Big-bang rewrite"],
               "answer": 1,
               "explain": "The new system grows around the old one, route by route, until nothing is left to send to the legacy side. Branch by abstraction is the in-code cousin: an interface inside the codebase instead of a router in front."
             },
@@ -1063,6 +1180,38 @@
               ],
               "answer": 2,
               "explain": "Small slices go live early and can be routed back if they misbehave, so problems surface one piece at a time instead of all at once on cut-over day."
+            }
+          ]
+        },
+        {
+          "id": "design-architecture/architecture-decisions/monolith-vs-microservices",
+          "title": "Monolith vs microservices",
+          "summary": "What splitting into services buys (independent deploys and scaling) and what it costs (network failures, distributed data)",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A team splits its monolith into services. Which new cost do they take on that the monolith didn't have?",
+              "choices": [
+                "Calls between parts can now time out or fail partway",
+                "Code can no longer be shared through libraries",
+                "Each service must use a different language",
+                "Unit tests can no longer run without a database"
+              ],
+              "answer": 0,
+              "explain": "In-process function calls become network calls, which can be slow, fail, or succeed on one side only, and data spread across services loses single-database transactions. Sharing libraries and writing unit tests still work as before."
+            },
+            {
+              "lang": null,
+              "q": "Which situation is the strongest reason to move part of a monolith into its own service?",
+              "choices": [
+                "The codebase has grown past 100,000 lines",
+                "A team wants to try a new web framework",
+                "The full test suite takes over ten minutes",
+                "Its own team must deploy and scale it separately"
+              ],
+              "answer": 3,
+              "explain": "Services pay off when a part needs an independent deploy cycle, scaling profile or owning team. Size, slow tests or framework curiosity can be fixed inside a monolith, without taking on network and data-consistency costs."
             }
           ]
         }

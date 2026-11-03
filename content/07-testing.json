@@ -7,12 +7,13 @@
     {
       "id": "test-strategy",
       "title": "Test strategy",
+      "summary": "Which kinds of tests a feature needs and how many of each",
       "concepts": [
         {
           "id": "testing/test-strategy/test-pyramid",
           "title": "Test pyramid",
           "summary": "Many fast unit tests, fewer integration tests, a handful of end-to-end tests",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -29,12 +30,7 @@
             {
               "lang": null,
               "q": "A suite has 400 browser-driven end-to-end tests and 30 unit tests. CI takes 50 minutes and a failure rarely says what broke. What is this shape usually called?",
-              "choices": [
-                "A test trophy",
-                "An ice cream cone",
-                "A test diamond",
-                "A healthy pyramid"
-              ],
+              "choices": ["A test trophy", "An ice cream cone", "A test diamond", "A healthy pyramid"],
               "answer": 1,
               "explain": "The inverted pyramid, heavy on slow UI tests and light on unit tests, is known as the ice cream cone anti-pattern. The trophy is a different, deliberate shape that favours integration tests, not end-to-end ones."
             }
@@ -44,6 +40,7 @@
           "id": "testing/test-strategy/flaky-tests",
           "title": "Flaky tests",
           "summary": "Tests that pass or fail on the same code, usually from timing, shared state or ordering",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -69,13 +66,13 @@
               "answer": 0,
               "explain": "Order-dependent failures almost always come from shared mutable state between tests. Each test should set up and clean up what it needs so it can run alone or in any order."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "testing/test-strategy/coverage-limits",
           "title": "Limits of code coverage",
           "summary": "Coverage shows which lines ran, not whether any test checked the result",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -104,9 +101,42 @@
           ]
         },
         {
+          "id": "testing/test-strategy/smoke-tests",
+          "title": "Smoke tests",
+          "summary": "A few fast checks of the critical paths, run right after a deploy to catch a broken release",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A deploy finishes, and the pipeline then runs five quick checks against the new version: the home page loads, login works, and a test account can place one order. What are these checks for?",
+              "choices": [
+                "Catching a release that is broken badly enough to roll back right away",
+                "Replacing the unit and integration suites to speed up the pipeline",
+                "Measuring how the new version performs under peak traffic",
+                "Proving that every edge case of the new feature is handled"
+              ],
+              "answer": 0,
+              "explain": "Smoke tests are a short, shallow pass over the critical paths, so an obviously broken deploy is caught within minutes. They don't replace the deeper suites, and load testing is a separate activity."
+            },
+            {
+              "lang": null,
+              "q": "Which is the better smoke test to run against production after every deploy?",
+              "choices": [
+                "The full end-to-end suite, including every error case",
+                "The health endpoint plus one real read path and one write path",
+                "A load test that ramps up to twice the normal traffic",
+                "The unit tests, re-run inside the production container"
+              ],
+              "answer": 1,
+              "explain": "A smoke test should be quick and touch what matters most end to end: is it up, and do the core flows work. The full end-to-end suite is too slow for this step, and a load test against production risks causing the outage you're checking for."
+            }
+          ]
+        },
+        {
           "id": "testing/test-strategy/mutation-testing",
           "title": "Mutation testing",
           "summary": "Making small changes to the code to check whether the tests notice",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -138,6 +168,7 @@
           "id": "testing/test-strategy/contract-testing",
           "title": "Consumer-driven contract testing",
           "summary": "Consumers record what they expect from an API, and the provider verifies it in its own build (Pact)",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -170,36 +201,59 @@
     {
       "id": "unit",
       "title": "Unit",
+      "summary": "Fast, isolated, meaningful unit tests and test doubles",
       "concepts": [
         {
           "id": "testing/unit/test-doubles",
           "title": "Test doubles: stub, mock, fake, spy",
           "summary": "The different kinds of stand-ins for real dependencies and what each one is for",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "A test replaces the real database repository with a class that stores records in an in-memory map and supports the same queries. What kind of test double is this?",
-              "choices": [
-                "A stub",
-                "A mock",
-                "A fake",
-                "A spy"
-              ],
+              "choices": ["A stub", "A mock", "A fake", "A spy"],
               "answer": 2,
               "explain": "A fake is a working, simplified implementation. A stub only returns canned answers and has no real logic behind them."
             },
             {
               "lang": null,
               "q": "A test replaces the email sender with an object that is set up to expect `send` to be called once with a given address, and the test fails if that doesn't happen. What kind of test double is this?",
-              "choices": [
-                "A mock",
-                "A stub",
-                "A fake",
-                "A dummy"
-              ],
+              "choices": ["A mock", "A stub", "A fake", "A dummy"],
               "answer": 0,
               "explain": "A mock carries expectations about how it is called and verifies them. A stub just supplies return values and doesn't care whether or how it was called."
+            }
+          ]
+        },
+        {
+          "id": "testing/unit/arrange-act-assert",
+          "title": "Arrange, Act, Assert",
+          "summary": "Structuring a test as setup, one action, then checks, so each test covers one behaviour",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A unit test creates a cart, adds an item, asserts the total, removes the item, asserts the total again, then applies a coupon and asserts once more. What is the usual advice?",
+              "choices": [
+                "Keep it as one test, since one long test runs faster than three",
+                "Move all of the assertions to the very end of the test",
+                "Split it so each test has one action and the assertions about it",
+                "Replace the assertions with one snapshot of the final cart"
+              ],
+              "answer": 2,
+              "explain": "Arrange-Act-Assert gives each test one action under test, so a failure points at one behaviour and the test name can say what it checks. Moving every assertion to the end makes it harder to tell which step broke."
+            },
+            {
+              "lang": null,
+              "q": "In the Arrange-Act-Assert pattern, which line of this test is the *Act* step?\n\n```\nuser = new User(age: 17)\nresult = isAdult(user)\nassert result == false\n```",
+              "choices": [
+                "`user = new User(age: 17)`",
+                "None: the call belongs to Arrange",
+                "`assert result == false`",
+                "`result = isAdult(user)`"
+              ],
+              "answer": 3,
+              "explain": "Arrange builds the inputs, Act calls the code under test, and Assert checks the result. Here `new User(...)` is setup and `isAdult(user)` is the behaviour being tested."
             }
           ]
         },
@@ -207,6 +261,7 @@
           "id": "testing/unit/table-driven-tests",
           "title": "Table-driven tests",
           "summary": "One test body run over a list of input/expected cases, each reported separately",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -262,6 +317,7 @@
           "id": "testing/unit/controlling-time",
           "title": "Controlling time in tests",
           "summary": "Injecting a clock or using fake timers so time-based code is tested without real waiting",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -314,40 +370,10 @@
           ]
         },
         {
-          "id": "testing/unit/go-test-cache",
-          "title": "Go test caching",
-          "summary": "`go test` reuses passing results when nothing it tracks has changed; `-count=1` forces a rerun",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "A test talks to a local database. You change rows in the database and rerun `go test ./...`. The output shows `ok  myapp/store  (cached)`. Why?",
-              "choices": [
-                "The database driver cached the results of the earlier queries",
-                "Go reused the earlier pass: nothing it tracks had changed",
-                "`./...` skips packages whose tests talk to the network",
-                "The test binary wasn't rebuilt, but the tests did run again"
-              ],
-              "answer": 1,
-              "explain": "In package-list mode Go caches successful test results keyed on the build, flags, and files and environment variables the test read. External state like a database isn't tracked, so the old pass is reported."
-            },
-            {
-              "lang": "go",
-              "q": "Which flag is the usual way to make `go test ./...` actually rerun tests instead of printing cached results?",
-              "choices": [
-                "`-v`",
-                "`-short`",
-                "`-failfast`",
-                "`-count=1`"
-              ],
-              "answer": 3,
-              "explain": "`-count=1` disables the test result cache. `-v` only changes output, and cached results can still be shown with it."
-            }
-          ]
-        },
-        {
           "id": "testing/unit/vi-mock-hoisting",
           "title": "Module mock hoisting",
           "summary": "`vi.mock` and `jest.mock` calls are moved above the imports, which changes what their factory can use",
+          "level": "hard",
           "variants": [
             {
               "lang": "ts",
@@ -379,6 +405,7 @@
           "id": "testing/unit/patch-where-looked-up",
           "title": "Patching where a name is looked up",
           "summary": "`mock.patch` must target the module that uses a name, not the module that defines it",
+          "level": "hard",
           "variants": [
             {
               "lang": "python",
@@ -411,11 +438,77 @@
     {
       "id": "integration",
       "title": "Integration",
+      "summary": "Testing real components together, happy and unhappy paths",
       "concepts": [
+        {
+          "id": "testing/integration/unhappy-paths",
+          "title": "Testing unhappy paths",
+          "summary": "Covering errors, timeouts and bad input in integration tests, not only the successful flow",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "An integration test suite for a payment endpoint checks only that a valid card is charged and the endpoint returns 200. Which addition adds the most value?",
+              "choices": [
+                "Tests for a declined card and for the payment provider timing out",
+                "A second happy-path test that uses a different valid card",
+                "A test that the response headers come back in a fixed order",
+                "Running the existing test ten times in a row in every build"
+              ],
+              "answer": 0,
+              "explain": "Many production bugs live in failure handling: declines, timeouts and bad input. A second valid card exercises the same path the existing test already covers."
+            },
+            {
+              "lang": null,
+              "q": "Your service calls an external stock API. How do you integration-test what your service does when that API returns a 503?",
+              "choices": [
+                "Wait for the real API to have an outage, then run the test",
+                "Use a local fake server returning 503 and assert on the fallback",
+                "Skip it, since the 503 is the other team's problem to fix",
+                "Assert only that the client library throws some exception"
+              ],
+              "answer": 1,
+              "explain": "A local fake server (WireMock, Go's `httptest`, a stub service) reproduces the failure on demand, so you can check what your code actually does, such as serving a cached value or a clear error. Asserting only that something throws doesn't check what users see."
+            }
+          ]
+        },
+        {
+          "id": "testing/integration/independent-test-data",
+          "title": "Independent test data",
+          "summary": "Each test creates the data it needs, so tests pass in any order and in parallel",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Test A inserts a user `alice@example.com`. Test B asserts that looking up `alice@example.com` returns a user, and B passes only when A has run first. What's the fix?",
+              "choices": [
+                "Rename the tests so the runner always runs A before B",
+                "Turn off parallel execution for the whole test suite",
+                "Have B create the user it needs in its own setup",
+                "Add a retry to B so it passes once A has finished"
+              ],
+              "answer": 2,
+              "explain": "Each test should arrange its own data so it doesn't depend on order. Forcing an order or turning off parallelism hides the coupling, and the next reshuffle or new test breaks it again."
+            },
+            {
+              "lang": null,
+              "q": "Two integration tests each insert a product with SKU `ABC-1` into a table with a unique constraint on SKU. Each passes alone; run in parallel, one sometimes fails. What is the cleanest fix?",
+              "choices": [
+                "Add a retry to whichever test happens to fail",
+                "Add a short `sleep` before each database insert",
+                "Drop the unique constraint in the test database",
+                "Use a unique SKU per test, such as a random suffix"
+              ],
+              "answer": 3,
+              "explain": "Unique data per test removes the collision without weakening what you test. Dropping the constraint makes the test database differ from production, and retries or sleeps only make the failure rarer."
+            }
+          ]
+        },
         {
           "id": "testing/integration/real-database",
           "title": "Testing against the real database engine",
           "summary": "Running repository tests on the same database as production (Testcontainers), not a stand-in",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -444,40 +537,10 @@
           ]
         },
         {
-          "id": "testing/integration/transaction-rollback-isolation",
-          "title": "Rollback-per-test isolation",
-          "summary": "Wrapping each test in a transaction that is rolled back, and the cases where that breaks",
-          "variants": [
-            {
-              "lang": null,
-              "q": "Each test opens a transaction, inserts fixtures in it, and rolls back at the end. The code under test takes its own connection from the pool and can't find the fixtures. Why?",
-              "choices": [
-                "Uncommitted rows are invisible to other connections",
-                "Connection pools cache query results for a few seconds at a time",
-                "Rollback ran before the code under test was even called",
-                "The fixtures went to a different schema by default"
-              ],
-              "answer": 0,
-              "explain": "Uncommitted rows are visible only inside the transaction that wrote them. The code under test must use the test's transaction (or connection), or the tests need a different cleanup strategy such as truncating tables."
-            },
-            {
-              "lang": null,
-              "q": "Tests use rollback-per-test isolation. The code under test runs `COMMIT` on the test's connection as part of its logic. What happens to the test data?",
-              "choices": [
-                "The outer rollback still undoes everything the test wrote",
-                "The database rejects the inner `COMMIT` with an error",
-                "Committed rows stay and can leak into later tests",
-                "The commit is ignored because the test owns the transaction"
-              ],
-              "answer": 2,
-              "explain": "In most databases a plain `COMMIT` ends the open transaction, so there is nothing left for the test to roll back. Code that manages its own transactions needs savepoints or a different cleanup approach."
-            }
-          ]
-        },
-        {
           "id": "testing/integration/http-handler-tests",
           "title": "In-process HTTP tests",
           "summary": "Testing HTTP handlers through the real router without deploying (`httptest`, supertest)",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -530,9 +593,42 @@
           ]
         },
         {
+          "id": "testing/integration/transaction-rollback-isolation",
+          "title": "Rollback-per-test isolation",
+          "summary": "Wrapping each test in a transaction that is rolled back, and the cases where that breaks",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Each test opens a transaction, inserts fixtures in it, and rolls back at the end. The code under test takes its own connection from the pool and can't find the fixtures. Why?",
+              "choices": [
+                "Uncommitted rows are invisible to other connections",
+                "Connection pools cache query results for a few seconds at a time",
+                "Rollback ran before the code under test was even called",
+                "The fixtures went to a different schema by default"
+              ],
+              "answer": 0,
+              "explain": "Uncommitted rows are visible only inside the transaction that wrote them. The code under test must use the test's transaction (or connection), or the tests need a different cleanup strategy such as truncating tables."
+            },
+            {
+              "lang": null,
+              "q": "Tests use rollback-per-test isolation. The code under test runs `COMMIT` on the test's connection as part of its logic. What happens to the test data?",
+              "choices": [
+                "The outer rollback still undoes everything the test wrote",
+                "The database rejects the inner `COMMIT` with an error",
+                "Committed rows stay and can leak into later tests",
+                "The commit is ignored because the test owns the transaction"
+              ],
+              "answer": 2,
+              "explain": "In most databases a plain `COMMIT` ends the open transaction, so there is nothing left for the test to roll back. Code that manages its own transactions needs savepoints or a different cleanup approach."
+            }
+          ]
+        },
+        {
           "id": "testing/integration/dont-mock-what-you-dont-own",
           "title": "Don't mock what you don't own",
           "summary": "Wrap third-party APIs in your own adapter, mock the adapter, and integration-test the adapter for real",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -565,11 +661,13 @@
     {
       "id": "tdd",
       "title": "TDD",
+      "summary": "Writing the failing test first, then the code, then refactoring",
       "concepts": [
         {
           "id": "testing/tdd/red-green-refactor",
           "title": "Red, green, refactor",
           "summary": "The TDD cycle: a failing test, the least code to pass it, then clean up with tests green",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -595,13 +693,45 @@
               "answer": 3,
               "explain": "Refactoring means changing structure without changing behaviour, and you can only confirm that with a green suite. Mixing it with a red test makes it unclear which change broke or fixed what."
             }
-          ],
-          "basic": true
+          ]
+        },
+        {
+          "id": "testing/tdd/when-to-tdd",
+          "title": "When TDD fits",
+          "summary": "TDD works best when you can state the behaviour you want; exploring an unknown is often a spike first",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which task is the best fit for test-first development?",
+              "choices": [
+                "Implementing a discount rule that comes with clear examples from the product owner",
+                "Trying out an unfamiliar charting library to see what it can draw",
+                "Adjusting a page's colours until the designer is happy with them",
+                "A one-off script that renames files in a folder and is then deleted"
+              ],
+              "answer": 0,
+              "explain": "TDD pays off when the expected behaviour can be written down as examples, as with a business rule. Exploring a library is a spike: you learn first, usually throw the code away, then test-drive the real version."
+            },
+            {
+              "lang": null,
+              "q": "You don't yet know how a third-party API behaves, so you write a quick, throwaway spike to find out. What is the usual TDD follow-up?",
+              "choices": [
+                "Keep the spike code and add tests later if there is time",
+                "Delete the spike and test-drive the production code using what you learned",
+                "Ship the spike as it is, because it already works against the real API",
+                "Write tests that pin the spike's current output exactly"
+              ],
+              "answer": 1,
+              "explain": "A spike is for learning, so it stays out of production; you then rebuild the code test-first with what you found out. Pinning the spike's output in tests locks in code that was never designed."
+            }
+          ]
         },
         {
           "id": "testing/tdd/see-it-fail",
           "title": "Watching the test fail first",
           "summary": "Running a new test before the code exists, to prove it can fail",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -630,9 +760,17 @@
           ]
         },
         {
+          "id": "testing/tdd/test-list",
+          "title": "Keeping a test list",
+          "summary": "Writing down the cases you plan to test before starting, then working through them one at a time",
+          "level": "medium",
+          "variants": []
+        },
+        {
           "id": "testing/tdd/triangulation",
           "title": "Fake it, then triangulate",
           "summary": "Passing the first test with a hard-coded value, then adding examples that force the real logic",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -664,6 +802,7 @@
           "id": "testing/tdd/outside-in-vs-classicist",
           "title": "Outside-in vs classicist TDD",
           "summary": "London-style TDD starts at the edge and mocks collaborators; classicist TDD builds up from real objects",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -690,23 +829,19 @@
               "explain": "With real collaborators, a bug in one class can fail tests for its callers too, so failures are less pinpointed. In exchange, the tests are less tied to internal calls, which makes refactoring easier, not harder."
             }
           ]
-        },
-        {
-          "id": "testing/tdd/test-list",
-          "title": "Keeping a test list",
-          "summary": "Writing down the cases you plan to test before starting, then working through them one at a time",
-          "variants": []
         }
       ]
     },
     {
       "id": "test-maintainability",
       "title": "Test maintainability",
+      "summary": "Tests that stay readable and don't break on every refactor",
       "concepts": [
         {
           "id": "testing/test-maintainability/test-behaviour-not-implementation",
           "title": "Testing behaviour, not implementation",
           "summary": "Asserting on outcomes instead of internal calls, so refactors don't break tests",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -735,9 +870,42 @@
           ]
         },
         {
+          "id": "testing/test-maintainability/descriptive-test-names",
+          "title": "Descriptive test names",
+          "summary": "Naming a test after the behaviour and the expected result, so a failure explains itself",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which test name tells you the most when it fails in CI?",
+              "choices": [
+                "`test_calculate_total_function_with_coupon_input`",
+                "`test_total_3_regression_from_last_sprint`",
+                "`total_is_10_percent_lower_when_coupon_is_valid`",
+                "`test_coupon_service_calculate_method_happy_path`"
+              ],
+              "answer": 2,
+              "explain": "A good name states the scenario and the expected outcome, so a red build says what broke without opening the file. The other names say which code ran, not what it should have done."
+            },
+            {
+              "lang": null,
+              "q": "A test named `test_user_service` starts failing after a refactor. It creates a user, updates them, deletes them and checks that an email was sent. What is the main maintainability problem?",
+              "choices": [
+                "Test names should never include the name of the class under test",
+                "It should mock the database instead of using a real one",
+                "It runs too quickly to count as a real integration test",
+                "The vague name hides which of several behaviours broke"
+              ],
+              "answer": 3,
+              "explain": "When one test covers several behaviours under a vague name, every failure needs digging. Tests named after one behaviour each, like `sends_welcome_email_on_signup`, explain their own failures."
+            }
+          ]
+        },
+        {
           "id": "testing/test-maintainability/test-data-builders",
           "title": "Test data builders",
           "summary": "Helpers like `aUser().withRole('admin').build()` that fill defaults so tests set only what matters",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -769,6 +937,7 @@
           "id": "testing/test-maintainability/snapshot-test-pitfalls",
           "title": "Snapshot test pitfalls",
           "summary": "Large snapshots get updated without being read, so they stop catching anything",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -800,6 +969,7 @@
           "id": "testing/test-maintainability/damp-over-dry",
           "title": "DAMP over DRY in tests",
           "summary": "Preferring readable, slightly repetitive tests to heavily shared setup that hides what's being tested",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -826,18 +996,51 @@
               "explain": "Shared setup is fine for details that don't matter, but the value that determines the expected result belongs next to the assertion. Hiding it in `beforeEach` forces readers to jump around to understand each test."
             }
           ]
+        },
+        {
+          "id": "testing/test-maintainability/mystery-guest",
+          "title": "Mystery guest",
+          "summary": "A test smell where the data that makes a test pass is defined elsewhere, such as a shared fixture, so readers can't see why",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "```\ntest \"premium users get free shipping\":\n  user = loadFixture(\"users.json\")[7]\n  assert shippingCost(user, order) == 0\n```\nWhy is this test hard to maintain?",
+              "choices": [
+                "Nothing in the test shows user 7 is premium, so fixture edits change it unseen",
+                "Indexing into a fixture array is slow inside a test, and wasteful",
+                "Fixtures may only be loaded once, in a `beforeAll` hook, per file",
+                "JSON fixtures can't hold nested user data such as plans or roles"
+              ],
+              "answer": 0,
+              "explain": "This is the mystery guest smell: the fact the test depends on lives in another file. Creating the user inline, for example with a builder set to premium, puts the cause and the expected effect in the same place."
+            },
+            {
+              "lang": null,
+              "q": "A team shares one seeded database across all integration tests. Someone changes the seed so customer 42 has a different country, and 15 tests that don't mention countries start failing. Which test smell does this show?",
+              "choices": [
+                "Assertion roulette: too many assertions in one test",
+                "Mystery guest: tests rely on data they neither create nor show",
+                "Eager test: one test exercises too many methods",
+                "Test logic in production: test-only branches in the code"
+              ],
+              "answer": 1,
+              "explain": "The tests depend on seed data that isn't visible in them, so the reason they pass is hidden. Having each test create the data it relies on makes that dependency explicit."
+            }
+          ]
         }
       ]
     },
     {
       "id": "atdd-bdd",
       "title": "ATDD/BDD",
+      "summary": "Acceptance tests and Given/When/Then scenarios written with the team",
       "concepts": [
         {
           "id": "testing/atdd-bdd/given-when-then",
           "title": "Given / When / Then",
           "summary": "Describing a scenario as starting state, action, and expected outcome",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -866,9 +1069,42 @@
           ]
         },
         {
+          "id": "testing/atdd-bdd/acceptance-test-first",
+          "title": "Acceptance test-driven development (ATDD)",
+          "summary": "Turning a story's acceptance criteria into tests before building it, so passing them means the story is done",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "In ATDD, when are a story's acceptance tests written?",
+              "choices": [
+                "After development, by QA, to check what was built",
+                "After release, once the story is live in production",
+                "Before development, from the agreed acceptance criteria",
+                "During the sprint review, while the story is demoed"
+              ],
+              "answer": 2,
+              "explain": "ATDD writes acceptance tests from the acceptance criteria before the code, so the team agrees on \"done\" up front and the tests then guide the work. Testing only after building is ordinary test-last verification."
+            },
+            {
+              "lang": null,
+              "q": "A story's acceptance criteria say: \"A locked account can't log in, and the user is shown how to unlock it.\" In ATDD, what does the acceptance test check?",
+              "choices": [
+                "That the password hashing function returns the expected hash",
+                "That the login form passes an automated accessibility audit",
+                "That the account-locking code reaches full line coverage",
+                "That a locked user's login is refused and the unlock steps are shown"
+              ],
+              "answer": 3,
+              "explain": "Acceptance tests check the behaviour the criteria describe, from the user's side. Unit-level checks such as hashing or coverage are useful, but they don't show that the story is done."
+            }
+          ]
+        },
+        {
           "id": "testing/atdd-bdd/scenario-outline",
           "title": "Scenario Outline",
           "summary": "A Gherkin scenario template run once per row of an `Examples` table",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -897,40 +1133,10 @@
           ]
         },
         {
-          "id": "testing/atdd-bdd/declarative-scenarios",
-          "title": "Declarative vs imperative scenarios",
-          "summary": "Writing scenarios in business terms instead of UI steps like clicks and field IDs",
-          "variants": [
-            {
-              "lang": null,
-              "q": "Which step is written in the declarative style that BDD recommends?",
-              "choices": [
-                "When I type \"bob@example.com\" into `#email` and click `#submit`",
-                "When I press Tab twice and hit Enter",
-                "When I register with a valid email address",
-                "When I wait 2 seconds for the spinner to disappear"
-              ],
-              "answer": 2,
-              "explain": "Declarative steps say what the user does in domain terms, leaving the how to step definitions. Imperative UI steps break whenever the page layout changes and hide the business rule."
-            },
-            {
-              "lang": null,
-              "q": "A redesign moves the checkout button. 80 Gherkin scenarios fail, though checkout still works. What does that suggest about the scenarios?",
-              "choices": [
-                "They have too few `Given` steps to set up the page state",
-                "They describe UI mechanics instead of behaviour",
-                "They should have used `Scenario Outline` with examples",
-                "They share too much setup through one `Background`"
-              ],
-              "answer": 1,
-              "explain": "When scenarios spell out clicks and selectors, UI changes break the specification itself. Declarative steps put UI detail in one step definition, so one fix covers every scenario."
-            }
-          ]
-        },
-        {
           "id": "testing/atdd-bdd/three-amigos",
           "title": "Three amigos",
           "summary": "A short conversation between business, development and testing to agree on examples before building a story",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -962,7 +1168,40 @@
           "id": "testing/atdd-bdd/example-mapping",
           "title": "Example mapping",
           "summary": "Breaking a story into rules, examples and open questions on cards before building it",
+          "level": "medium",
           "variants": []
+        },
+        {
+          "id": "testing/atdd-bdd/declarative-scenarios",
+          "title": "Declarative vs imperative scenarios",
+          "summary": "Writing scenarios in business terms instead of UI steps like clicks and field IDs",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which step is written in the declarative style that BDD recommends?",
+              "choices": [
+                "When I type \"bob@example.com\" into `#email` and click `#submit`",
+                "When I press Tab twice and hit Enter",
+                "When I register with a valid email address",
+                "When I wait 2 seconds for the spinner to disappear"
+              ],
+              "answer": 2,
+              "explain": "Declarative steps say what the user does in domain terms, leaving the how to step definitions. Imperative UI steps break whenever the page layout changes and hide the business rule."
+            },
+            {
+              "lang": null,
+              "q": "A redesign moves the checkout button. 80 Gherkin scenarios fail, though checkout still works. What does that suggest about the scenarios?",
+              "choices": [
+                "They have too few `Given` steps to set up the page state",
+                "They describe UI mechanics instead of behaviour",
+                "They should have used `Scenario Outline` with examples",
+                "They share too much setup through one `Background`"
+              ],
+              "answer": 1,
+              "explain": "When scenarios spell out clicks and selectors, UI changes break the specification itself. Declarative steps put UI detail in one step definition, so one fix covers every scenario."
+            }
+          ]
         }
       ]
     }

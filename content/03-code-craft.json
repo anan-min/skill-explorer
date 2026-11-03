@@ -7,12 +7,13 @@
     {
       "id": "readability-standards",
       "title": "Readability & standards",
+      "summary": "Clear names, small functions, consistent style and coding standards",
       "concepts": [
         {
           "id": "code-craft/readability-standards/magic-numbers",
           "title": "Magic numbers",
           "summary": "Unexplained literal values in code, replaced by named constants",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -44,7 +45,7 @@
           "id": "code-craft/readability-standards/guard-clauses",
           "title": "Guard clauses",
           "summary": "Returning early when a precondition fails, so the main path isn't buried in nested `if`s",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -76,16 +77,12 @@
           "id": "code-craft/readability-standards/units-in-names",
           "title": "Units in names and types",
           "summary": "Making the unit of a value (seconds, ms, cents) explicit so callers can't mix them up",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "A config has `timeout: 30`, meant as seconds. One caller passes it to an API that expects milliseconds. Which name would most likely have prevented the bug?",
-              "choices": [
-                "`timeoutValue`",
-                "`retryTimeout`",
-                "`TIMEOUT`",
-                "`timeoutSeconds`"
-              ],
+              "choices": ["`timeoutValue`", "`retryTimeout`", "`TIMEOUT`", "`timeoutSeconds`"],
               "answer": 3,
               "explain": "Putting the unit in the name makes the mismatch visible where the value is used (`ms(timeoutSeconds)`). The other names still leave the unit to guesswork."
             },
@@ -106,9 +103,9 @@
               "q": "`charge(user, amount)` is called with dollars from one service and with cents from another. Which change most directly prevents the mix-up?",
               "choices": [
                 "Add a comment saying which unit callers should use",
-                "Check that `amount` is greater than zero",
-                "Rename the parameter to `amountCents` (and use that unit everywhere)",
-                "Rename the function to `chargeAmount`"
+                "Check that `amount` is greater than zero before charging",
+                "Rename the parameter to `amountCents` everywhere",
+                "Rename the function to something like `chargeAmount`"
               ],
               "answer": 2,
               "explain": "Putting the unit in the name makes a wrong call look wrong at the call site. A comment is easy to miss, and a positivity check says nothing about units."
@@ -119,6 +116,7 @@
           "id": "code-craft/readability-standards/flag-arguments",
           "title": "Flag arguments",
           "summary": "Bare `true`/`false` parameters that make call sites unreadable",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -174,16 +172,12 @@
           "id": "code-craft/readability-standards/cyclomatic-complexity",
           "title": "Cyclomatic complexity",
           "summary": "A count of the independent paths through a function, a rough measure of how hard it is to read and test",
+          "level": "hard",
           "variants": [
             {
               "lang": "go",
               "q": "What is the cyclomatic complexity of this function?\n\n```go\nfunc grade(score int) string {\n    if score >= 90 {\n        return \"A\"\n    }\n    if score >= 80 {\n        return \"B\"\n    }\n    if score >= 70 {\n        return \"C\"\n    }\n    return \"F\"\n}\n```",
-              "choices": [
-                "1",
-                "3",
-                "4",
-                "8"
-              ],
+              "choices": ["1", "3", "4", "8"],
               "answer": 2,
               "explain": "Cyclomatic complexity is the number of decision points plus one: three `if`s give 4, matching the four ways out of the function. It isn't 2³ = 8, because each `if` returns instead of letting every combination run."
             },
@@ -202,12 +196,7 @@
             {
               "lang": null,
               "q": "A function is one `switch` with five `case` branches and a `default`, and nothing else branches. Counting each `case` as one decision (and not the `default`), what is its cyclomatic complexity?",
-              "choices": [
-                "1",
-                "5",
-                "6",
-                "7"
-              ],
+              "choices": ["1", "5", "6", "7"],
               "answer": 2,
               "explain": "Complexity is one for the straight path plus one per decision point: 1 + 5 = 6. 5 forgets the base path, and 7 would count the `default` too."
             }
@@ -218,11 +207,13 @@
     {
       "id": "simple-design",
       "title": "Simple design",
+      "summary": "The simplest design that works: YAGNI, KISS, avoiding over-engineering",
       "concepts": [
         {
           "id": "code-craft/simple-design/yagni",
           "title": "YAGNI",
           "summary": "\"You aren't gonna need it\": don't build for requirements you don't have yet",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -251,9 +242,42 @@
           ]
         },
         {
+          "id": "code-craft/simple-design/kiss",
+          "title": "KISS",
+          "summary": "\"Keep it simple\": prefer the plainest solution that meets the actual requirements",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A service needs 15 feature flags. They change only at deploy time and are read once at startup. Which design follows KISS?",
+              "choices": [
+                "A flag service that pushes live updates over websockets",
+                "A database table with a cache in front of it",
+                "A config file loaded into a map at startup",
+                "A plugin system that loads each flag as a module"
+              ],
+              "answer": 2,
+              "explain": "The requirements need nothing more than values read at startup, so a config file meets them with the least to build and run. The others solve problems (live changes, scale) this service doesn't have."
+            },
+            {
+              "lang": null,
+              "q": "A one-off job must copy 10,000 rows from an old table into a new one, once. A teammate proposes a reusable migration framework with pluggable sources and sinks. What's the KISS objection?",
+              "choices": [
+                "A framework would be too slow to copy 10,000 rows in one run",
+                "Frameworks shouldn't be run against production databases at all",
+                "Reusable code always ends up with more bugs than a one-off script",
+                "It runs once, so a short script is cheaper to write, review and delete"
+              ],
+              "answer": 3,
+              "explain": "The extra flexibility costs design, review and upkeep and buys nothing for a task that happens once. Speed and safety aren't the issue; the unneeded complexity is."
+            }
+          ]
+        },
+        {
           "id": "code-craft/simple-design/wrong-abstraction",
           "title": "The wrong abstraction",
           "summary": "Duplication is cheaper than a shared function that doesn't fit its callers",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -285,6 +309,7 @@
           "id": "code-craft/simple-design/command-query-separation",
           "title": "Command-query separation",
           "summary": "A function should either change state or return data, not both",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -316,6 +341,7 @@
           "id": "code-craft/simple-design/illegal-states",
           "title": "Make illegal states unrepresentable",
           "summary": "Shaping types so invalid combinations of fields can't be built",
+          "level": "hard",
           "variants": [
             {
               "lang": "ts",
@@ -347,6 +373,7 @@
           "id": "code-craft/simple-design/functional-core",
           "title": "Functional core, imperative shell",
           "summary": "Keeping decisions in pure functions and pushing I/O, clocks and randomness to the edges",
+          "level": "hard",
           "variants": [
             {
               "lang": "go",
@@ -376,9 +403,9 @@
               "lang": null,
               "q": "A handler reads an account row, checks business rules (balance, daily limit), then writes the new balance. Which part should be the pure function in a functional core?",
               "choices": [
-                "The reading and writing of the row",
-                "The rule checks: take the account and the amount, return the new balance or an error",
-                "The whole handler, wrapped in a transaction",
+                "The reading and writing of the account row in the database",
+                "The rule checks: account and amount in, new balance or error out",
+                "The whole handler, wrapped in a database transaction",
                 "Nothing: rules that need account data can't be pure"
               ],
               "answer": 1,
@@ -391,12 +418,13 @@
     {
       "id": "refactoring",
       "title": "Refactoring",
+      "summary": "Changing code structure without changing behaviour, and spotting code smells",
       "concepts": [
         {
           "id": "code-craft/refactoring/refactoring-definition",
           "title": "Refactoring",
           "summary": "Changing the structure of code without changing what it does",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -425,9 +453,108 @@
           ]
         },
         {
+          "id": "code-craft/refactoring/extract-function",
+          "title": "Extract Function",
+          "summary": "Moving a block of code into its own well-named function, the most common refactoring",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A 60-line `checkout` function contains a block under the comment `// compute shipping cost`. Which refactoring is the natural first step?",
+              "choices": [
+                "Extract Function",
+                "Inline Function",
+                "Replace Conditional with Polymorphism",
+                "Introduce Parameter Object"
+              ],
+              "answer": 0,
+              "explain": "Moving the block into `computeShippingCost(...)` lets the name replace the comment and shortens `checkout`. Inline Function is the opposite move."
+            },
+            {
+              "lang": null,
+              "q": "You extract a block into a new function. The block reads two local variables, and changes a third one that's used after the block. What should the new function look like?",
+              "choices": [
+                "It takes nothing: it can read the caller's local variables directly",
+                "It takes the two as parameters and returns the new value of the third",
+                "It re-declares all three variables inside itself",
+                "It reads all three from a shared global config object"
+              ],
+              "answer": 1,
+              "explain": "Values the block reads become parameters, and a value it changes for later code becomes the return value. A separate function can't see the caller's locals, and globals would add hidden coupling."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/refactoring/shotgun-surgery",
+          "title": "Shotgun surgery",
+          "summary": "A code smell where one small change means editing many scattered places",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Adding a currency means editing 12 files across formatting, validation, pricing and reporting. Which smell is this?",
+              "choices": ["Feature envy", "Divergent change", "Shotgun surgery", "Primitive obsession"],
+              "answer": 2,
+              "explain": "One change spread over many places is shotgun surgery. Divergent change is the opposite: one module that changes for many unrelated reasons."
+            },
+            {
+              "lang": null,
+              "q": "Every new notification channel needs edits in the API, the worker, the settings page and two config files. What's the usual refactoring direction?",
+              "choices": [
+                "Add a checklist to the PR template",
+                "Split each file into smaller files",
+                "Add more comments pointing to the other places",
+                "Pull the channel-specific logic together into one module"
+              ],
+              "answer": 3,
+              "explain": "Moving the related pieces together means the next channel is a change in one place. A checklist only makes it less likely you forget a spot."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/refactoring/feature-envy",
+          "title": "Feature envy",
+          "summary": "A code smell where a function uses another object's data more than its own",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "Which smell does this method show?\n\n```ts\nclass InvoicePrinter {\n  shippingCost(o: Order) {\n    const weight = o.items.reduce((s, i) => s + i.weight, 0)\n    return o.address.country === 'US' ? weight * 2 : weight * 5\n  }\n}\n```",
+              "choices": ["Shotgun surgery", "Feature envy", "Data clumps", "Speculative generality"],
+              "answer": 1,
+              "explain": "The method uses nothing of `InvoicePrinter` and everything of `Order`. It most likely belongs on `Order` (or near it)."
+            },
+            {
+              "lang": null,
+              "q": "A function in the reporting module reads six fields of `Subscription` and none of its own module's state to work out the renewal date. What is the usual fix?",
+              "choices": [
+                "Move the function to `Subscription`",
+                "Copy the six fields into the reporting module",
+                "Make the six fields private",
+                "Add a comment explaining the dependency"
+              ],
+              "answer": 0,
+              "explain": "Feature envy is fixed by moving the behaviour to the data it uses. Copying the fields duplicates state and makes the coupling worse."
+            },
+            {
+              "lang": null,
+              "q": "`Cart.formatForEmail(customer)` calls `customer.name()`, `customer.address()` and `customer.tier()` and barely touches `Cart`'s own fields. What does that suggest?",
+              "choices": [
+                "`Customer` needs more public fields",
+                "`Cart` should keep its own copy of the customer fields",
+                "The logic probably belongs with the customer data it uses",
+                "Nothing: methods commonly take parameters"
+              ],
+              "answer": 2,
+              "explain": "A method that mostly works on another object's data is a sign it's in the wrong place, which is exactly feature envy. Taking a parameter is fine; the smell is where most of the logic's data comes from."
+            }
+          ]
+        },
+        {
           "id": "code-craft/refactoring/characterization-tests",
           "title": "Characterization tests",
           "summary": "Tests that pin down what legacy code does today, so you can refactor it safely",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -459,6 +586,7 @@
           "id": "code-craft/refactoring/parallel-change",
           "title": "Parallel change",
           "summary": "Changing an interface others use in three steps: add the new one, migrate callers, remove the old one",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -485,122 +613,19 @@
               "explain": "During the expand phase both fields are present, so old and new clients both work. You contract only once nothing reads the old field."
             }
           ]
-        },
-        {
-          "id": "code-craft/refactoring/shotgun-surgery",
-          "title": "Shotgun surgery",
-          "summary": "A code smell where one small change means editing many scattered places",
-          "variants": [
-            {
-              "lang": null,
-              "q": "Adding a currency means editing 12 files across formatting, validation, pricing and reporting. Which smell is this?",
-              "choices": [
-                "Feature envy",
-                "Divergent change",
-                "Shotgun surgery",
-                "Primitive obsession"
-              ],
-              "answer": 2,
-              "explain": "One change spread over many places is shotgun surgery. Divergent change is the opposite: one module that changes for many unrelated reasons."
-            },
-            {
-              "lang": null,
-              "q": "Every new notification channel needs edits in the API, the worker, the settings page and two config files. What's the usual refactoring direction?",
-              "choices": [
-                "Add a checklist to the PR template",
-                "Split each file into smaller files",
-                "Add more comments pointing to the other places",
-                "Pull the channel-specific logic together into one module"
-              ],
-              "answer": 3,
-              "explain": "Moving the related pieces together means the next channel is a change in one place. A checklist only makes it less likely you forget a spot."
-            }
-          ]
-        },
-        {
-          "id": "code-craft/refactoring/feature-envy",
-          "title": "Feature envy",
-          "summary": "A code smell where a function uses another object's data more than its own",
-          "variants": [
-            {
-              "lang": "ts",
-              "q": "Which smell does this method show?\n\n```ts\nclass InvoicePrinter {\n  shippingCost(o: Order) {\n    const weight = o.items.reduce((s, i) => s + i.weight, 0)\n    return o.address.country === 'US' ? weight * 2 : weight * 5\n  }\n}\n```",
-              "choices": [
-                "Shotgun surgery",
-                "Feature envy",
-                "Data clumps",
-                "Speculative generality"
-              ],
-              "answer": 1,
-              "explain": "The method uses nothing of `InvoicePrinter` and everything of `Order`. It most likely belongs on `Order` (or near it)."
-            },
-            {
-              "lang": null,
-              "q": "A function in the reporting module reads six fields of `Subscription` and none of its own module's state to work out the renewal date. What is the usual fix?",
-              "choices": [
-                "Move the function to `Subscription`",
-                "Copy the six fields into the reporting module",
-                "Make the six fields private",
-                "Add a comment explaining the dependency"
-              ],
-              "answer": 0,
-              "explain": "Feature envy is fixed by moving the behaviour to the data it uses. Copying the fields duplicates state and makes the coupling worse."
-            },
-            {
-              "lang": null,
-              "q": "`Cart.formatForEmail(customer)` calls `customer.name()`, `customer.address()` and `customer.tier()` and barely touches `Cart`'s own fields. What does that suggest?",
-              "choices": [
-                "`Customer` needs more public fields",
-                "`Cart` should keep its own copy of the customer fields",
-                "The logic probably belongs with the customer data it uses",
-                "Nothing: methods commonly take parameters"
-              ],
-              "answer": 2,
-              "explain": "A method that mostly works on another object's data is a sign it's in the wrong place, which is exactly feature envy. Taking a parameter is fine; the smell is where most of the logic's data comes from."
-            }
-          ]
         }
       ]
     },
     {
       "id": "code-review",
       "title": "Code review",
+      "summary": "Giving and receiving clear, useful review feedback and knowing what to look for",
       "concepts": [
-        {
-          "id": "code-craft/code-review/stacked-prs",
-          "title": "Stacked PRs",
-          "summary": "Splitting a large change into a chain of small PRs, each based on the one before",
-          "variants": [
-            {
-              "lang": null,
-              "q": "PR B builds on PR A, which is still in review. Which base branch should B target so its diff shows only B's changes?",
-              "choices": [
-                "`main`, and say in the description that A comes first",
-                "A's branch",
-                "A new branch merged from `main` and A",
-                "B shouldn't be opened until A merges"
-              ],
-              "answer": 1,
-              "explain": "Basing B on A's branch makes the diff show only B's commits. Targeting `main` makes reviewers see A's changes again inside B."
-            },
-            {
-              "lang": null,
-              "q": "PR A was squash-merged into `main`. B's branch still contains A's original commits, and its diff against `main` now shows A's changes again. What's the usual fix?",
-              "choices": [
-                "Close B and open a new PR from the same branch",
-                "Revert A on `main` and merge A and B together",
-                "Nothing: GitHub hides commits that were squashed",
-                "`git rebase --onto main <A's old tip> B`, then force-push"
-              ],
-              "answer": 3,
-              "explain": "The squash created a new commit, so git doesn't see A's original commits as merged. `--onto` replays only the commits after A's old tip onto `main`."
-            }
-          ]
-        },
         {
           "id": "code-craft/code-review/automate-style-nits",
           "title": "Leave style to tooling",
           "summary": "Formatters and linters handle style, so reviewers spend their time on behaviour and design",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -629,9 +654,42 @@
           ]
         },
         {
+          "id": "code-craft/code-review/actionable-comments",
+          "title": "Actionable review comments",
+          "summary": "Feedback that says what the problem is, why it matters and what would fix it",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which review comment is most useful to the author?",
+              "choices": [
+                "This retry logic looks wrong to me; could you take another careful look before merging?",
+                "I would personally have written this part quite differently, but it's up to you",
+                "Please rethink the whole error-handling approach in this file; it doesn't feel right yet",
+                "A timeout after the charge makes this retry charge twice; add an idempotency key?"
+              ],
+              "answer": 3,
+              "explain": "It names the failure, why it happens and a possible fix, so the author can act on it without a round of questions. The others say something is off without saying what."
+            },
+            {
+              "lang": null,
+              "q": "A PR solves the problem correctly, but not the way the reviewer would have. What's the best response?",
+              "choices": [
+                "Request changes until it matches the reviewer's approach",
+                "Approve, optionally with a comment marked as a non-blocking suggestion",
+                "Push a commit to the branch rewriting it the reviewer's way",
+                "Approve now, then rewrite it in the reviewer's own follow-up PR"
+              ],
+              "answer": 1,
+              "explain": "Review is for correctness, risk and maintainability, not personal preference. Labelling a preference as optional keeps the idea without blocking or churning working code."
+            }
+          ]
+        },
+        {
           "id": "code-craft/code-review/test-fails-without-fix",
           "title": "A test that fails without the fix",
           "summary": "Checking a bug-fix test actually catches the bug by running it against the old code",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -663,19 +721,112 @@
           "id": "code-craft/code-review/comment-severity",
           "title": "Labelling review comments",
           "summary": "Marking each review comment as blocking, a suggestion or a nit, so authors know what must change",
+          "level": "medium",
           "variants": []
+        },
+        {
+          "id": "code-craft/code-review/stacked-prs",
+          "title": "Stacked PRs",
+          "summary": "Splitting a large change into a chain of small PRs, each based on the one before",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "PR B builds on PR A, which is still in review. Which base branch should B target so its diff shows only B's changes?",
+              "choices": [
+                "`main`, and say in the description that A comes first",
+                "A's branch",
+                "A new branch merged from `main` and A",
+                "B shouldn't be opened until A merges"
+              ],
+              "answer": 1,
+              "explain": "Basing B on A's branch makes the diff show only B's commits. Targeting `main` makes reviewers see A's changes again inside B."
+            },
+            {
+              "lang": null,
+              "q": "PR A was squash-merged into `main`. B's branch still contains A's original commits, and its diff against `main` now shows A's changes again. What's the usual fix?",
+              "choices": [
+                "Close B and open a new PR from the same branch",
+                "Revert A on `main` and merge A and B together",
+                "Nothing: GitHub hides commits that were squashed",
+                "`git rebase --onto main <A's old tip> B`, then force-push"
+              ],
+              "answer": 3,
+              "explain": "The squash created a new commit, so git doesn't see A's original commits as merged. `--onto` replays only the commits after A's old tip onto `main`."
+            }
+          ]
         }
       ]
     },
     {
       "id": "git",
       "title": "Git",
+      "summary": "Branching, good commits, merging, rebasing and resolving conflicts",
       "concepts": [
+        {
+          "id": "code-craft/git/merge-conflicts",
+          "title": "Resolving merge conflicts",
+          "summary": "Editing the hunks Git marks with `<<<<<<<`, `=======` and `>>>>>>>`, then marking the file resolved",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "On `main` you ran `git merge feature/slow-api` and got this. Which value is the one from `main`?\n\n```\n<<<<<<< HEAD\ntimeout = 30\n=======\ntimeout = 60\n>>>>>>> feature/slow-api\n```",
+              "choices": [
+                "`timeout = 60`",
+                "`timeout = 30`",
+                "Neither: both are new lines from the feature branch",
+                "Whichever was committed more recently"
+              ],
+              "answer": 1,
+              "explain": "In a merge, the part between `<<<<<<< HEAD` and `=======` is the branch you're on, and the part after is the branch being merged in. (In a rebase the sides swap, since `HEAD` is the branch you're replaying onto.)"
+            },
+            {
+              "lang": null,
+              "q": "You've edited a conflicted file to its final content and removed the markers. What tells Git it's resolved, before `git merge --continue`?",
+              "choices": ["`git stash`", "`git reset <file>`", "`git add <file>`", "`git resolve <file>`"],
+              "answer": 2,
+              "explain": "Staging the file marks the conflict resolved; then you finish with `git merge --continue` (or `git commit`). `git resolve` doesn't exist, and `reset` would unstage it."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/git/commit-messages",
+          "title": "Commit messages",
+          "summary": "A short summary line saying what changed, with a body explaining why",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which commit message will be most useful to someone reading the history a year from now?",
+              "choices": [
+                "Update the order service, the payment client and the related tests",
+                "Fix the bug that QA reported last week on the payments page",
+                "Retry payment webhook on 5xx, since the provider fails intermittently",
+                "WIP: more changes for the payment work, tidy up later"
+              ],
+              "answer": 2,
+              "explain": "It says what changed and why, so it still makes sense without the ticket or the people. \"The bug QA reported\" depends on context that will be gone."
+            },
+            {
+              "lang": null,
+              "q": "What belongs in a commit message body that the diff itself can't show?",
+              "choices": [
+                "A list of every file that changed",
+                "Why the change was made and what was ruled out",
+                "The full diff of the most important file",
+                "The author's name and the date"
+              ],
+              "answer": 1,
+              "explain": "The diff shows what changed, and Git already records files, author and date. The reasoning is the part that's lost unless someone writes it down."
+            }
+          ]
+        },
         {
           "id": "code-craft/git/rebase-rewrites-history",
           "title": "Rebase rewrites history",
           "summary": "`git rebase` replays commits as new ones with new hashes",
-          "basic": true,
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -704,9 +855,69 @@
           ]
         },
         {
+          "id": "code-craft/git/bisect",
+          "title": "git bisect",
+          "summary": "Binary search through history to find the commit that introduced a bug",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A bug appeared somewhere in the last 1,000 commits. With `git bisect`, about how many commits do you need to test?",
+              "choices": ["About 10", "About 100", "About 500", "All 1,000"],
+              "answer": 0,
+              "explain": "Each test halves the range, and 2¹⁰ is 1,024. With `git bisect run <script>` git can do all of them automatically."
+            },
+            {
+              "lang": null,
+              "q": "What do you need before starting `git bisect`?",
+              "choices": [
+                "A failing test that's already committed",
+                "A clean, freshly pulled `main` branch",
+                "A known bad commit and an older known good one",
+                "The list of files the bug is likely in"
+              ],
+              "answer": 2,
+              "explain": "Bisect searches between a known-bad and a known-good commit. The test can be any check you run by hand or a script, even one that isn't committed."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/git/gitignore-tracked-files",
+          "title": "`.gitignore` and tracked files",
+          "summary": "`.gitignore` only affects untracked files; a file already committed stays tracked",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You added `.env` to `.gitignore`, but `git status` still shows your changes to `.env`. Why?",
+              "choices": [
+                "`.gitignore` only takes effect after a push",
+                "The pattern needs a leading `/`",
+                "Git caches `.gitignore` until you run `git gc`",
+                "`.env` was already tracked before the rule was added"
+              ],
+              "answer": 3,
+              "explain": "Once a file is in the index, ignore rules don't apply to it. You have to remove it from the index first."
+            },
+            {
+              "lang": null,
+              "q": "`config/local.json` is committed and shouldn't be. It's now in `.gitignore`. How do you stop tracking it but keep your local copy?",
+              "choices": [
+                "`git rm --cached config/local.json`, then commit",
+                "`git rm config/local.json`, then commit",
+                "`git reset config/local.json`",
+                "`git update-index --skip-worktree config/local.json`"
+              ],
+              "answer": 0,
+              "explain": "`--cached` removes it from the index only, so the file stays on disk. `skip-worktree` hides local changes but keeps the file tracked for everyone. If it held secrets, they're still in history and need rotating."
+            }
+          ]
+        },
+        {
           "id": "code-craft/git/reflog",
           "title": "git reflog",
           "summary": "The local log of where `HEAD` and branches pointed, used to recover \"lost\" commits",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -735,40 +946,10 @@
           ]
         },
         {
-          "id": "code-craft/git/bisect",
-          "title": "git bisect",
-          "summary": "Binary search through history to find the commit that introduced a bug",
-          "variants": [
-            {
-              "lang": null,
-              "q": "A bug appeared somewhere in the last 1,000 commits. With `git bisect`, about how many commits do you need to test?",
-              "choices": [
-                "About 10",
-                "About 100",
-                "About 500",
-                "All 1,000"
-              ],
-              "answer": 0,
-              "explain": "Each test halves the range, and 2¹⁰ is 1,024. With `git bisect run <script>` git can do all of them automatically."
-            },
-            {
-              "lang": null,
-              "q": "What do you need before starting `git bisect`?",
-              "choices": [
-                "A failing test that's already committed",
-                "A clean, freshly pulled `main` branch",
-                "A known bad commit and an older known good one",
-                "The list of files the bug is likely in"
-              ],
-              "answer": 2,
-              "explain": "Bisect searches between a known-bad and a known-good commit. The test can be any check you run by hand or a script, even one that isn't committed."
-            }
-          ]
-        },
-        {
           "id": "code-craft/git/force-with-lease",
           "title": "`--force-with-lease`",
           "summary": "A force push that refuses to overwrite remote commits you haven't seen",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -795,79 +976,19 @@
               "explain": "The remote no longer matches what you last fetched, so the lease check fails. A plain `git fetch` in between (including one your editor runs in the background) would update the lease and let the overwrite through; `--force-if-includes` (Git 2.30+) guards against that."
             }
           ]
-        },
-        {
-          "id": "code-craft/git/fixup-commits",
-          "title": "Fixup commits",
-          "summary": "`git commit --fixup` plus `rebase --autosquash` to fold a correction into an earlier commit",
-          "variants": [
-            {
-              "lang": null,
-              "q": "You run `git commit --fixup=abc123`, then `git rebase -i --autosquash main`. What does the rebase do with the new commit?",
-              "choices": [
-                "Moves it to the start of the branch",
-                "Puts it right after `abc123`, marked to be folded into it",
-                "Reverts `abc123` and applies the new commit instead",
-                "Leaves it at the end with a `fixup!` message"
-              ],
-              "answer": 1,
-              "explain": "`--autosquash` reorders the todo list so each `fixup!` commit follows its target and is marked `fixup`. The branch ends up as if the correction had been in `abc123` all along."
-            },
-            {
-              "lang": null,
-              "q": "In an interactive rebase's todo list, what's the difference between `squash` and `fixup`?",
-              "choices": [
-                "`squash` merges the changes; `fixup` only keeps the message",
-                "`fixup` drops the commit's changes and keeps its message",
-                "`squash` lets you edit both messages; `fixup` drops its own",
-                "`fixup` works only on the most recent commit"
-              ],
-              "answer": 2,
-              "explain": "Both fold the commit's changes into the one before. `squash` opens an editor with both messages; `fixup` silently discards the folded commit's message."
-            }
-          ]
-        },
-        {
-          "id": "code-craft/git/gitignore-tracked-files",
-          "title": "`.gitignore` and tracked files",
-          "summary": "`.gitignore` only affects untracked files; a file already committed stays tracked",
-          "variants": [
-            {
-              "lang": null,
-              "q": "You added `.env` to `.gitignore`, but `git status` still shows your changes to `.env`. Why?",
-              "choices": [
-                "`.gitignore` only takes effect after a push",
-                "The pattern needs a leading `/`",
-                "Git caches `.gitignore` until you run `git gc`",
-                "`.env` was already tracked before the rule was added"
-              ],
-              "answer": 3,
-              "explain": "Once a file is in the index, ignore rules don't apply to it. You have to remove it from the index first."
-            },
-            {
-              "lang": null,
-              "q": "`config/local.json` is committed and shouldn't be. It's now in `.gitignore`. How do you stop tracking it but keep your local copy?",
-              "choices": [
-                "`git rm --cached config/local.json`, then commit",
-                "`git rm config/local.json`, then commit",
-                "`git reset config/local.json`",
-                "`git update-index --skip-worktree config/local.json`"
-              ],
-              "answer": 0,
-              "explain": "`--cached` removes it from the index only, so the file stays on disk. `skip-worktree` hides local changes but keeps the file tracked for everyone. If it held secrets, they're still in history and need rotating."
-            }
-          ]
         }
       ]
     },
     {
       "id": "debugging",
       "title": "Debugging",
+      "summary": "Finding bugs systematically: reproduce, isolate, hypothesise, verify",
       "concepts": [
         {
           "id": "code-craft/debugging/minimal-reproduction",
           "title": "Minimal reproduction",
           "summary": "Cutting a failing case down to the smallest input and code that still shows the bug",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -896,33 +1017,48 @@
           ]
         },
         {
-          "id": "code-craft/debugging/heisenbug",
-          "title": "Heisenbug",
-          "summary": "A bug that disappears when you try to observe it, usually because of timing",
+          "id": "code-craft/debugging/stack-trace",
+          "title": "Reading a stack trace",
+          "summary": "Finding where an error came from in a trace, and which end of it to read first",
+          "level": "easy",
           "variants": [
             {
-              "lang": null,
-              "q": "A test fails about 1 run in 20 in CI. When you add print statements to investigate, it stops failing. What is the most likely kind of cause?",
+              "lang": "go",
+              "q": "Which line does the out-of-range indexing?\n\n```text\npanic: runtime error: index out of range [5] with length 3\n\ngoroutine 1 [running]:\nmain.lookup(...)\n        /app/main.go:12\nmain.handle(0x5)\n        /app/main.go:20 +0x1d\nmain.main()\n        /app/main.go:25 +0x25\n```",
+              "choices": ["`main.go:25`", "`main.go:20`", "`main.go:12`", "The trace doesn't say"],
+              "answer": 2,
+              "explain": "Go lists the panicking goroutine's frames with the most recent call first, so the top frame, `lookup` at line 12, is where it happened. The lines below show who called it."
+            },
+            {
+              "lang": "ts",
+              "q": "Where did the failing property access happen?\n\n```text\nTypeError: Cannot read properties of undefined (reading 'id')\n    at toDto (/app/dist/user.js:14:22)\n    at /app/dist/routes.js:30:18\n    at Array.map (<anonymous>)\n    at listUsers (/app/dist/routes.js:30:6)\n```",
               "choices": [
-                "A timing-dependent bug such as a race condition",
-                "A compiler bug that only appears in CI builds",
-                "CI runs an older version of the code",
-                "A memory leak that builds up across runs"
+                "`listUsers` in `routes.js:30`",
+                "`toDto` in `user.js:14`",
+                "Inside `Array.map`",
+                "The anonymous callback in `routes.js:30:18`"
               ],
-              "answer": 0,
-              "explain": "Printing changes timing, and timing-dependent bugs like races hide when timing shifts. A race detector, or logging timestamps to a buffer, disturbs less."
+              "answer": 1,
+              "explain": "Node lists the most recent call first, so the top frame is where the error was raised. The others are the chain of callers that led there."
+            },
+            {
+              "lang": "python",
+              "q": "Which line raised the error?\n\n```text\nTraceback (most recent call last):\n  File \"/app/main.py\", line 25, in <module>\n    handle(5)\n  File \"/app/main.py\", line 20, in handle\n    return lookup(items, i)\n  File \"/app/main.py\", line 12, in lookup\n    return items[i]\nIndexError: list index out of range\n```",
+              "choices": ["`main.py` line 25", "`main.py` line 20", "The trace doesn't say", "`main.py` line 12"],
+              "answer": 3,
+              "explain": "Python prints the most recent call last, the opposite of Go and Node, so the bottom frame, line 12, is where `IndexError` was raised."
             },
             {
               "lang": null,
-              "q": "A bug in a multithreaded service never shows up when you step through it in a debugger. Why might that be?",
+              "q": "Where should you start looking for the root cause?\n\n```text\nOrderError: could not place order\n    at placeOrder (orders:42)\n    at handle (api:17)\nCaused by: ConnectionError: refused 10.0.0.5:5432\n    at connect (db:88)\n    at query (db:61)\n    at placeOrder (orders:40)\n```",
               "choices": [
-                "The debugger catches the failure and silently retries it",
-                "The debugger zeroes memory before each step runs",
-                "Breakpoints reset shared state when they're hit",
-                "Pausing changes how the threads interleave"
+                "`connect` at `db:88`, where the innermost error was raised",
+                "`placeOrder` at `orders:42`, where the outer error was created",
+                "`handle` at `api:17`, the entry point",
+                "`query` at `db:61`, the caller of `connect`"
               ],
-              "answer": 3,
-              "explain": "Stepping slows one thread while the others run on, so the window for the race closes and the bad ordering never happens. Shared state and memory are left exactly as they were."
+              "answer": 0,
+              "explain": "The `Caused by:` section holds the original failure, and its top frame is where it was raised. The outer trace only shows where the wrapping error was created."
             }
           ]
         },
@@ -930,6 +1066,7 @@
           "id": "code-craft/debugging/conditional-breakpoint",
           "title": "Conditional breakpoint",
           "summary": "A breakpoint that only pauses when an expression is true",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -958,86 +1095,65 @@
           ]
         },
         {
-          "id": "code-craft/debugging/stack-trace",
-          "title": "Reading a stack trace",
-          "summary": "Finding where an error came from in a trace, and which end of it to read first",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "Which line does the out-of-range indexing?\n\n```text\npanic: runtime error: index out of range [5] with length 3\n\ngoroutine 1 [running]:\nmain.lookup(...)\n        /app/main.go:12\nmain.handle(0x5)\n        /app/main.go:20 +0x1d\nmain.main()\n        /app/main.go:25 +0x25\n```",
-              "choices": [
-                "`main.go:25`",
-                "`main.go:20`",
-                "`main.go:12`",
-                "The trace doesn't say"
-              ],
-              "answer": 2,
-              "explain": "Go lists the panicking goroutine's frames with the most recent call first, so the top frame, `lookup` at line 12, is where it happened. The lines below show who called it."
-            },
-            {
-              "lang": "ts",
-              "q": "Where did the failing property access happen?\n\n```text\nTypeError: Cannot read properties of undefined (reading 'id')\n    at toDto (/app/dist/user.js:14:22)\n    at /app/dist/routes.js:30:18\n    at Array.map (<anonymous>)\n    at listUsers (/app/dist/routes.js:30:6)\n```",
-              "choices": [
-                "`listUsers` in `routes.js:30`",
-                "`toDto` in `user.js:14`",
-                "Inside `Array.map`",
-                "The anonymous callback in `routes.js:30:18`"
-              ],
-              "answer": 1,
-              "explain": "Node lists the most recent call first, so the top frame is where the error was raised. The others are the chain of callers that led there."
-            },
-            {
-              "lang": "python",
-              "q": "Which line raised the error?\n\n```text\nTraceback (most recent call last):\n  File \"/app/main.py\", line 25, in <module>\n    handle(5)\n  File \"/app/main.py\", line 20, in handle\n    return lookup(items, i)\n  File \"/app/main.py\", line 12, in lookup\n    return items[i]\nIndexError: list index out of range\n```",
-              "choices": [
-                "`main.py` line 25",
-                "`main.py` line 20",
-                "The trace doesn't say",
-                "`main.py` line 12"
-              ],
-              "answer": 3,
-              "explain": "Python prints the most recent call last, the opposite of Go and Node, so the bottom frame, line 12, is where `IndexError` was raised."
-            },
-            {
-              "lang": null,
-              "q": "Where should you start looking for the root cause?\n\n```text\nOrderError: could not place order\n    at placeOrder (orders:42)\n    at handle (api:17)\nCaused by: ConnectionError: refused 10.0.0.5:5432\n    at connect (db:88)\n    at query (db:61)\n    at placeOrder (orders:40)\n```",
-              "choices": [
-                "`connect` at `db:88`, where the innermost error was raised",
-                "`placeOrder` at `orders:42`, where the outer error was created",
-                "`handle` at `api:17`, the entry point",
-                "`query` at `db:61`, the caller of `connect`"
-              ],
-              "answer": 0,
-              "explain": "The `Caused by:` section holds the original failure, and its top frame is where it was raised. The outer trace only shows where the wrapping error was created."
-            }
-          ]
-        },
-        {
           "id": "code-craft/debugging/rubber-duck",
           "title": "Rubber duck debugging",
           "summary": "Explaining the code line by line, out loud or in writing, until the mistake shows itself",
+          "level": "medium",
           "variants": []
+        },
+        {
+          "id": "code-craft/debugging/heisenbug",
+          "title": "Heisenbug",
+          "summary": "A bug that disappears when you try to observe it, usually because of timing",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A test fails about 1 run in 20 in CI. When you add print statements to investigate, it stops failing. What is the most likely kind of cause?",
+              "choices": [
+                "A timing-dependent bug such as a race condition",
+                "A compiler bug that only appears in CI builds",
+                "CI runs an older version of the code",
+                "A memory leak that builds up across runs"
+              ],
+              "answer": 0,
+              "explain": "Printing changes timing, and timing-dependent bugs like races hide when timing shifts. A race detector, or logging timestamps to a buffer, disturbs less."
+            },
+            {
+              "lang": null,
+              "q": "A bug in a multithreaded service never shows up when you step through it in a debugger. Why might that be?",
+              "choices": [
+                "The debugger catches the failure and silently retries it",
+                "The debugger zeroes memory before each step runs",
+                "Breakpoints reset shared state when they're hit",
+                "Pausing changes how the threads interleave"
+              ],
+              "answer": 3,
+              "explain": "Stepping slows one thread while the others run on, so the window for the race closes and the bad ordering never happens. Shared state and memory are left exactly as they were."
+            }
+          ]
         }
       ]
     },
     {
       "id": "documentation",
       "title": "Documentation",
+      "summary": "READMEs, code comments and docs others can actually use",
       "concepts": [
         {
           "id": "code-craft/documentation/why-comments",
           "title": "Comments explain why",
           "summary": "Code says what it does; comments are for the reasons and constraints the code can't show",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "Which comment adds the most value?",
               "choices": [
-                "`// loop over the users and process each one`",
-                "`// retry once: vendor 502s on the first call after idle`",
-                "`// increment the retry counter by one`",
-                "`// call the payment API with the order`"
+                "// loop over the users and process each one in turn",
+                "// retry once: vendor 502s on first call after idle",
+                "// increment the retry counter by one each time",
+                "// call the payment API with the order details"
               ],
               "answer": 1,
               "explain": "It records a fact you can't get from the code: why the retry exists. The others repeat what the code already says and go stale when it changes."
@@ -1060,6 +1176,7 @@
           "id": "code-craft/documentation/doc-comments",
           "title": "Doc comments",
           "summary": "The comment syntax that docs tools and editors attach to a declaration",
+          "level": "easy",
           "variants": [
             {
               "lang": "go",
@@ -1112,9 +1229,49 @@
           ]
         },
         {
+          "id": "code-craft/documentation/readme-quick-start",
+          "title": "README quick start",
+          "summary": "A README that gets a newcomer from clone to running in a few copy-paste commands",
+          "level": "medium",
+          "variants": []
+        },
+        {
+          "id": "code-craft/documentation/docs-as-code",
+          "title": "Docs as code",
+          "summary": "Keeping docs as plain text in the repo, changed and reviewed in the same PR as the code",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A team's API docs live in a wiki and keep falling behind the code. What does moving them into the repo as Markdown mainly fix?",
+              "choices": [
+                "Markdown pages load faster than wiki pages, so people read them",
+                "Docs no longer have to be written by hand; they're generated",
+                "Docs change in the same PR as the code, so drift shows in review",
+                "Wikis can't hold code samples or diagrams, but Markdown can"
+              ],
+              "answer": 2,
+              "explain": "Putting docs next to the code puts them in the same review and history, so a behaviour change and its doc update land together. The format itself isn't the point."
+            },
+            {
+              "lang": null,
+              "q": "With docs in the repo, which CI check does most to keep them accurate?",
+              "choices": [
+                "A minimum word count for each page of the docs",
+                "Building docs and checking links and samples on every PR",
+                "Blocking any PR that touches a docs file until approved",
+                "Spell-checking the release notes only, nothing else"
+              ],
+              "answer": 1,
+              "explain": "Broken links and code samples that no longer run are the usual ways docs rot, and both can be caught automatically. The other checks don't touch accuracy."
+            }
+          ]
+        },
+        {
           "id": "code-craft/documentation/go-example-tests",
           "title": "Go example functions",
           "summary": "`Example` functions in `_test.go` files appear in the docs and are checked by `go test`",
+          "level": "hard",
           "variants": [
             {
               "lang": "go",
@@ -1146,73 +1303,92 @@
           "id": "code-craft/documentation/diataxis",
           "title": "Diátaxis",
           "summary": "Splitting docs into four kinds: tutorials, how-to guides, reference and explanation",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
               "q": "In the Diátaxis framework, a page listing every configuration option with its type and default is which kind of doc?",
-              "choices": [
-                "Tutorial",
-                "How-to guide",
-                "Reference",
-                "Explanation"
-              ],
+              "choices": ["Tutorial", "How-to guide", "Reference", "Explanation"],
               "answer": 2,
               "explain": "Reference is dry, complete information you look up. A how-to guide walks through achieving one specific goal instead."
             },
             {
               "lang": null,
               "q": "In the Diátaxis framework, a page discussing why the system uses event sourcing and which alternatives were rejected is which kind of doc?",
-              "choices": [
-                "Explanation",
-                "Reference",
-                "Tutorial",
-                "How-to guide"
-              ],
+              "choices": ["Explanation", "Reference", "Tutorial", "How-to guide"],
               "answer": 0,
               "explain": "Explanation gives background and reasoning, to be read away from the task at hand. It doesn't tell you what to do, which is what tutorials and how-to guides are for."
             }
           ]
-        },
-        {
-          "id": "code-craft/documentation/readme-quick-start",
-          "title": "README quick start",
-          "summary": "A README that gets a newcomer from clone to running in a few copy-paste commands",
-          "variants": []
         }
       ]
     },
     {
       "id": "tech-debt",
       "title": "Tech debt",
+      "summary": "Noticing, naming and communicating technical debt",
       "concepts": [
         {
-          "id": "code-craft/tech-debt/debt-quadrant",
-          "title": "Technical debt quadrant",
-          "summary": "Martin Fowler's split of debt into deliberate or inadvertent, and reckless or prudent",
+          "id": "code-craft/tech-debt/debt-interest",
+          "title": "Technical debt",
+          "summary": "Shortcuts that save time now but make every later change in that code slower until they're paid back",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
-              "q": "A team knows its quick fix will need reworking, weighs that against a launch date, and ships it with a plan to clean up afterwards. Where does that fall in Fowler's technical debt quadrant?",
+              "q": "Which best describes technical debt?",
               "choices": [
-                "Reckless and inadvertent",
-                "Prudent and inadvertent",
-                "Reckless and deliberate",
-                "Prudent and deliberate"
+                "Any code written in an older version of the language",
+                "Bugs that have been open in the tracker for months",
+                "Code that shipped faster but makes later changes there cost more",
+                "Features promised to customers that haven't been built"
               ],
-              "answer": 3,
-              "explain": "The team knows it's taking on debt and has weighed the cost, which is deliberate and prudent. Skipping design because \"there's no time\", without weighing anything, is the reckless deliberate kind."
+              "answer": 2,
+              "explain": "The metaphor is about interest: the shortcut keeps costing extra effort on each change until it's fixed. Old code or open bugs aren't debt by themselves."
             },
             {
               "lang": null,
-              "q": "A skilled team designed a module carefully. A year in, having learned the domain, they see a different design would have fit much better. Where does that fall in Fowler's technical debt quadrant?",
+              "q": "Some messy code sits in a module that works fine and nobody has changed in two years. How urgent is paying that debt down?",
               "choices": [
-                "Prudent and inadvertent",
-                "Reckless and deliberate",
-                "Prudent and deliberate",
-                "Reckless and inadvertent"
+                "Low: you only pay the interest when you change that code",
+                "High: all debt grows over time, touched or not",
+                "High: the oldest code is always the riskiest",
+                "It depends only on how messy the code is"
               ],
               "answer": 0,
-              "explain": "The team did careful work and only learned the better design by building it. That's inadvertent but prudent; a team that never knew the basic design practices in the first place is reckless and inadvertent."
+              "explain": "Debt costs you when you work in it, so code nobody touches charges little interest. Effort is better spent where messy code is also changed often."
+            }
+          ]
+        },
+        {
+          "id": "code-craft/tech-debt/communicating-debt",
+          "title": "Communicating tech debt",
+          "summary": "Explaining debt as a cost to delivery and risk, so it can be weighed against feature work",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You want a week to rework a fragile billing module. Which pitch is most likely to get it prioritised?",
+              "choices": [
+                "The billing code is messy and doesn't follow our standards",
+                "Billing changes take three extra days each and caused two incidents",
+                "We should rewrite billing in a newer framework, ideally this year",
+                "Engineers find the billing code frustrating to work in daily"
+              ],
+              "answer": 1,
+              "explain": "It puts the debt in terms the business already weighs, time and incidents, so it can be compared with feature work. Code quality on its own doesn't say what fixing it buys."
+            },
+            {
+              "lang": null,
+              "q": "You take a deliberate shortcut to hit a launch date. What's the most useful thing to do at the same time?",
+              "choices": [
+                "Nothing for now; explain it later if someone asks about it",
+                "Leave a bare `TODO` in the code so it shows up in searches",
+                "Delay the launch until the shortcut has been taken out again",
+                "Record it in a ticket with its cost and how to pay it back"
+              ],
+              "answer": 3,
+              "explain": "A written record with cost and fix makes the debt visible and lets it be prioritised later. A bare `TODO` says neither why it matters nor what to do."
             }
           ]
         },
@@ -1220,6 +1396,7 @@
           "id": "code-craft/tech-debt/boy-scout-rule",
           "title": "Boy Scout rule",
           "summary": "Leave the code a little better than you found it, in the area you're already changing",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -1248,9 +1425,49 @@
           ]
         },
         {
+          "id": "code-craft/tech-debt/debt-register",
+          "title": "Tech debt register",
+          "summary": "Recording known debt with its cost and owner, so it can be weighed against feature work",
+          "level": "medium",
+          "variants": []
+        },
+        {
+          "id": "code-craft/tech-debt/debt-quadrant",
+          "title": "Technical debt quadrant",
+          "summary": "Martin Fowler's split of debt into deliberate or inadvertent, and reckless or prudent",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A team knows its quick fix will need reworking, weighs that against a launch date, and ships it with a plan to clean up afterwards. Where does that fall in Fowler's technical debt quadrant?",
+              "choices": [
+                "Reckless and inadvertent",
+                "Prudent and inadvertent",
+                "Reckless and deliberate",
+                "Prudent and deliberate"
+              ],
+              "answer": 3,
+              "explain": "The team knows it's taking on debt and has weighed the cost, which is deliberate and prudent. Skipping design because \"there's no time\", without weighing anything, is the reckless deliberate kind."
+            },
+            {
+              "lang": null,
+              "q": "A skilled team designed a module carefully. A year in, having learned the domain, they see a different design would have fit much better. Where does that fall in Fowler's technical debt quadrant?",
+              "choices": [
+                "Prudent and inadvertent",
+                "Reckless and deliberate",
+                "Prudent and deliberate",
+                "Reckless and inadvertent"
+              ],
+              "answer": 0,
+              "explain": "The team did careful work and only learned the better design by building it. That's inadvertent but prudent; a team that never knew the basic design practices in the first place is reckless and inadvertent."
+            }
+          ]
+        },
+        {
           "id": "code-craft/tech-debt/hotspot-analysis",
           "title": "Hotspot analysis",
           "summary": "Prioritising debt where high complexity meets frequent change",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -1277,12 +1494,6 @@
               "explain": "The \"interest\" on debt is extra effort and bugs during changes. If code isn't changing, the payoff of cleaning it up is small compared with active hotspots."
             }
           ]
-        },
-        {
-          "id": "code-craft/tech-debt/debt-register",
-          "title": "Tech debt register",
-          "summary": "Recording known debt with its cost and owner, so it can be weighed against feature work",
-          "variants": []
         }
       ]
     }

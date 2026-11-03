@@ -5,24 +5,22 @@ import type { AppProps } from "../App.tsx";
 import { GROUPS, groupTitleOf } from "../content.ts";
 import {
   answer,
-  checkQueue,
   finishRun,
-  pickVariant,
-  scan,
-  scanAnswer,
-  scanSample,
-  stateOf,
+  quickChecks,
+  quizChecks,
+  rate,
+  ratingOf,
+  type Check,
   type LangPref,
   type Progress,
-  type ScanButton,
+  type Rating,
 } from "../logic.ts";
-import { Inline } from "../Markdown.tsx";
 import { Question } from "../Question.tsx";
-import { LANG_LABELS, type Concept } from "../schema.ts";
+import { LANG_LABELS, type Skill } from "../schema.ts";
 
-const BUTTONS: [ScanButton, string, string][] = [
-  ["never", "New", "Never heard of it"],
-  ["name", "Heard", "Know the name"],
+const BUTTONS: [Rating, string, string][] = [
+  ["new", "New", "Never heard of it"],
+  ["heard", "Heard", "Know the name"],
   ["used", "Used", "Used it"],
 ];
 
@@ -32,25 +30,16 @@ const LANGS: [LangPref, string][] = [
 
 const selected = "data-[state=on]:bg-picked data-[state=on]:border-picked-edge";
 
-function checks(progress: Progress, lang: LangPref) {
-  return checkQueue(GROUPS, progress, lang, Math.random).map((concept) => ({
-    concept,
-    variant: pickVariant(concept, lang, Math.random)!,
-  }));
-}
+const checks = (mode: "scan" | "quiz", progress: Progress, lang: LangPref): Check[] =>
+  (mode === "quiz" ? quizChecks : quickChecks)(GROUPS, progress, lang, Math.random);
 
-// Quick scan: a sample of every topic. Quiz: the same scan, then check the claims (or a basic question) in each.
+// Both modes rate every skill, one topic per page, then ask questions:
+// Quick scan one easy question per topic, Quiz more and harder ones on what you claimed.
 export function Run({ mode, progress, update, settings, setSettings }: AppProps & { mode: "scan" | "quiz" }) {
-  const [sample] = useState(() => scanSample(GROUPS, progress, Math.random));
-  const [queue, setQueue] = useState<ReturnType<typeof checks> | null>(null);
+  const [queue, setQueue] = useState<Check[] | null>(null);
   const [index, setIndex] = useState(0);
-  // The scan shows one topic per page.
   const [page, setPage] = useState(0);
   const finished = queue !== null && index >= queue.length;
-  const finish = () => {
-    update(finishRun);
-    window.location.hash = "#/results";
-  };
   useEffect(() => {
     if (!finished) return;
     update(finishRun);
@@ -58,46 +47,38 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
   }, [finished, update]);
 
   if (queue === null) {
-    const { group, concepts } = sample[page];
-    const last = page === sample.length - 1;
-    const done = concepts.filter((c) => stateOf(progress, c.id) !== "fog").length;
-    // Keep the topic's own skill order, showing only skills with a row in this sample.
-    const skills = group.skills
-      .map((skill) => ({ skill, rows: concepts.filter((c) => skill.concepts.includes(c)) }))
-      .filter((s) => s.rows.length);
+    const group = GROUPS[page];
+    const last = page === GROUPS.length - 1;
+    const done = group.skills.filter((s) => ratingOf(progress, group, s)).length;
     const go = (to: number) => {
       setPage(to);
       window.scrollTo(0, 0);
     };
-    // Fills row by row; in a quiz the scan is the first half of the bar.
-    const scanned = (page + done / concepts.length) / sample.length;
+    // Fills row by row; the rating step is the first half of the bar.
+    const rated = (page + done / group.skills.length) / GROUPS.length;
     return (
       <section className="space-y-5 pb-24">
-        <ProgressBar value={mode === "quiz" ? scanned / 2 : scanned} />
+        <ProgressBar value={rated / 2} />
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">
-            {mode === "quiz" ? "Step 1 of 2 · " : ""}Quick scan · Topic {page + 1} of {sample.length}
+            Step 1 of 2 · {mode === "quiz" ? "Quiz" : "Quick scan"} · Topic {page + 1} of {GROUPS.length}
           </p>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{group.group.title}</h1>
           <p className="hidden text-muted-foreground sm:block">Never heard of it, heard the name, or used it?</p>
         </div>
         <ul className="divide-y rounded-lg border">
-          {skills.flatMap(({ skill, rows }) =>
-            rows.map((concept) => (
-              <ScanRow
-                key={concept.id}
-                skill={skill.title}
-                concept={concept}
-                value={scanAnswer(progress, concept.id)}
-                confirmed={stateOf(progress, concept.id) === "confirmed"}
-                onPick={(button) => update((p) => scan(p, concept, button))}
-              />
-            )),
-          )}
+          {group.skills.map((skill) => (
+            <SkillRow
+              key={skill.id}
+              skill={skill}
+              value={ratingOf(progress, group, skill)}
+              onPick={(rating) => update((p) => rate(p, group, skill, rating))}
+            />
+          ))}
         </ul>
         <StickyBar>
           <span className="text-sm text-muted-foreground tabular-nums">
-            {done} of {concepts.length} answered
+            {done} of {group.skills.length} answered
           </span>
           <div className="flex gap-2">
             {page > 0 && (
@@ -107,12 +88,10 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
             )}
             <Button
               variant="soft"
-              disabled={done < concepts.length}
-              onClick={() =>
-                !last ? go(page + 1) : mode === "quiz" ? setQueue(checks(progress, settings.lang)) : finish()
-              }
+              disabled={done < group.skills.length}
+              onClick={() => (!last ? go(page + 1) : setQueue(checks(mode, progress, settings.lang)))}
             >
-              {!last ? "Next topic →" : mode === "quiz" ? "Next: quick check →" : "See my result →"}
+              {!last ? "Next topic →" : "Next: questions →"}
             </Button>
           </div>
         </StickyBar>
@@ -125,7 +104,7 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
 
   const setLang = (lang: LangPref) => {
     setSettings({ ...settings, lang });
-    setQueue(checks(progress, lang));
+    setQueue(checks(mode, progress, lang));
     setIndex(0);
   };
 
@@ -134,7 +113,7 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
       <ProgressBar value={0.5 + index / queue.length / 2} />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          Step 2 of 2 · Check {index + 1} of {queue.length} · {groupTitleOf(current.concept.id)}
+          Step 2 of 2 · Question {index + 1} of {queue.length} · {groupTitleOf(current.concept.id)}
         </p>
         <ToggleGroup
           type="single"
@@ -162,37 +141,25 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
   );
 }
 
-type RowProps = {
-  skill: string;
-  concept: Concept;
-  value: ScanButton | null;
-  confirmed: boolean;
-  onPick: (button: ScanButton) => void;
-};
+type RowProps = { skill: Skill; value: Rating | null; onPick: (rating: Rating) => void };
 
-function ScanRow({ skill, concept, value, confirmed, onPick }: RowProps) {
+function SkillRow({ skill, value, onPick }: RowProps) {
   return (
     <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-4 py-2.5">
       <div className="min-w-0 flex-1 basis-56">
-        <p className="text-[0.7rem] tracking-widest text-muted-foreground uppercase">{skill}</p>
-        <p className="font-medium">
-          {concept.title}
-          {confirmed && <span className="ml-2 text-xs text-muted-foreground">✓ quiz</span>}
-        </p>
-        <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
-          <Inline text={concept.summary} />
-        </p>
+        <p className="font-medium">{skill.title}</p>
+        <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{skill.summary}</p>
       </div>
       <ToggleGroup
         type="single"
         variant="outline"
         size="sm"
         value={value ?? ""}
-        onValueChange={(button) => button && onPick(button as ScanButton)}
-        aria-label={`Have you met ${concept.title}?`}
+        onValueChange={(rating) => rating && onPick(rating as Rating)}
+        aria-label={`Have you worked with ${skill.title}?`}
       >
-        {BUTTONS.map(([button, label, title]) => (
-          <ToggleGroupItem key={button} value={button} title={title} className={`px-3 ${selected}`}>
+        {BUTTONS.map(([rating, label, title]) => (
+          <ToggleGroupItem key={rating} value={rating} title={title} className={`px-3 ${selected}`}>
             {label}
           </ToggleGroupItem>
         ))}

