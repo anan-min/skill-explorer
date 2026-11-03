@@ -7,7 +7,17 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Separator } from "@/components/ui/separator";
 import type { AppProps } from "../App.tsx";
 import { GROUPS } from "../content.ts";
-import { allChecked, gapsByGroup, gapText, parseBackup, persona, stats, strength, type Persona } from "../logic.ts";
+import {
+  allChecked,
+  gapsByGroup,
+  gapText,
+  parseBackup,
+  persona,
+  report,
+  stats,
+  strength,
+  type Persona,
+} from "../logic.ts";
 import { Inline, Markdown } from "../Markdown.tsx";
 import { mascot } from "../mascots.ts";
 import { Radar } from "../Radar.tsx";
@@ -68,6 +78,10 @@ export function Results({ progress, update }: AppProps) {
     } catch {
       toast("Couldn't copy here");
     }
+  };
+  const downloadReport = () => {
+    const name = m && `${m.animal} · ${m.job}`;
+    download(new Blob([report(GROUPS, progress, name)], { type: "text/markdown" }), "nerdscape-report.md");
   };
   const backup = () =>
     download(new Blob([JSON.stringify(progress, null, 2)], { type: "application/json" }), "nerdscape-backup.json");
@@ -227,6 +241,9 @@ export function Results({ progress, update }: AppProps) {
       <footer className="flex flex-wrap gap-2 border-t pt-6">
         <Button variant="outline" onClick={copyGaps} disabled={!gaps.length}>
           Copy gap list
+        </Button>
+        <Button variant="outline" onClick={downloadReport}>
+          Download report
         </Button>
         <Button variant="outline" onClick={backup}>
           Backup
