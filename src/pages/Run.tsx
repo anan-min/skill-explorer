@@ -19,10 +19,11 @@ import { Inline } from "../Markdown.tsx";
 import { Question } from "../Question.tsx";
 import type { Concept } from "../schema.ts";
 
-const BUTTONS: [ScanButton, string, string][] = [
-  ["never", "New", "Never heard of it"],
-  ["name", "Heard", "Know the name"],
-  ["used", "Used", "Used it"],
+// The last field is the pastel shown once the button is picked.
+const BUTTONS: [ScanButton, string, string, string][] = [
+  ["never", "New", "Never heard of it", "data-[state=on]:bg-rose data-[state=on]:border-rose-edge"],
+  ["name", "Heard", "Know the name", "data-[state=on]:bg-butter data-[state=on]:border-butter-edge"],
+  ["used", "Used", "Used it", "data-[state=on]:bg-sage data-[state=on]:border-sage-edge"],
 ];
 
 const LANGS: [LangPref, string][] = [
@@ -189,8 +190,8 @@ function ScanRow({ skill, concept, value, confirmed, onPick }: RowProps) {
         onValueChange={(button) => button && onPick(button as ScanButton)}
         aria-label={`Have you met ${concept.title}?`}
       >
-        {BUTTONS.map(([button, label, title]) => (
-          <ToggleGroupItem key={button} value={button} title={title} className={`px-3 ${selected}`}>
+        {BUTTONS.map(([button, label, title, tint]) => (
+          <ToggleGroupItem key={button} value={button} title={title} className={`px-3 ${tint}`}>
             {label}
           </ToggleGroupItem>
         ))}

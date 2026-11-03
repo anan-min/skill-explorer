@@ -62,8 +62,7 @@ export function Radar({ axes }: { axes: Axis[] }) {
         fillOpacity={0.08}
         borderWidth={2}
         borderColor={INK}
-        dotSize={6}
-        dotColor={INK}
+        enableDots={false}
         isInteractive={false}
         theme={{ grid: { line: { stroke: GRID, strokeWidth: 1 } } }}
       />
