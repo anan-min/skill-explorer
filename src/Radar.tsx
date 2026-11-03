@@ -4,7 +4,6 @@ type Axis = { id: string; title: string; value: number };
 
 // Paint must end up in SVG attributes (html-to-image drops class-based SVG paint),
 // so colours are literals.
-const INK = "#171717";
 const MUTED = "#737373";
 const GRID = "#cfcdc9";
 
@@ -58,12 +57,10 @@ export function Radar({ axes }: { axes: Axis[] }) {
         gridLabel={Label}
         gridLabelOffset={14}
         curve="linearClosed"
-        colors={[INK]}
-        fillOpacity={0.08}
-        borderWidth={2}
-        borderColor={INK}
-        dotSize={6}
-        dotColor={INK}
+        colors={[MUTED]}
+        fillOpacity={0.35}
+        borderWidth={0}
+        enableDots={false}
         isInteractive={false}
         theme={{ grid: { line: { stroke: GRID, strokeWidth: 1 } } }}
       />

@@ -21,7 +21,7 @@ export function Markdown({ text }: { text: string }) {
     <div className="space-y-3 leading-relaxed">
       {parts.map((part, i) =>
         i % 2 ? (
-          <pre key={i} className="overflow-x-auto rounded-lg bg-foreground px-4 py-3 font-mono text-sm text-background">
+          <pre key={i} className="overflow-x-auto rounded-lg border bg-foreground/5 px-4 py-3 font-mono text-sm">
             <code>{part.replace(/\n$/, "")}</code>
           </pre>
         ) : (

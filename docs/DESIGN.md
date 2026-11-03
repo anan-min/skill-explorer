@@ -17,7 +17,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 
 - Vite + React + TypeScript.
 - Hash routing (`#/scan`, `#/quiz`, `#/results`), because GitHub Pages has no SPA fallback.
-- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page so the mascots are the only colour.
+- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page. Besides the mascots, the only colour is two pastels in the gap list: rose (Missed) and butter (Heard). They sit behind near-black text, never as text colour. No solid black fills anywhere: a picked option (scan answer, language toggle, the right quiz answer), every main-action button and the progress bar are soft greys, and code blocks are a light grey panel. Text stays near-black for readability.
 - GitHub Pages at `anan-min.github.io/skill-explorer`, deployed by GitHub Actions on push to `main`.
 - English only.
 - The owner merges on their own judgment; CI validation is the only gate.
@@ -150,7 +150,7 @@ Home has two buttons, so people know up front what they're starting. Neither let
 ### Hero: persona + radar
 
 - **Strength** per topic = average over its explored concepts of: quiz right 1, unverified Used ¾, Heard ½, New 0, quiz wrong 0. A quiz answer replaces the self-report for that concept; unverified claims count less so claiming everything doesn't pay.
-- **Radar:** strength per topic, no numbers.
+- **Radar:** strength per topic, no numbers, drawn as a soft grey filled shape with no outline and no dots.
 - **Unlock:** once every topic has its scan rows answered (a finished Quick scan or Quiz). Before that, a silhouette and "finish a quick scan or a quiz".
 - **Checked or claimed:** until every quizzable topic has a quiz answer, the hero says "Based on what you said. Take the quiz to check it."
 - **Persona rule:** a topic **passes** at ≥ 60% strength.
@@ -161,7 +161,7 @@ Home has two buttons, so people know up front what they're starting. Neither let
 
 ### Your gaps
 
-Every `gap` concept, grouped by group → skill, with groups sorted by gap count. Each item shows the title and summary, and expands to the question and explanation they saw if the gap came from a quiz. No links, no how-to-learn.
+Every `gap` concept, grouped by group → skill, with groups sorted by gap count. Each item shows the title and summary, and expands to the question and explanation they saw if the gap came from a quiz. Each item is tagged by where the gap came from: **Missed** (wrong in the quiz; rose tag and left stripe), **Heard** (butter tag and stripe) or **New** (grey tag, no stripe, so a long list of unmet concepts doesn't read as an alarm). No links, no how-to-learn.
 
 ### Your numbers
 

@@ -17,6 +17,14 @@ function personaMascot(p: Persona) {
   return mascot(p.kind === "group" ? p.id : p.kind);
 }
 
+// Where a gap came from. New stays neutral so a long list of unmet concepts
+// doesn't read as an alarm.
+const ORIGINS = {
+  missed: { label: "Missed", tag: "bg-rose", stripe: "border-l-rose-edge" },
+  heard: { label: "Heard", tag: "bg-butter", stripe: "border-l-butter-edge" },
+  new: { label: "New", tag: "bg-muted text-muted-foreground", stripe: "border-l-transparent" },
+};
+
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement("a"), { href: url, download: name });
@@ -108,7 +116,7 @@ export function Results({ progress, update }: AppProps) {
           <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase">Nerdscape</p>
         </div>
         <div className="flex flex-wrap justify-center gap-2">
-          <Button asChild>
+          <Button variant="soft" asChild>
             <a href="#/quiz">{checked ? "Quiz again" : "Take the quiz"}</a>
           </Button>
           <Button variant="outline" onClick={copyImage}>
@@ -136,13 +144,19 @@ export function Results({ progress, update }: AppProps) {
             {skills.map(({ skill, gaps }) => (
               <div key={skill.id} className="space-y-1">
                 <h4 className="text-xs tracking-widest text-muted-foreground uppercase">{skill.title}</h4>
-                <ul className="divide-y rounded-lg border">
+                <ul className="divide-y overflow-hidden rounded-lg border">
                   {gaps.map((c) => {
-                    const seen = progress.concepts[c.id]?.seen;
+                    const { seen, scan } = progress.concepts[c.id] ?? {};
                     const v = seen && c.variants[seen.variant];
+                    const origin = seen ? ORIGINS.missed : scan === "name" ? ORIGINS.heard : ORIGINS.new;
                     const label = (
                       <span className="[overflow-wrap:anywhere]">
                         <strong>{c.title}</strong>
+                        <span
+                          className={`ml-2 rounded-full px-2 py-0.5 align-middle text-xs font-medium ${origin.tag}`}
+                        >
+                          {origin.label}
+                        </span>
                         <span className="text-muted-foreground">
                           {" "}
                           · <Inline text={c.summary} />
@@ -150,7 +164,7 @@ export function Results({ progress, update }: AppProps) {
                       </span>
                     );
                     return (
-                      <li key={c.id} className="px-4 py-3">
+                      <li key={c.id} className={`border-l-4 px-4 py-3 ${origin.stripe}`}>
                         {v ? (
                           <Collapsible>
                             <CollapsibleTrigger className="group flex w-full items-start justify-between gap-2 text-left">

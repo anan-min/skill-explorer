@@ -46,6 +46,12 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --color-rose: var(--rose);
+  --color-rose-edge: var(--rose-edge);
+  --color-butter: var(--butter);
+  --color-butter-edge: var(--butter-edge);
+  --color-picked: var(--picked);
+  --color-picked-edge: var(--picked-edge);
 }
 
 :root {
@@ -81,6 +87,15 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Gap-list pastels: Missed (rose), Heard (butter). Tints sit behind
+     near-black text; edges are for stripes. */
+  --rose: #f4d6d2;
+  --rose-edge: #d8958c;
+  --butter: #f3e5b8;
+  --butter-edge: #cdb063;
+  /* Soft grey for a picked option in the scan and quiz, instead of solid black. */
+  --picked: #dedbd6;
+  --picked-edge: #a9a59e;
 }
 
 .dark {
