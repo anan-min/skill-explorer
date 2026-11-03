@@ -64,8 +64,11 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
       setPage(to);
       window.scrollTo(0, 0);
     };
+    // Fills row by row; in a quiz the scan is the first half of the bar.
+    const scanned = (page + done / concepts.length) / sample.length;
     return (
       <section className="space-y-5 pb-24">
+        <ProgressBar value={mode === "quiz" ? scanned / 2 : scanned} />
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">
             {mode === "quiz" ? "Step 1 of 2 · " : ""}Quick scan · Topic {page + 1} of {sample.length}
@@ -126,6 +129,7 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
 
   return (
     <section className="space-y-4">
+      <ProgressBar value={0.5 + index / queue.length / 2} />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           Step 2 of 2 · Check {index + 1} of {queue.length} · {groupTitleOf(current.concept.id)}
@@ -192,6 +196,22 @@ function ScanRow({ skill, concept, value, confirmed, onPick }: RowProps) {
         ))}
       </ToggleGroup>
     </li>
+  );
+}
+
+// Overall progress through the run, pinned to the top edge; no number, the header says where you are.
+function ProgressBar({ value }: { value: number }) {
+  return (
+    <div
+      className="fixed inset-x-0 top-0 z-10 h-1 bg-border"
+      role="progressbar"
+      aria-label="Progress"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(value * 100)}
+    >
+      <div className="h-full bg-foreground transition-[width] duration-300" style={{ width: `${value * 100}%` }} />
+    </div>
   );
 }
 
