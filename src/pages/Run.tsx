@@ -101,6 +101,7 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
               </Button>
             )}
             <Button
+              variant="soft"
               disabled={done < concepts.length}
               onClick={() =>
                 !last
@@ -210,7 +211,10 @@ function ProgressBar({ value }: { value: number }) {
       aria-valuemax={100}
       aria-valuenow={Math.round(value * 100)}
     >
-      <div className="h-full bg-foreground transition-[width] duration-300" style={{ width: `${value * 100}%` }} />
+      <div
+        className="h-full bg-muted-foreground transition-[width] duration-300"
+        style={{ width: `${value * 100}%` }}
+      />
     </div>
   );
 }

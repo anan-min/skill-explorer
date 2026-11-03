@@ -72,7 +72,7 @@ export function Question({ concept, variant, onAnswer, onNext, nextLabel = "Next
           <p className="font-semibold">{picked === v.answer ? "Right." : "Not quite."}</p>
           <Markdown text={v.explain} />
           <div className="flex items-center justify-between gap-2">
-            <Button onClick={onNext} autoFocus>
+            <Button variant="soft" onClick={onNext} autoFocus>
               {nextLabel}
             </Button>
             <a
