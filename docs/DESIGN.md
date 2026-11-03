@@ -150,7 +150,7 @@ Home has two buttons, so people know up front what they're starting. Neither let
 ### Hero: persona + radar
 
 - **Strength** per topic = average over its explored concepts of: quiz right 1, unverified Used ¾, Heard ½, New 0, quiz wrong 0. A quiz answer replaces the self-report for that concept; unverified claims count less so claiming everything doesn't pay.
-- **Radar:** strength per topic, no numbers, no dots at the points.
+- **Radar:** strength per topic, no numbers, drawn as a soft grey filled shape with no outline and no dots.
 - **Unlock:** once every topic has its scan rows answered (a finished Quick scan or Quiz). Before that, a silhouette and "finish a quick scan or a quiz".
 - **Checked or claimed:** until every quizzable topic has a quiz answer, the hero says "Based on what you said. Take the quiz to check it."
 - **Persona rule:** a topic **passes** at ≥ 60% strength.
