@@ -1,0 +1,181 @@
+# Skill Explorer — design
+
+A for-fun static web app where software engineers discover hard-skill concepts they've missed and see a map of their gaps. It's for learning, not evaluation: no grades, no rankings, no comparisons between people, and all data stays in the browser.
+
+This doc is the spec. Build from it; when something here turns out wrong, fix it here too.
+
+## Principles
+
+- **For fun.** Don't over-engineer; fix problems later.
+- **No ratings.** Never ask "how well do you know X?". Every answer is a fact the person can check against memory.
+- **No learning guidance.** No reading lists, links, reading time, "mark as read" or prerequisites. The explanation shown after each answer is the only teaching.
+- **Private by default.** Everything lives in `localStorage` (every access wrapped in try/catch). No backend, no analytics.
+
+## Stack and hosting
+
+- Vite + React + TypeScript.
+- Hash routing (`#/express/<group>`, `#/quiz/<group>`, `#/results`), because GitHub Pages has no SPA fallback.
+- GitHub Pages at `anan-min.github.io/skill-explorer`, deployed by GitHub Actions on push to `main`.
+- English only.
+- The owner merges on their own judgment; CI validation is the only gate.
+
+## Content model
+
+### Groups (54 skills)
+
+| # | Group | Mascot |
+|---|---|---|
+| 1 | Language & runtime | Octopus · Interpreter |
+| 2 | Data structures & algorithms | Owl · Navigator |
+| 3 | Code craft | Beaver · Builder |
+| 4 | Design & architecture | Spider · Bridge architect |
+| 5 | Backend | Ant · Porter |
+| 6 | Data & storage | Squirrel · Storekeeper |
+| 7 | Testing | Meerkat · Lookout |
+| 8 | Delivery & ops | Husky · Sled runner |
+| 9 | Frontend (hidden by default) | Chameleon · Signaller |
+| — | Even spread | Fox · Backpacker (Wanderer) |
+
+Skills per group:
+
+1. **Language & runtime:** types & memory, control flow, functions & scope (closures), OOP, functional programming, error handling, async, concurrency.
+2. **Data structures & algorithms:** data structures, Big O.
+3. **Code craft:** readability & standards, simple design, refactoring, code review, Git, debugging, documentation, tech debt.
+4. **Design & architecture:** OO design, design patterns, API design, system design, architecture decisions. System design also covers systems-thinking concepts: blast radius, cascading failure, backpressure, upstream/downstream dependencies and contracts, retry storms.
+5. **Backend:** REST, authn/authz, background jobs & queues, caching, security.
+6. **Data & storage:** schema design, query optimization, transactions & consistency, migrations, relational vs NoSQL, DB integration.
+7. **Testing:** test strategy, unit, integration, TDD, test maintainability, ATDD/BDD.
+8. **Delivery & ops:** CI, release & deployment, Docker, environment management, cloud, observability, incident response.
+9. **Frontend:** components, state, performance, accessibility, responsive design, frontend security. Hidden unless the person turns on "I do frontend"; off the radar while hidden.
+
+### Concepts
+
+A **concept** is valid only if:
+
+1. it has a name you could search for (`errgroup`, `Promise.allSettled`, "cascading failure"), and
+2. either one multiple-choice question can show whether someone knows it, with one unambiguous right answer and all variants testing the same thing (otherwise split it), **or** it's a practice a person can answer "have I done this?" about without hesitating (reading a query plan, writing an ADR).
+
+Two kinds:
+
+- **Quizzable** (the default): 2 or more variants.
+- **Scan-only:** `variants: []`. Self-report only, for practices where a multiple-choice question would be trivia.
+
+Aim for 4–8 concepts per skill. First release: all groups, about 350 concepts × 2–4 variants ≈ 700–1,000 questions, LLM-drafted and reviewed by the owner.
+
+### Files
+
+One file per group: `content/NN-<group-id>.json` (`01-language-runtime.json` … `09-frontend.json`).
+
+```jsonc
+{
+  "group": { "id": "language-runtime", "title": "Language & runtime", "hidden": false },
+  "skills": [{
+    "id": "async",
+    "title": "Asynchronous programming",
+    "concepts": [{
+      "id": "language-runtime/async/errgroup",   // group/skill/slug
+      "title": "errgroup",
+      "summary": "One line, shown in the gap list",
+      "variants": [{                              // [] = scan-only
+        "lang": "go",                             // "go" | "ts" | null
+        "q": "Markdown, code fences allowed",
+        "choices": ["…", "…", "…", "…"],
+        "answer": 2,                              // index into choices
+        "explain": "Shown after answering"
+      }]
+    }]
+  }]
+}
+```
+
+### CI checks (zod)
+
+- Every file matches the schema.
+- Concept IDs are unique and match their file's group and their skill.
+- `variants` has length 0 or ≥ 2.
+- Exactly 4 choices, all distinct.
+- `answer` is 0–3; `explain` is non-empty.
+- More than 8 concepts in a skill: warning, not failure.
+
+## States
+
+Each concept is in one state:
+
+| State | Meaning | Set by |
+|---|---|---|
+| `fog` | Not looked at yet | default |
+| `gap` | Doesn't know it | "Never heard of it", "Know the name", or a wrong answer |
+| `claimed` | Says they've used it | "Used it" |
+| `confirmed` | Shown to know it | a correct answer (first try counts) |
+
+- Later answers can move a concept between states.
+- **Explored** = any state except `fog`.
+- Scan-only concepts top out at `claimed`.
+
+## Two routes
+
+Both run one group at a time.
+
+### Express (the scan)
+
+Each concept card shows its title and summary, with four buttons:
+
+- **Never heard of it** → `gap`
+- **Know the name** → `gap`
+- **Used it** → `claimed`
+- **Not sure** → asks one quiz variant on the spot; correct → `confirmed`, wrong → `gap`. Not shown for scan-only concepts.
+
+About 2 seconds per concept, so one group takes a few minutes.
+
+### In-depth (the quiz)
+
+- 10 questions per session (about 5 minutes).
+- Order: `claimed` first (checking overconfidence is the quiz's main job), then `fog`, then `gap`. Never `confirmed`. Scan-only concepts are skipped.
+- Choices are shuffled when shown, since LLM-drafted questions tend to put the answer in the same position.
+- After each answer, show the right answer and `explain`.
+- Each answer is saved immediately, so quitting halfway loses nothing.
+- **Language toggle:** Go / TS / Both, default Both. With Both, prefer the language not yet tested for that concept. Variants with `lang: null` always qualify.
+- Each question has a **"Report this question"** link: a prefilled new GitHub issue titled `[report] <concept id> #<variant index>`. Nothing personal in the link.
+
+## Results page
+
+### Hero: persona + radar
+
+- **Radar:** coverage per visible group = explored concepts ÷ concepts in the group.
+- **Unlock:** the persona appears once at least 2 visible groups are each ≥ 50% explored. Before that, show a silhouette and "keep exploring".
+- **Persona rule:** based on *which* group leads, never on how much.
+  - If highest coverage − lowest coverage ≤ 15 points (across visible groups) → **Wanderer**.
+  - Otherwise → the top group's mascot.
+  - Tie for the lead → more `confirmed` concepts wins, then the lower group number.
+
+### Your gaps
+
+Every `gap` concept, grouped by group → skill, with groups sorted by gap count. Each item shows the title and summary, and expands to the question and explanation they saw if the gap came from a quiz. No links, no how-to-learn.
+
+### Footer
+
+- **Copy gap list** as plain text (it doubles as a personal growth note).
+- **Backup / Restore:** a JSON file with `schemaVersion`, states keyed by concept ID.
+- One line on the first screen saying the data lives in this browser. No export nagging.
+
+## Sharing
+
+- The hero exports as a PNG card (persona, mascot and radar, **no numbers**) via `html-to-image`.
+- Buttons: **Copy image** (`ClipboardItem`), **Download**, **Share** (`navigator.share` with the file, on mobile).
+- No share links: a per-user Slack/OG preview would need a backend.
+- If `html-to-image` renders badly, switch to drawing the card by hand on `<canvas>`.
+
+## Mascots
+
+- The owner draws them by hand. Until then, ship placeholders.
+- Placeholders: `public/mascots/<id>.svg`, where `<id>` is the group ID or `wanderer`. Each is a coloured circle with the animal emoji and job name (e.g. 🐙 Interpreter).
+- `src/mascots.ts` maps each ID to its file, so swapping in a drawing (PNG or SVG) is a one-line change.
+- No external placeholder services: cross-origin images break the PNG export.
+
+## Build order
+
+1. Scaffold: Vite + React + TS, hash routing, Pages deploy workflow.
+2. Zod schema + CI validation.
+3. Placeholder mascots + `src/mascots.ts`.
+4. One sample group with a few concepts, so both routes and the results page work end to end.
+5. Then draft content group by group, each reviewed by the owner before the next.
