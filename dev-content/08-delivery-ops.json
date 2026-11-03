@@ -1,0 +1,297 @@
+{
+  "group": {
+    "id": "delivery-ops",
+    "title": "Delivery & ops"
+  },
+  "skills": [
+    {
+      "id": "test-skill-1",
+      "title": "Test skill 1",
+      "concepts": [
+        {
+          "id": "delivery-ops/test-skill-1/concept-1",
+          "title": "Test concept 1.1",
+          "summary": "Placeholder delivery & ops concept (go+ts)",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Test question 1 (Go) for Delivery & ops 1.1. The right answer is B.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 1,
+              "explain": "Test data: the right answer was Option B."
+            },
+            {
+              "lang": "ts",
+              "q": "Test question 2 (TS) for Delivery & ops 1.1. The right answer is A.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 0,
+              "explain": "Test data: the right answer was Option A."
+            }
+          ]
+        },
+        {
+          "basic": true,
+          "id": "delivery-ops/test-skill-1/concept-2",
+          "title": "Test concept 1.2",
+          "summary": "Placeholder delivery & ops concept (any-language)",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Test question 1 (any language) for Delivery & ops 1.2. The right answer is C.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 2,
+              "explain": "Test data: the right answer was Option C."
+            },
+            {
+              "lang": null,
+              "q": "Test question 2 (any language) for Delivery & ops 1.2. The right answer is A.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 0,
+              "explain": "Test data: the right answer was Option A."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/test-skill-1/concept-3",
+          "title": "Test concept 1.3",
+          "summary": "Placeholder delivery & ops concept (go+ts)",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Test question 1 (Go) for Delivery & ops 1.3. The right answer is A.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 0,
+              "explain": "Test data: the right answer was Option A."
+            },
+            {
+              "lang": "ts",
+              "q": "Test question 2 (TS) for Delivery & ops 1.3. The right answer is B.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 1,
+              "explain": "Test data: the right answer was Option B."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/test-skill-1/concept-4",
+          "title": "Test concept 1.4",
+          "summary": "Placeholder delivery & ops concept (any-language)",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Test question 1 (any language) for Delivery & ops 1.4. The right answer is D.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 3,
+              "explain": "Test data: the right answer was Option D."
+            },
+            {
+              "lang": null,
+              "q": "Test question 2 (any language) for Delivery & ops 1.4. The right answer is B.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 1,
+              "explain": "Test data: the right answer was Option B."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/test-skill-1/concept-5",
+          "title": "Test concept 1.5",
+          "summary": "Placeholder delivery & ops concept (scan-only)",
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "test-skill-2",
+      "title": "Test skill 2",
+      "concepts": [
+        {
+          "id": "delivery-ops/test-skill-2/concept-1",
+          "title": "Test concept 2.1",
+          "summary": "Placeholder delivery & ops concept (go+ts)",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Test question 1 (Go) for Delivery & ops 2.1. The right answer is C.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 2,
+              "explain": "Test data: the right answer was Option C."
+            },
+            {
+              "lang": "ts",
+              "q": "Test question 2 (TS) for Delivery & ops 2.1. The right answer is C.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 2,
+              "explain": "Test data: the right answer was Option C."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/test-skill-2/concept-2",
+          "title": "Test concept 2.2",
+          "summary": "Placeholder delivery & ops concept (any-language)",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Test question 1 (any language) for Delivery & ops 2.2. The right answer is C.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 2,
+              "explain": "Test data: the right answer was Option C."
+            },
+            {
+              "lang": null,
+              "q": "Test question 2 (any language) for Delivery & ops 2.2. The right answer is D.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 3,
+              "explain": "Test data: the right answer was Option D."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/test-skill-2/concept-3",
+          "title": "Test concept 2.3",
+          "summary": "Placeholder delivery & ops concept (go+ts)",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Test question 1 (Go) for Delivery & ops 2.3. The right answer is A.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 0,
+              "explain": "Test data: the right answer was Option A."
+            },
+            {
+              "lang": "ts",
+              "q": "Test question 2 (TS) for Delivery & ops 2.3. The right answer is A.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 0,
+              "explain": "Test data: the right answer was Option A."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/test-skill-2/concept-4",
+          "title": "Test concept 2.4",
+          "summary": "Placeholder delivery & ops concept (any-language)",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Test question 1 (any language) for Delivery & ops 2.4. The right answer is D.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 3,
+              "explain": "Test data: the right answer was Option D."
+            },
+            {
+              "lang": null,
+              "q": "Test question 2 (any language) for Delivery & ops 2.4. The right answer is D.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 3,
+              "explain": "Test data: the right answer was Option D."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/test-skill-2/concept-5",
+          "title": "Test concept 2.5",
+          "summary": "Placeholder delivery & ops concept (scan-only)",
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "test-skill-3",
+      "title": "Test skill 3",
+      "concepts": [
+        {
+          "id": "delivery-ops/test-skill-3/concept-1",
+          "title": "Test concept 3.1",
+          "summary": "Placeholder delivery & ops concept (go+ts)",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Test question 1 (Go) for Delivery & ops 3.1. The right answer is D.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 3,
+              "explain": "Test data: the right answer was Option D."
+            },
+            {
+              "lang": "ts",
+              "q": "Test question 2 (TS) for Delivery & ops 3.1. The right answer is D.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 3,
+              "explain": "Test data: the right answer was Option D."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/test-skill-3/concept-2",
+          "title": "Test concept 3.2",
+          "summary": "Placeholder delivery & ops concept (any-language)",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Test question 1 (any language) for Delivery & ops 3.2. The right answer is C.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 2,
+              "explain": "Test data: the right answer was Option C."
+            },
+            {
+              "lang": null,
+              "q": "Test question 2 (any language) for Delivery & ops 3.2. The right answer is A.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 0,
+              "explain": "Test data: the right answer was Option A."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/test-skill-3/concept-3",
+          "title": "Test concept 3.3",
+          "summary": "Placeholder delivery & ops concept (go+ts)",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Test question 1 (Go) for Delivery & ops 3.3. The right answer is B.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 1,
+              "explain": "Test data: the right answer was Option B."
+            },
+            {
+              "lang": "ts",
+              "q": "Test question 2 (TS) for Delivery & ops 3.3. The right answer is A.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 0,
+              "explain": "Test data: the right answer was Option A."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/test-skill-3/concept-4",
+          "title": "Test concept 3.4",
+          "summary": "Placeholder delivery & ops concept (any-language)",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Test question 1 (any language) for Delivery & ops 3.4. The right answer is C.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 2,
+              "explain": "Test data: the right answer was Option C."
+            },
+            {
+              "lang": null,
+              "q": "Test question 2 (any language) for Delivery & ops 3.4. The right answer is C.",
+              "choices": ["Option A", "Option B", "Option C", "Option D"],
+              "answer": 2,
+              "explain": "Test data: the right answer was Option C."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/test-skill-3/concept-5",
+          "title": "Test concept 3.5",
+          "summary": "Placeholder delivery & ops concept (scan-only)",
+          "variants": []
+        }
+      ]
+    }
+  ]
+}
