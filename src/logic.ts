@@ -1,7 +1,6 @@
 import { z } from "zod";
-import type { Concept, GroupFile } from "./schema.ts";
+import { Lang, type Concept, type GroupFile } from "./schema.ts";
 
-const Lang = z.enum(["go", "ts"]);
 const StateSchema = z.enum(["fog", "gap", "claimed", "confirmed"]);
 const ConceptProgress = z.object({
   state: StateSchema,
@@ -20,7 +19,7 @@ const ProgressSchema = z.object({
 
 export type State = z.infer<typeof StateSchema>;
 export type Progress = z.infer<typeof ProgressSchema>;
-export type LangPref = "go" | "ts" | "both";
+export type LangPref = z.infer<typeof Lang> | "both";
 export type ScanButton = "never" | "name" | "used";
 export type Persona =
   { kind: "locked" } | { kind: "apprentice" } | { kind: "wanderer" } | { kind: "group"; id: string };

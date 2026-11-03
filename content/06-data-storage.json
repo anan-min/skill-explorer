@@ -1,0 +1,1069 @@
+{
+  "group": {
+    "id": "data-storage",
+    "title": "Data & storage"
+  },
+  "skills": [
+    {
+      "id": "schema-design",
+      "title": "Schema design",
+      "concepts": [
+        {
+          "id": "data-storage/schema-design/normalization",
+          "title": "Normalization",
+          "summary": "Storing each fact once, so updating it can't leave conflicting copies behind",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "A `products` table stores `category_name` as text on every row. Marketing renames 'Shoes' to 'Footwear', and a week later some products still say 'Shoes'. What's the underlying problem?",
+              "choices": [
+                "An update anomaly: one fact copied into many rows",
+                "A missing index on the `category_name` column",
+                "A lost update between two concurrent transactions",
+                "Replication lag on a read replica serving the page"
+              ],
+              "answer": 0,
+              "explain": "The category name is a single fact stored in many places, so every copy has to be changed together. Normalising it into its own table means there's one row to update."
+            },
+            {
+              "lang": null,
+              "q": "Which design keeps exactly one copy of each category's name?",
+              "choices": [
+                "A `category_name` column on `products` plus a check constraint",
+                "A `categories` table, referenced by `products.category_id`",
+                "A JSON array of category names stored on each product",
+                "A view selecting distinct `category_name` from `products`"
+              ],
+              "answer": 1,
+              "explain": "With a foreign key, products point at one category row, and renaming touches that row only. The view still reads the duplicated copies underneath."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/schema-design/money-types",
+          "title": "Storing money",
+          "summary": "Using exact types (`numeric` or integer minor units) for money, never binary floating point",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which Postgres column type is a poor choice for prices?",
+              "choices": [
+                "`numeric(12,2)`",
+                "`bigint` holding cents",
+                "`double precision`",
+                "`integer` holding cents"
+              ],
+              "answer": 2,
+              "explain": "Binary floating point can't represent most decimal fractions exactly, so sums drift by tiny amounts. `numeric` is exact decimal, and integer minor units are exact too."
+            },
+            {
+              "lang": null,
+              "q": "An invoice total is summed from three `0.10` line items in a `float` column, and the result is `0.30000000000000004`. Why?",
+              "choices": [
+                "Postgres rounds floats on every insert",
+                "The transaction isolation level was wrong",
+                "The driver turned the value into a string",
+                "Binary floats can't hold 0.10 exactly"
+              ],
+              "answer": 3,
+              "explain": "0.10 has no exact binary representation, so each value is slightly off and the errors add up. Exact decimal or integer cents avoid it."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/schema-design/surrogate-keys",
+          "title": "Surrogate vs natural keys",
+          "summary": "Using a generated id as the primary key instead of a real-world value that can change",
+          "variants": [
+            {
+              "lang": null,
+              "q": "`users.email` is the primary key, and six tables reference it. Users can change their email. What's the cost?",
+              "choices": [
+                "Each email change must update all six tables",
+                "Text columns can't be indexed, so lookups get slow",
+                "Postgres doesn't allow text columns as primary keys",
+                "Foreign keys to text columns can't be enforced"
+              ],
+              "answer": 0,
+              "explain": "A primary key is copied into every referencing row, so changing it means changing all of them. A generated id never needs to change; email gets a unique constraint instead."
+            },
+            {
+              "lang": null,
+              "q": "A table's rows have a phone number that identifies them but can change. Which key design means a number change touches only one row?",
+              "choices": [
+                "The phone number as primary key, with `ON UPDATE CASCADE` on references",
+                "A generated id as primary key, plus a unique constraint on the phone",
+                "No primary key, just a unique index on the phone number",
+                "A composite key of the phone number and the creation date"
+              ],
+              "answer": 1,
+              "explain": "Other tables reference the stable id, so only the row's phone column changes. `ON UPDATE CASCADE` works, but it rewrites every referencing row."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/schema-design/soft-delete-unique",
+          "title": "Unique constraints with soft delete",
+          "summary": "Keeping a value unique among live rows only, when deleted rows stay in the table",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Users are soft-deleted with `deleted_at`. An email must be unique among active users only, so a deleted user's email can sign up again. Which Postgres index does that?",
+              "choices": [
+                "`CREATE UNIQUE INDEX ON users (email, deleted_at)`",
+                "`CREATE UNIQUE INDEX ON users (email)`",
+                "`CREATE UNIQUE INDEX ON users (email) WHERE deleted_at IS NULL`",
+                "`CREATE UNIQUE INDEX ON users (email) WHERE deleted_at IS NOT NULL`"
+              ],
+              "answer": 2,
+              "explain": "A partial unique index only covers active rows, so deleted rows don't block a new signup. A plain unique index on `email` would."
+            },
+            {
+              "lang": null,
+              "q": "Someone uses `UNIQUE (email, deleted_at)` instead. Two active users with the same email are inserted, both with `deleted_at` NULL. What happens by default in Postgres?",
+              "choices": [
+                "The second insert fails with a unique violation",
+                "The second insert silently replaces the first row",
+                "Postgres won't create a constraint on a nullable column",
+                "Both inserts succeed: NULLs don't count as equal"
+              ],
+              "answer": 3,
+              "explain": "In a unique constraint, NULL never equals NULL, so the pair never collides while rows are active. Postgres 15+ offers `NULLS NOT DISTINCT`, but the partial index is the usual fix."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/schema-design/timestamptz",
+          "title": "timestamptz vs timestamp",
+          "summary": "In Postgres, `timestamptz` stores an instant (UTC); `timestamp` stores a wall-clock time with no zone",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Servers in two time zones insert `now()` into a `timestamp` (without time zone) column, each session using its local `TimeZone`. What goes wrong?",
+              "choices": [
+                "Each stores local wall time, so values can't be compared",
+                "Nothing: Postgres converts both values to UTC automatically",
+                "The insert fails, because `now()` returns a different type",
+                "The values are stored as text and sort alphabetically"
+              ],
+              "answer": 0,
+              "explain": "Casting to `timestamp` drops the zone after converting to the session's local time, so the column mixes clocks. `timestamptz` stores the instant and compares correctly."
+            },
+            {
+              "lang": null,
+              "q": "A `timestamptz` value is inserted as `'2026-03-01 09:00+07'`. What does Postgres keep?",
+              "choices": [
+                "The local `09:00` and the `+07` offset, both",
+                "The instant in UTC; the `+07` isn't kept",
+                "The local `09:00` only, dropping the offset",
+                "A text copy of exactly what was inserted"
+              ],
+              "answer": 1,
+              "explain": "`timestamptz` normalises to UTC and displays in the session's zone; the original offset is gone. If you need the user's zone, store it in its own column."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/schema-design/db-constraints",
+          "title": "Database constraints",
+          "summary": "Enforcing invariants (CHECK, FOREIGN KEY, UNIQUE) in the database, where every code path hits them",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Stock must never go below zero. The order service checks this, but an admin script and a bulk import also update stock directly. What enforces the rule on every path?",
+              "choices": [
+                "A comment on the column that describes the rule",
+                "A unit test for the order service's own check",
+                "A `CHECK (stock >= 0)` constraint on the table",
+                "An index on the `stock` column for fast reads"
+              ],
+              "answer": 2,
+              "explain": "A constraint is checked on every write, whichever code sends it. Application checks only cover the paths that remember to call them."
+            },
+            {
+              "lang": null,
+              "q": "`order_items.order_id` references `orders.id` by convention only, with no foreign key. What can happen that a foreign key would prevent?",
+              "choices": [
+                "Two items for the same product in one order",
+                "Orders whose total doesn't match their items",
+                "Slow joins between `orders` and `order_items`",
+                "Items pointing at orders that don't exist"
+              ],
+              "answer": 3,
+              "explain": "A foreign key rejects references to missing rows. It doesn't speed up joins by itself; Postgres doesn't index the referencing column automatically."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "query-optimization",
+      "title": "Query optimization",
+      "concepts": [
+        {
+          "id": "data-storage/query-optimization/reading-query-plan",
+          "title": "Reading a query plan",
+          "summary": "Using `EXPLAIN ANALYZE` to see how a query actually ran: scans, joins, estimated vs actual rows",
+          "variants": []
+        },
+        {
+          "id": "data-storage/query-optimization/n-plus-one",
+          "title": "N+1 query",
+          "summary": "Running one query for a list, then one more per item, instead of loading them together",
+          "basic": true,
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "How many queries does this run, and what's the problem called?\n\n```ts\nconst orders = await db.query('SELECT * FROM orders LIMIT 50')\nfor (const o of orders.rows) {\n  const c = await db.query('SELECT * FROM customers WHERE id = $1', [o.customer_id])\n  o.customer = c.rows[0]\n}\n```",
+              "choices": [
+                "51: the N+1 query problem",
+                "2: the driver batches the loop",
+                "1: `pg` joins the queries",
+                "50: a cartesian product"
+              ],
+              "answer": 0,
+              "explain": "One query for the list plus one per row. Load all the customers at once with `WHERE id = ANY($1)` or a join."
+            },
+            {
+              "lang": "go",
+              "q": "What's the usual fix?\n\n```go\nposts, _ := store.ListPosts(ctx, 20) // 1 query\nfor i := range posts {\n    posts[i].Author, _ = store.GetUser(ctx, posts[i].AuthorID) // 1 query each\n}\n```",
+              "choices": [
+                "Run the `GetUser` calls in parallel goroutines",
+                "Load all authors at once with `WHERE id = ANY($1)`",
+                "Add an index on `users.id` to speed up each lookup",
+                "Raise the connection pool size so calls don't wait"
+              ],
+              "answer": 1,
+              "explain": "One query for all the ids removes 20 round trips. Running them in parallel hides the latency but still sends 21 queries and takes 21 connections' worth of work."
+            },
+            {
+              "lang": "python",
+              "q": "What's the usual fix?\n\n```python\nposts = await store.list_posts(limit=20)  # 1 query\nfor post in posts:\n    post.author = await store.get_user(post.author_id)  # 1 query each\n```",
+              "choices": [
+                "Wrap the loop in `asyncio.gather` so lookups run at once",
+                "Add an index on `users.id` to speed up each lookup",
+                "Load all authors in one query with `WHERE id = ANY(%s)`",
+                "Raise the connection pool size so calls don't wait"
+              ],
+              "answer": 2,
+              "explain": "Fetching every author in one query replaces 20 round trips with one. `gather` overlaps them but still sends 21 queries."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/query-optimization/composite-index-order",
+          "title": "Composite index column order",
+          "summary": "Which queries a multi-column index can serve depends on the order of its columns",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which single index serves this query best?\n\n```sql\nSELECT * FROM orders\nWHERE tenant_id = $1\nORDER BY created_at DESC\nLIMIT 20;\n```",
+              "choices": [
+                "`(created_at, tenant_id)`",
+                "Separate indexes on each column",
+                "`(created_at)` on its own",
+                "`(tenant_id, created_at)`"
+              ],
+              "answer": 3,
+              "explain": "With `tenant_id` first, the tenant's rows sit together already sorted by `created_at`, so Postgres reads 20 entries and stops. With `created_at` first, one tenant's rows are scattered through the index."
+            },
+            {
+              "lang": null,
+              "q": "For `WHERE status = 'open' AND created_at > now() - interval '1 day'`, which composite index is usually better?",
+              "choices": [
+                "`(status, created_at)`: equality first, range second",
+                "`(created_at, status)`: the more selective column first",
+                "Either one: column order doesn't matter in a composite index",
+                "Neither: a B-tree can't serve a range condition"
+              ],
+              "answer": 0,
+              "explain": "With the equality column first, matching rows form one contiguous range ordered by `created_at`. Range-first means scanning the whole day's range and filtering `status` inside it."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/query-optimization/sargable-predicates",
+          "title": "Sargable predicates",
+          "summary": "Writing conditions the index can search, without wrapping the indexed column in a function",
+          "variants": [
+            {
+              "lang": null,
+              "q": "There's a B-tree index on `users(email)`. Why might this query not use it?\n\n```sql\nSELECT * FROM users WHERE lower(email) = 'a@b.com';\n```",
+              "choices": [
+                "B-tree indexes don't support text equality",
+                "The index holds `email`, not `lower(email)`",
+                "`lower()` takes a lock on the whole table",
+                "The planner never uses indexes for `SELECT *`"
+              ],
+              "answer": 1,
+              "explain": "An index on a column only helps conditions on that column as stored. Add an expression index on `lower(email)`, or store emails lowercased."
+            },
+            {
+              "lang": null,
+              "q": "`created_at` (a `timestamptz`) is indexed. Which predicate for 'rows from 1 March 2026' can use the index as a range scan?",
+              "choices": [
+                "`created_at::date = '2026-03-01'`",
+                "`date_trunc('day', created_at) = '2026-03-01'`",
+                "`created_at >= '2026-03-01' AND created_at < '2026-03-02'`",
+                "`to_char(created_at, 'YYYY-MM-DD') = '2026-03-01'`"
+              ],
+              "answer": 2,
+              "explain": "Comparing the bare column with a range lets the index seek straight to it. The others compute a value from every row first, which the plain index can't help with."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/query-optimization/covering-index",
+          "title": "Covering index (index-only scan)",
+          "summary": "An index that holds every column a query needs, so the table itself isn't read",
+          "variants": [
+            {
+              "lang": null,
+              "q": "`SELECT email FROM users WHERE tenant_id = $1` runs constantly on Postgres 11+. Which index lets Postgres answer it from the index alone?",
+              "choices": [
+                "`CREATE INDEX ON users (email)`",
+                "`CREATE INDEX ON users (tenant_id)`",
+                "`CREATE INDEX ON users USING hash (tenant_id)`",
+                "`CREATE INDEX ON users (tenant_id) INCLUDE (email)`"
+              ],
+              "answer": 3,
+              "explain": "`INCLUDE` stores `email` in the index entries without making it part of the key, so the query needs nothing from the table. With `(tenant_id)` alone, every match needs a table lookup for `email`."
+            },
+            {
+              "lang": null,
+              "q": "`EXPLAIN ANALYZE` shows an *Index Only Scan* with a high `Heap Fetches` count. What's the likely cause?",
+              "choices": [
+                "Pages aren't marked all-visible yet; VACUUM helps",
+                "The index is corrupt and needs a `REINDEX` to fix it",
+                "The query selects columns that the index doesn't hold",
+                "The table has no primary key, so rows can't be found"
+              ],
+              "answer": 0,
+              "explain": "Postgres must check the table for rows on pages the visibility map doesn't mark all-visible. A recently vacuumed table needs few heap fetches."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "transactions-consistency",
+      "title": "Transactions & consistency",
+      "concepts": [
+        {
+          "id": "data-storage/transactions-consistency/lost-update",
+          "title": "Lost update",
+          "summary": "Two read-modify-write transactions race, and one silently overwrites the other's change",
+          "basic": true,
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "Two customers buy the last unit at the same moment, on Postgres's default isolation level. What can happen?\n\n```ts\nconst p = await db.one('SELECT stock FROM products WHERE id = $1', [id])\nif (p.stock < qty) throw new OutOfStock()\nawait db.none('UPDATE products SET stock = $1 WHERE id = $2', [p.stock - qty, id])\n```",
+              "choices": [
+                "Postgres rejects the second `UPDATE` by itself",
+                "Both succeed, and the last unit is sold twice",
+                "Both fail with a deadlock error",
+                "The second waits, because `SELECT` locked the row"
+              ],
+              "answer": 1,
+              "explain": "Both read stock 1, both pass the check, and both write 0. A plain `SELECT` takes no lock, and read committed doesn't detect the conflict."
+            },
+            {
+              "lang": null,
+              "q": "Which single statement removes the race from a read-check-write stock update?",
+              "choices": [
+                "`UPDATE products SET stock = $3 WHERE id = $2`, after reading stock again",
+                "`SELECT stock FROM products WHERE id = $2` inside `BEGIN ... COMMIT`",
+                "`UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $1`",
+                "`UPDATE products SET stock = GREATEST(stock - $1, 0) WHERE id = $2`"
+              ],
+              "answer": 2,
+              "explain": "The check and the write happen atomically in one statement; if it affects 0 rows, the item is out of stock. `GREATEST` avoids negative stock but silently oversells."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/transactions-consistency/read-committed",
+          "title": "Read committed (Postgres default)",
+          "summary": "Each statement sees data committed before it began, so two reads in one transaction can differ",
+          "variants": [
+            {
+              "lang": null,
+              "q": "In a Postgres transaction at the default isolation level, you run the same `SELECT` twice and get different results, because another transaction committed in between. What's going on?",
+              "choices": [
+                "Repeatable read: this should never be possible",
+                "Serializable: allowed, but only for `SELECT`",
+                "Read uncommitted: you're seeing uncommitted rows",
+                "Read committed: a new snapshot per statement"
+              ],
+              "answer": 3,
+              "explain": "Postgres defaults to read committed, where every statement sees what was committed when it started. Postgres never shows uncommitted data, even if you ask for read uncommitted."
+            },
+            {
+              "lang": null,
+              "q": "A report runs several `SELECT`s in one Postgres transaction, and they must all see the same snapshot. What do you set?",
+              "choices": [
+                "`ISOLATION LEVEL REPEATABLE READ` on the transaction",
+                "`FOR SHARE` on the first `SELECT` only",
+                "Nothing: a transaction always uses one snapshot",
+                "A shorter `statement_timeout` for the report"
+              ],
+              "answer": 0,
+              "explain": "Under repeatable read, the snapshot is taken at the first statement and kept for the whole transaction. At the default level, each statement gets its own."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/transactions-consistency/write-skew",
+          "title": "Write skew",
+          "summary": "Two transactions read the same data, then update different rows, breaking an invariant together",
+          "variants": [
+            {
+              "lang": null,
+              "q": "At least one doctor must be on call. Alice and Bob both are. In two concurrent Postgres transactions at `REPEATABLE READ`, each checks 'is someone else on call?' (yes), then takes themself off. Both commit. What is this, and what prevents it?",
+              "choices": [
+                "A dirty read; `READ COMMITTED` prevents it",
+                "Write skew; `SERIALIZABLE` prevents it",
+                "A lost update; `REPEATABLE READ` prevents it",
+                "A phantom read; a unique index prevents it"
+              ],
+              "answer": 1,
+              "explain": "They updated different rows, so there's no write conflict to catch, yet together they broke the rule. Postgres's serializable level detects the dependency and aborts one."
+            },
+            {
+              "lang": null,
+              "q": "A customer has a checking row and a savings row. Either may go negative, but their combined balance must stay ≥ 0. Two Postgres transactions at `REPEATABLE READ` each read both rows (total 100), then withdraw 100: one from checking, one from savings. Both commit. What change makes Postgres abort one of them?",
+              "choices": [
+                "A unique index on `(customer_id, kind)`",
+                "`READ COMMITTED` instead of `REPEATABLE READ`",
+                "`SERIALIZABLE`, retrying the one that fails",
+                "`FOR UPDATE` on only the row each one debits"
+              ],
+              "answer": 2,
+              "explain": "Each transaction writes a different row, so there's no write conflict, and the rule lives in what both read. Serializable isolation tracks those read/write dependencies and aborts one; locking only the row you debit doesn't touch the row the other one changes."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/transactions-consistency/optimistic-locking",
+          "title": "Optimistic locking",
+          "summary": "Detecting concurrent edits with a version column instead of holding locks",
+          "variants": [
+            {
+              "lang": null,
+              "q": "The document exists, but this update reports 0 rows affected. What does that mean?\n\n```sql\nUPDATE documents\nSET body = $1, version = version + 1\nWHERE id = $2 AND version = $3;\n```",
+              "choices": [
+                "Another transaction holds a lock on the row",
+                "The new body is identical to the old one",
+                "`version` overflowed and wrapped around",
+                "It changed since you read version `$3`"
+              ],
+              "answer": 3,
+              "explain": "The `version` condition fails when another writer bumped it first, so your write is rejected instead of overwriting theirs. The app reloads and retries, or shows a conflict."
+            },
+            {
+              "lang": null,
+              "q": "Compared with `SELECT ... FOR UPDATE`, when is a version column the better fit?",
+              "choices": [
+                "Conflicts are rare; edits span think-time",
+                "Conflicts are frequent on one hot row",
+                "Writers must queue up in arrival order",
+                "The row must stay locked across many statements"
+              ],
+              "answer": 0,
+              "explain": "Optimistic locking holds nothing while a user has a form open for minutes; it only checks at save time. With frequent conflicts, many saves fail and retry, and a lock is cheaper."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/transactions-consistency/transactional-outbox",
+          "title": "Transactional outbox",
+          "summary": "Writing an event to an outbox table in the same transaction as the data, then publishing it",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What's the risk if the process crashes between the commit and `publish`?\n\n```ts\nawait db.tx(async (t) => {\n  await t.none('INSERT INTO orders ...', order)\n})\nawait broker.publish('order.created', order)\n```",
+              "choices": [
+                "The order is rolled back because the publish failed",
+                "The order exists, but `order.created` is never sent",
+                "The broker publishes the event twice after restart",
+                "Nothing: the broker buffers the publish until restart"
+              ],
+              "answer": 1,
+              "explain": "The database and broker are two systems with no shared transaction, so a crash between them leaves one half done. An outbox row written in the same transaction makes the event as durable as the order."
+            },
+            {
+              "lang": null,
+              "q": "In the transactional outbox pattern, what's written in the same transaction as the business change?",
+              "choices": [
+                "A lock that stops other services reading the new row",
+                "The broker offset, so the publish can be replayed later",
+                "A row describing the event, published later by a relay",
+                "A copy of the row in every consuming service's database"
+              ],
+              "answer": 2,
+              "explain": "A relay (a poller or change data capture) publishes outbox rows after commit. It can publish a row twice if it crashes before marking it sent, so consumers still need to be idempotent."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/transactions-consistency/read-your-writes",
+          "title": "Read-your-writes consistency",
+          "summary": "Guaranteeing users see their own changes even when reads go to lagging replicas",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A user saves their profile (written to the primary). The page reloads, and the read goes to a replica 2 s behind, showing the old profile. Which guarantee is missing?",
+              "choices": [
+                "Monotonic reads",
+                "Atomicity",
+                "Snapshot isolation",
+                "Read-your-writes"
+              ],
+              "answer": 3,
+              "explain": "The user can't see a write they just made. Monotonic reads is a different promise: never seeing data go backwards across successive reads."
+            },
+            {
+              "lang": null,
+              "q": "What's a common way to provide read-your-writes on top of asynchronous replicas?",
+              "choices": [
+                "Route a user's reads to the primary briefly after they write",
+                "Give the replicas bigger caches so they replay faster",
+                "Send writes to a replica first, then copy them to the primary",
+                "Put a longer TTL on cached copies of the profile page"
+              ],
+              "answer": 0,
+              "explain": "Sticky routing after a write covers the user who wrote, while everyone else keeps reading cheap replicas. Waiting for a replica to pass the write's WAL position is a more precise variant."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "migrations",
+      "title": "Migrations",
+      "concepts": [
+        {
+          "id": "data-storage/migrations/expand-contract",
+          "title": "Expand and contract",
+          "summary": "Changing a schema in backward-compatible steps so old and new code can run at the same time",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You need to rename `users.fullname` to `users.display_name` with no downtime, while old and new app versions run side by side during a rolling deploy. Which order works?",
+              "choices": [
+                "Rename the column in one migration, then deploy the new code",
+                "Add new column, dual-write, backfill, switch reads, drop old",
+                "Deploy code that reads `display_name`, then rename the column",
+                "Drop `fullname`, add `display_name`, and backfill from a backup"
+              ],
+              "answer": 1,
+              "explain": "Each step keeps both app versions working: expand the schema, migrate the data and code, then contract once nothing uses the old column."
+            },
+            {
+              "lang": null,
+              "q": "Why can't you just run `ALTER TABLE users RENAME COLUMN fullname TO display_name` during a rolling deploy?",
+              "choices": [
+                "Postgres can't rename a column with an index",
+                "A rename rewrites every row in the table",
+                "Old instances still query `fullname` and fail",
+                "Renames are blocked while replicas are connected"
+              ],
+              "answer": 2,
+              "explain": "The rename itself is a quick catalog change; the problem is the old code still running. Any instance that hasn't been replaced breaks the moment the column changes name."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/migrations/add-column-default",
+          "title": "Adding a column with a default",
+          "summary": "On Postgres 11+, a constant default is stored in the catalog; a volatile one rewrites the table",
+          "variants": [
+            {
+              "lang": null,
+              "q": "On Postgres 11 or later, you run `ALTER TABLE orders ADD COLUMN source text NOT NULL DEFAULT 'web'` on a 200-million-row table. How long does it hold its lock?",
+              "choices": [
+                "Hours: every row is rewritten with the value",
+                "It fails: `NOT NULL` columns can't have defaults",
+                "Minutes: it backfills rows in batches by itself",
+                "Briefly: the default is stored in the catalog"
+              ],
+              "answer": 3,
+              "explain": "Since Postgres 11, a non-volatile default is recorded once and returned for old rows on read, so no rewrite happens. The lock is still `ACCESS EXCLUSIVE`, just short (if it can get it quickly)."
+            },
+            {
+              "lang": null,
+              "q": "On Postgres 13+, which `ADD COLUMN` forces a full table rewrite?",
+              "choices": [
+                "`ADD COLUMN token uuid DEFAULT gen_random_uuid()`",
+                "`ADD COLUMN note text`",
+                "`ADD COLUMN status text DEFAULT 'new'`",
+                "`ADD COLUMN starts_at timestamptz DEFAULT '2026-01-01'`"
+              ],
+              "answer": 0,
+              "explain": "`gen_random_uuid()` is volatile, so each row needs its own value and every row is written. Non-volatile defaults (and no default) are catalog-only changes."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/migrations/create-index-concurrently",
+          "title": "CREATE INDEX CONCURRENTLY",
+          "summary": "Building a Postgres index without blocking writes, at the cost of a slower build and some restrictions",
+          "variants": [
+            {
+              "lang": null,
+              "q": "On a busy Postgres table, what does a plain `CREATE INDEX` (without `CONCURRENTLY`) block while it builds?",
+              "choices": [
+                "Both reads and writes, throughout",
+                "Writes: inserts, updates, deletes",
+                "Nothing: index builds take no locks",
+                "Only reads that would use the index"
+              ],
+              "answer": 1,
+              "explain": "A plain build takes a lock that allows reads but blocks writes until it finishes, which can be minutes on a big table. `CONCURRENTLY` lets writes continue."
+            },
+            {
+              "lang": null,
+              "q": "Your migration tool wraps every migration in a transaction. A migration runs `CREATE INDEX CONCURRENTLY`. What happens?",
+              "choices": [
+                "It works, but holds its lock until the commit",
+                "Postgres silently builds it non-concurrently",
+                "It errors: not allowed in a transaction block",
+                "It works only if the table is currently empty"
+              ],
+              "answer": 2,
+              "explain": "A concurrent build needs several transactions of its own, so Postgres refuses it inside one. Mark that migration as non-transactional; if a concurrent build fails, it leaves an `INVALID` index to drop."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/migrations/lock-timeout",
+          "title": "Lock queues and lock_timeout",
+          "summary": "A DDL statement waiting for a lock blocks every query queued behind it; `lock_timeout` limits the wait",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A migration runs `ALTER TABLE orders ADD COLUMN note text`, which needs an `ACCESS EXCLUSIVE` lock. A long analytics query is reading `orders`. Within seconds, every query on `orders` is stuck. Why?",
+              "choices": [
+                "The `ALTER` is rewriting the whole table while holding its lock",
+                "The analytics query upgraded its own lock to exclusive",
+                "Postgres pauses every query during any schema change",
+                "The `ALTER` waits on the reader; new queries queue behind it"
+              ],
+              "answer": 3,
+              "explain": "Lock requests queue in order, so new reads wait behind the pending exclusive lock even though they don't conflict with the analytics query. The change itself would take milliseconds."
+            },
+            {
+              "lang": null,
+              "q": "What's the usual protection when running schema changes like that on a busy database?",
+              "choices": [
+                "A short `lock_timeout`, then retry the `ALTER`",
+                "A long `statement_timeout` so the `ALTER` can finish",
+                "Running the `ALTER` at `SERIALIZABLE` isolation",
+                "Running `VACUUM FULL` on the table beforehand"
+              ],
+              "answer": 0,
+              "explain": "If the lock isn't granted quickly, the `ALTER` gives up and stops blocking the queue; you retry later. A long timeout makes the pile-up last longer."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/migrations/batched-backfill",
+          "title": "Batched backfills",
+          "summary": "Updating large tables in small committed batches instead of one giant statement",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You need to fill a new column on 80 million rows. Why not run one `UPDATE big_table SET col = ...`?",
+              "choices": [
+                "Postgres caps a single `UPDATE` at 1 million rows",
+                "One huge transaction: long locks, bloat, lag",
+                "Postgres rejects an `UPDATE` with no `WHERE` clause",
+                "The new column isn't writable until after a restart"
+              ],
+              "answer": 1,
+              "explain": "Every updated row stays locked until the end, every row gets a new version (bloat), and the WAL burst slows replicas. A failure at row 79 million rolls back everything."
+            },
+            {
+              "lang": null,
+              "q": "Which backfill approach is usually safest on a live table?",
+              "choices": [
+                "One `UPDATE` at night, when traffic is at its lowest",
+                "One `UPDATE` inside a `SERIALIZABLE` transaction",
+                "Small batches by key range, each committed",
+                "One `UPDATE` with the table set to `UNLOGGED` first"
+              ],
+              "answer": 2,
+              "explain": "Short batches hold locks briefly, let vacuum and replicas keep up, and can be paused or resumed. A night-time single update has the same problems, just with fewer witnesses."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "relational-vs-nosql",
+      "title": "Relational vs NoSQL",
+      "concepts": [
+        {
+          "id": "data-storage/relational-vs-nosql/cap-theorem",
+          "title": "CAP theorem",
+          "summary": "During a network partition, a replicated system must choose between consistency and availability",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Two replicas lose contact with each other. A client asks one of them for a value that may have changed on the other side. Under CAP, what are its options?",
+              "choices": [
+                "Answer fresh data by waiting for the other replica",
+                "Ignore the partition, since P is an optional property",
+                "Merge both sides' data and return the newest value",
+                "Answer possibly stale (A), or refuse until healed (C)"
+              ],
+              "answer": 3,
+              "explain": "It can't reach the other side, so it either answers with what it has or declines. Waiting for the other replica is the 'refuse' option in disguise while the link is down."
+            },
+            {
+              "lang": null,
+              "q": "A vendor calls its distributed database 'CA: consistent and available, without partition tolerance'. What's wrong with that claim?",
+              "choices": [
+                "Networks partition anyway, so P isn't optional",
+                "CA systems exist, but only for read-only data",
+                "CAP applies only to NoSQL, not to SQL systems",
+                "Partition tolerance is a speed feature, not a guarantee"
+              ],
+              "answer": 0,
+              "explain": "Partitions happen whether or not you designed for them; the real question is what the system does when one occurs."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/relational-vs-nosql/pacelc",
+          "title": "PACELC",
+          "summary": "Extends CAP: when there's no partition, the trade-off is latency vs consistency",
+          "variants": [
+            {
+              "lang": null,
+              "q": "There's no partition. Writes commit on the primary and replicas copy them asynchronously. In PACELC terms, which trade-off is this?",
+              "choices": [
+                "Availability over consistency (PA)",
+                "Latency over consistency (EL)",
+                "Consistency over latency (EC)",
+                "Consistency over availability (PC)"
+              ],
+              "answer": 1,
+              "explain": "With no partition, 'E' applies. Async replication answers fast and lets replicas lag, so it picks latency. PA/PC describe behaviour during a partition."
+            },
+            {
+              "lang": null,
+              "q": "You switch to synchronous replication: commits wait until a replica has applied the write. With no partition, what changes?",
+              "choices": [
+                "Writes get faster; replica reads may now be stale",
+                "Partitions are tolerated with no trade-off at all",
+                "Replica reads are up to date; each write takes longer",
+                "Replica reads see every write; the primary loses durability"
+              ],
+              "answer": 2,
+              "explain": "Waiting for the replica buys consistency (EC) and costs a round trip on every write. It doesn't change what happens during a partition."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/relational-vs-nosql/access-pattern-design",
+          "title": "Access-pattern-first modeling",
+          "summary": "In key-value stores like DynamoDB, designing keys around known queries instead of normalising entities",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You're designing a DynamoDB table. What's the recommended first step?",
+              "choices": [
+                "Normalise into entities, then add indexes as queries appear",
+                "Copy the relational schema, one table per entity",
+                "Choose a partition key with few distinct values",
+                "List the access patterns, then design keys for them"
+              ],
+              "answer": 3,
+              "explain": "DynamoDB serves queries efficiently only through keys and indexes built for them, so you start from the queries. Normalising first is the relational approach, which relies on joins DynamoDB doesn't have."
+            },
+            {
+              "lang": null,
+              "q": "In a relational database you can add a new kind of query later with an index. Why is that harder in DynamoDB?",
+              "choices": [
+                "Queries need a key or index made for them",
+                "DynamoDB doesn't allow new indexes after table creation",
+                "Each new index doubles the table's storage bill",
+                "DynamoDB has no way to filter items at all"
+              ],
+              "answer": 0,
+              "explain": "Without joins or a general query planner, a new access pattern usually means a new key design or a new GSI. GSIs can be added later; local secondary indexes can't."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/relational-vs-nosql/hot-partition",
+          "title": "Hot partition",
+          "summary": "A partition key that concentrates traffic on one partition, throttling it while the rest sit idle",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A DynamoDB events table uses the event date (`2026-11-03`) as its partition key. Writes are throttled though total capacity is far from used. Why?",
+              "choices": [
+                "DynamoDB can't hash date strings evenly",
+                "Today's writes all hit one key and its limit",
+                "The table needs a sort key before it accepts writes",
+                "DynamoDB limits each item key to one write per second"
+              ],
+              "answer": 1,
+              "explain": "Throughput is spread by partition key, and each partition has a ceiling. When one key gets all the traffic, that ceiling is hit while the table's total capacity goes unused."
+            },
+            {
+              "lang": null,
+              "q": "An orders table serves 10,000 shops. Which partition key spreads write load most evenly?",
+              "choices": [
+                "`country`",
+                "`status`",
+                "`order_id`",
+                "`created_date`"
+              ],
+              "answer": 2,
+              "explain": "Order ids have many distinct, evenly used values. Country, status and date have few values, and the busiest ones become hot."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/relational-vs-nosql/dynamodb-read-consistency",
+          "title": "DynamoDB read consistency",
+          "summary": "DynamoDB reads are eventually consistent unless you ask otherwise, and GSIs only offer eventual",
+          "variants": [
+            {
+              "lang": null,
+              "q": "By default, what can a DynamoDB `GetItem` return right after a successful `PutItem` of the same item?",
+              "choices": [
+                "Always the new item: reads are strongly consistent",
+                "An error until the write has been replicated everywhere",
+                "The new item only if both calls share a connection",
+                "Possibly the old one, unless `ConsistentRead` is set"
+              ],
+              "answer": 3,
+              "explain": "Default reads are eventually consistent and may hit a copy that hasn't caught up. `ConsistentRead: true` gives a strongly consistent read on the base table."
+            },
+            {
+              "lang": null,
+              "q": "You query a DynamoDB global secondary index and need to see a write made a moment ago. What can you do?",
+              "choices": [
+                "Read the base table instead",
+                "Set `ConsistentRead: true` on the GSI query",
+                "Add a sort key to the GSI definition",
+                "Scan the GSI instead of querying it"
+              ],
+              "answer": 0,
+              "explain": "GSIs are updated asynchronously and don't support strongly consistent reads. For read-after-write, read the base table by key with `ConsistentRead`."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/relational-vs-nosql/jsonb-indexing",
+          "title": "Indexing JSONB",
+          "summary": "Which Postgres indexes help which `jsonb` queries: GIN for containment, expression B-trees for one field",
+          "variants": [
+            {
+              "lang": null,
+              "q": "`events.data` is a `jsonb` column with a GIN index (default `jsonb_ops`). Which query can use that index?",
+              "choices": [
+                "`WHERE data->>'type' = 'signup'`",
+                "`WHERE data @> '{\"type\": \"signup\"}'`",
+                "`WHERE (data->>'amount')::int > 100`",
+                "`WHERE data::text LIKE '%signup%'`"
+              ],
+              "answer": 1,
+              "explain": "The default GIN operator class supports containment (`@>`) and key-existence operators. Extracting a field with `->>` produces a text value the GIN index doesn't cover."
+            },
+            {
+              "lang": null,
+              "q": "Your hot query is `WHERE data->>'customer_id' = $1` on a `jsonb` column. Which index fits it?",
+              "choices": [
+                "A GIN index on the whole `data` column",
+                "A hash index on the whole `data` column",
+                "A B-tree on `(data->>'customer_id')`",
+                "None: `jsonb` fields can't be indexed"
+              ],
+              "answer": 2,
+              "explain": "An expression index stores exactly the extracted value the query compares. A GIN index on `data` serves `@>` lookups, not `->>` equality."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "db-integration",
+      "title": "DB integration",
+      "concepts": [
+        {
+          "id": "data-storage/db-integration/connection-pool-sizing",
+          "title": "Connection pool sizing",
+          "summary": "Pools across all app instances add up, and their total must fit the database's connection limit",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Postgres has `max_connections = 100`. You run 12 app pods, each with a pool of up to 20 connections. What happens at peak?",
+              "choices": [
+                "Postgres queues the extra connections until some close",
+                "Each pod is limited to 100 ÷ 12 connections automatically",
+                "Nothing: idle connections don't count toward the limit",
+                "New ones past the limit are refused; pools want 240"
+              ],
+              "answer": 3,
+              "explain": "The limit is global and every open connection counts, idle or not (a few slots are also reserved for superusers). Size pools so instances × pool size fits, or put a pooler like PgBouncer in front."
+            },
+            {
+              "lang": "go",
+              "q": "A Go service uses `database/sql` and never calls `db.SetMaxOpenConns`. Under a traffic spike, what limits its open connections?",
+              "choices": [
+                "Nothing: the default is unlimited",
+                "A default of 10 open connections per `*sql.DB`",
+                "`GOMAXPROCS`: one connection per OS thread",
+                "A default of 2 open connections from the driver"
+              ],
+              "answer": 0,
+              "explain": "`MaxOpenConns` defaults to 0, meaning no limit, so a spike can open connections until the database refuses them. The 2 you may remember is the default number of idle connections kept."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/db-integration/release-connections",
+          "title": "Returning connections to the pool",
+          "summary": "Every path, including errors and early returns, must give its connection back",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Under load, the service hangs waiting for database connections. What's the bug?\n\n```go\nrows, err := db.QueryContext(ctx, \"SELECT id FROM jobs\")\nif err != nil {\n    return err\n}\nfor rows.Next() {\n    var id int64\n    if err := rows.Scan(&id); err != nil {\n        return err\n    }\n    if id == target {\n        return nil\n    }\n}\nreturn rows.Err()\n```",
+              "choices": [
+                "`rows.Err()` must be checked before the loop starts",
+                "Early returns leave `rows` open",
+                "`QueryContext` opens a brand-new pool on each call",
+                "`Scan` into an `int64` leaks a little memory per row"
+              ],
+              "answer": 1,
+              "explain": "`rows` closes itself only when `Next` returns false (no more rows, or an error) or its context is cancelled. Each early return keeps a connection checked out, so the pool drains; add `defer rows.Close()` right after the error check."
+            },
+            {
+              "lang": "ts",
+              "q": "(node-postgres) After a while, every request hangs on `pool.connect()`. Why?\n\n```ts\nconst client = await pool.connect()\nconst { rows } = await client.query('SELECT * FROM jobs WHERE id = $1', [id])\nif (rows.length === 0) throw new NotFound(id)\nclient.release()\nreturn rows[0]\n```",
+              "choices": [
+                "`pool.connect()` may only be called at startup",
+                "Each query needs `client.end()` afterwards",
+                "A throw skips `release()`",
+                "The pool grows beyond `max` and then blocks"
+              ],
+              "answer": 2,
+              "explain": "Each `NotFound` (and any query error) leaks one client. Once all are leaked, `connect()` waits forever. `pool.query` handles checkout and release for single queries."
+            },
+            {
+              "lang": "python",
+              "q": "(psycopg_pool) After a while, every request blocks on `getconn()` until it times out. Why?\n\n```python\nconn = pool.getconn()\nrow = conn.execute(\"SELECT * FROM jobs WHERE id = %s\", (job_id,)).fetchone()\nif row is None:\n    raise NotFound(job_id)\npool.putconn(conn)\nreturn row\n```",
+              "choices": [
+                "`getconn` may only be called once per process",
+                "Each query needs `conn.close()` after it",
+                "The pool grows beyond `max_size` and blocks",
+                "A raise skips `putconn`"
+              ],
+              "answer": 3,
+              "explain": "Every `NotFound` leaks a connection until the pool is empty. The `with pool.connection()` context manager returns it on every path, exceptions included."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/db-integration/transaction-handle",
+          "title": "Using the transaction's connection",
+          "summary": "Statements meant for a transaction must go through its handle or connection, not the pool",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What's wrong with this code?\n\n```go\ntx, err := db.BeginTx(ctx, nil)\nif err != nil {\n    return err\n}\ndefer tx.Rollback()\nif _, err := tx.ExecContext(ctx, \"INSERT INTO orders ...\"); err != nil {\n    return err\n}\nif _, err := db.ExecContext(ctx, \"UPDATE stock ...\"); err != nil {\n    return err\n}\nreturn tx.Commit()\n```",
+              "choices": [
+                "The `UPDATE` uses `db`, so it runs outside the transaction",
+                "`defer tx.Rollback()` undoes the commit when the function ends",
+                "`BeginTx` with `nil` options doesn't start a transaction",
+                "Two statements in one transaction need `SERIALIZABLE`"
+              ],
+              "answer": 0,
+              "explain": "`db` takes another connection from the pool, so the `UPDATE` commits on its own and isn't undone if the transaction rolls back. `Rollback` after a successful `Commit` is a harmless no-op."
+            },
+            {
+              "lang": "ts",
+              "q": "(node-postgres `Pool`) Why isn't this a reliable transaction?\n\n```ts\nawait pool.query('BEGIN')\nawait pool.query('INSERT INTO orders ...')\nawait pool.query('UPDATE stock ...')\nawait pool.query('COMMIT')\n```",
+              "choices": [
+                "`BEGIN` must be part of the first statement's text",
+                "Each `pool.query` may use a different connection",
+                "node-postgres doesn't support transactions",
+                "`COMMIT` has to be sent before the `UPDATE`"
+              ],
+              "answer": 1,
+              "explain": "A transaction lives on one connection. Check out a client with `pool.connect()`, run all four statements on it, then release it."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/db-integration/no-network-in-transaction",
+          "title": "Network calls inside transactions",
+          "summary": "Holding a transaction open across an HTTP call keeps its locks and connection busy for the whole call",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What's the main problem when the payment API slows down?\n\n```ts\nawait db.tx(async (t) => {\n  const order = await t.one('SELECT * FROM orders WHERE id = $1 FOR UPDATE', [id])\n  const charge = await paymentApi.charge(order.total) // HTTP: 200 ms to 30 s\n  await t.none('UPDATE orders SET charge_id = $1 WHERE id = $2', [charge.id, id])\n})\n```",
+              "choices": [
+                "The HTTP charge is rolled back if the transaction fails",
+                "`FOR UPDATE` is ignored when used inside `db.tx`",
+                "The lock and connection are held during the HTTP call",
+                "The transaction times out after 200 ms by default"
+              ],
+              "answer": 2,
+              "explain": "Slow calls pin a connection and a row lock each, so the pool drains and other writers queue. And if the transaction fails afterwards, the charge isn't rolled back: the card is charged with no record."
+            },
+            {
+              "lang": null,
+              "q": "Which structure is usually better for 'charge the card, then record the charge'?",
+              "choices": [
+                "Open the transaction earlier so it also covers the API call",
+                "Raise the pool size so slow calls don't starve the others",
+                "Use `SERIALIZABLE` so the API call becomes part of the commit",
+                "Commit a pending row, call the API, then record the result"
+              ],
+              "answer": 3,
+              "explain": "The pending row records intent durably, the external call holds no database resources, and a later step (or a reconciler) records the outcome. No isolation level can make an HTTP call atomic with a commit."
+            }
+          ]
+        },
+        {
+          "id": "data-storage/db-integration/pgbouncer-transaction-mode",
+          "title": "PgBouncer transaction pooling",
+          "summary": "In transaction mode each transaction may get a different server connection, so session state can't be relied on",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Through PgBouncer in **transaction** pooling mode, a worker calls `SELECT pg_advisory_lock(42)` in one transaction and `pg_advisory_unlock(42)` in a later one. What can go wrong?",
+              "choices": [
+                "The unlock may run on another connection; the lock stays held",
+                "PgBouncer quietly turns session advisory locks into row-level locks",
+                "The lock is released automatically at the end of the first transaction",
+                "Advisory locks are cluster-wide, so PgBouncer serialises every client"
+              ],
+              "answer": 0,
+              "explain": "A session-level advisory lock belongs to the server connection, and the next transaction may get a different one. Use `pg_advisory_xact_lock`, which is released at commit."
+            },
+            {
+              "lang": null,
+              "q": "With PgBouncer in transaction mode, which kind of state is safe to rely on?",
+              "choices": [
+                "A `LISTEN` registered once when the app starts up",
+                "Transaction-scoped state, like `SET LOCAL`",
+                "A session-level `SET` sent once on connect",
+                "A temp table created at the start of the session"
+              ],
+              "answer": 1,
+              "explain": "Only state scoped to the transaction is guaranteed to be on the same server connection. Session state may sit on a connection another client gets next, or be missing from yours."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

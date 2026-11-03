@@ -1,0 +1,1199 @@
+{
+  "group": {
+    "id": "delivery-ops",
+    "title": "Delivery & ops"
+  },
+  "skills": [
+    {
+      "id": "ci",
+      "title": "CI",
+      "concepts": [
+        {
+          "id": "delivery-ops/ci/trunk-based-development",
+          "title": "Trunk-based development",
+          "summary": "Merging small changes to the main branch at least daily, with unfinished work hidden behind flags",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A team's feature branches live for three weeks and merging them takes a day of conflict fixing. What does trunk-based development suggest instead?",
+              "choices": [
+                "A long-lived `develop` branch that every feature merges into first",
+                "Merge small changes into main daily, behind flags",
+                "Freeze main during the last week of each sprint for stabilisation",
+                "Rebase every feature branch onto main once a week"
+              ],
+              "answer": 1,
+              "explain": "Integrating small changes often keeps divergence, and so conflicts, small. A `develop` branch just moves the big merge somewhere else."
+            },
+            {
+              "lang": null,
+              "q": "In trunk-based development, how do you merge part of a feature that isn't ready for users yet?",
+              "choices": [
+                "Keep it on a branch until the whole feature is finished",
+                "Merge it into a release branch only, never into main",
+                "Merge it behind a flag that's off in production",
+                "Merge it to main, then revert it before each deploy"
+              ],
+              "answer": 2,
+              "explain": "Flags let incomplete code ship to main and even to production without being reachable by users. Keeping it on a branch is exactly the long-lived divergence trunk-based development avoids."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/ci/build-once-promote",
+          "title": "Build once, promote the artifact",
+          "summary": "Building one image or binary and deploying that same artifact to every environment",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A pipeline rebuilds the Docker image from the same commit for staging and again for production. Staging passed, but production behaves differently. What practice prevents this class of problem?",
+              "choices": [
+                "Promote one image digest through every environment",
+                "Add a longer soak period in staging before production",
+                "Use exactly the same Dockerfile for both of the builds",
+                "Tag both images with the commit SHA they were built from"
+              ],
+              "answer": 0,
+              "explain": "Two builds of one commit can pull different base images or dependency versions, so what you tested isn't what you ship. Promoting a single digest guarantees it is; tagging two builds with the same SHA just hides the difference."
+            },
+            {
+              "lang": null,
+              "q": "If the same artifact is deployed to staging and production, where do the differences between environments (database URL, API keys) come from?",
+              "choices": [
+                "Separate build flags compiled into each environment's artifact",
+                "Config injected at deploy or run time",
+                "A different branch of the repo for each environment",
+                "A config file baked into the image, edited after deploy"
+              ],
+              "answer": 1,
+              "explain": "Keeping config outside the artifact is what makes one artifact deployable everywhere. Baking per-environment values in means rebuilding per environment, which defeats the point."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/ci/pin-actions-to-sha",
+          "title": "Pinning CI actions to a commit SHA",
+          "summary": "Referencing third-party CI actions by full commit hash, because tags can be moved",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A workflow uses `uses: some-org/some-action@v3`. Why do security guides recommend `@<full commit SHA>` instead?",
+              "choices": [
+                "Pinning to a SHA makes the workflow start up faster",
+                "Version tags are deprecated in GitHub Actions workflows",
+                "Tags can be moved to new code; a full SHA can't",
+                "GitHub caches actions only when they're pinned by SHA"
+              ],
+              "answer": 2,
+              "explain": "Git tags are mutable, so whoever controls the action's repo can point `v3` at new, possibly malicious, code that your CI runs with your secrets. A full commit SHA always refers to the same content."
+            },
+            {
+              "lang": null,
+              "q": "An attacker takes over a popular CI action's repository and re-points all its version tags at code that prints secrets to the log. Which workflows keep running the old, safe code?",
+              "choices": [
+                "Those using a full commit SHA",
+                "Those using a major tag like `@v2`",
+                "Those using an exact tag like `@v2.4.1`",
+                "Those using the `@main` branch"
+              ],
+              "answer": 0,
+              "explain": "Any tag, however specific, can be force-moved. Only a full commit SHA is immutable, which is why it's the recommended pin for third-party actions."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/ci/merge-queue",
+          "title": "Merge queue",
+          "summary": "Testing each PR combined with main and the PRs ahead of it before merging, so main stays green",
+          "variants": [
+            {
+              "lang": null,
+              "q": "PR A renames a function. PR B, opened earlier, adds a new call to the old name. Both pass CI on their own and both merge. Main is now broken. What prevents this?",
+              "choices": [
+                "Requiring two approving reviews on every PR",
+                "Re-running CI on every open PR each night",
+                "Squash-merging instead of creating merge commits",
+                "A merge queue that tests the combined result"
+              ],
+              "answer": 3,
+              "explain": "Each PR was tested against an older main, so nobody tested the combination. A merge queue builds and tests the actual result of merging before it lands."
+            },
+            {
+              "lang": null,
+              "q": "Why does a busy repo use a merge queue instead of just requiring \"branch must be up to date with main\" before merging?",
+              "choices": [
+                "Up-to-date branches can't run CI until they're merged",
+                "It does the rebase-and-retest loop for everyone",
+                "Merge queues skip CI entirely for small, low-risk PRs",
+                "Merge queues let PRs merge without waiting for review"
+              ],
+              "answer": 1,
+              "explain": "Requiring up-to-date branches gives the same safety, but every merge invalidates all other PRs and starts a rebase race. A queue tests the combined state for you, often batching PRs together."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/ci/dependency-cache-keys",
+          "title": "CI cache keys",
+          "summary": "Keying dependency caches on a hash of the lockfile so the cache updates when dependencies change",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A GitHub Actions cache step uses the fixed key `deps-cache`. Months later, builds still restore very old dependencies and reinstall most packages. Why?",
+              "choices": [
+                "Caches expire after 24 hours and are rebuilt from scratch",
+                "Restoring a cache always clears it for the next run",
+                "An exact key hit isn't saved again, so it never updates",
+                "Fixed keys are shared across every repo in the org"
+              ],
+              "answer": 2,
+              "explain": "`actions/cache` doesn't overwrite an existing key, so a constant key freezes the first snapshot. Including `hashFiles('**/package-lock.json')` in the key creates a new cache whenever dependencies change."
+            },
+            {
+              "lang": null,
+              "q": "Why include a hash of the lockfile (`go.sum`, `package-lock.json`, `uv.lock`) in a CI dependency cache key?",
+              "choices": [
+                "A new entry is made whenever dependencies change",
+                "It makes the cache encrypted at rest on the runner",
+                "It lets the same cache be shared with production builds",
+                "Every run becomes a cache hit, even after an upgrade"
+              ],
+              "answer": 0,
+              "explain": "The key changes exactly when the dependency set changes, so you get hits on unchanged builds and fresh entries after an upgrade. A fallback `restore-keys` prefix can still start from the nearest older cache."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "release-deployment",
+      "title": "Release & deployment",
+      "concepts": [
+        {
+          "id": "delivery-ops/release-deployment/blue-green-deployment",
+          "title": "Blue-green deployment",
+          "summary": "Running the new version beside the old one and switching all traffic over at once",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "In a blue-green deployment, the new version (green) is live and errors spike. What is the fastest rollback?",
+              "choices": [
+                "Rebuild the previous version and redeploy it",
+                "Scale green to zero and wait for autoscaling",
+                "Switch traffic back to blue",
+                "Roll forward with a hotfix"
+              ],
+              "answer": 2,
+              "explain": "Blue is kept running and unchanged, so rollback is a traffic switch that takes seconds. Rebuilding or hotfixing takes minutes to hours while users see errors."
+            },
+            {
+              "lang": null,
+              "q": "Blue and green share one database. The green release includes a migration. What must be true of that migration for blue-green rollback to stay safe?",
+              "choices": [
+                "It must run only after blue has been deleted",
+                "Blue must still work with the new schema",
+                "It must target a separate database for green",
+                "Nothing: blue-green isolates the database itself"
+              ],
+              "answer": 1,
+              "explain": "Rolling back sends traffic to blue, which now runs against the migrated schema. If the migration dropped or renamed something blue uses, the rollback fails."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/release-deployment/canary-release",
+          "title": "Canary release",
+          "summary": "Sending a small share of traffic to the new version and widening it only if metrics stay healthy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A new version gets 5% of traffic. Its error rate is 3% while the old version's is 0.2%. What does a canary process do next?",
+              "choices": [
+                "Increase to 25% to get a bigger sample",
+                "Keep 5% running and file a bug",
+                "Move everyone to the new version, since 95% of users weren't affected",
+                "Stop the rollout and send all traffic back to the old version"
+              ],
+              "answer": 3,
+              "explain": "The point of a canary is to compare the new version with the baseline on real traffic and abort when it is worse. Widening a clearly bad canary turns a small incident into a big one."
+            },
+            {
+              "lang": null,
+              "q": "What makes a canary release more than \"deploying slowly\"?",
+              "choices": [
+                "Gating each step on canary vs baseline metrics",
+                "Deploying to one region at a time, in a fixed order",
+                "Running the canary only at night when traffic is low",
+                "Requiring manual approval before each pod restarts"
+              ],
+              "answer": 0,
+              "explain": "Without measuring the canary against the baseline, a gradual rollout just spreads a bad release more slowly. The health comparison and automatic abort are what catch problems early."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/release-deployment/feature-flags",
+          "title": "Feature flags",
+          "summary": "Shipping code switched off and turning it on separately, decoupling deploy from release",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A new checkout flow is deployed to production behind a flag that's off, then enabled for 1% of users a week later. What does this separate?",
+              "choices": [
+                "Building the code from testing it",
+                "Deploying code from releasing it",
+                "Staging from production",
+                "Code review from merging"
+              ],
+              "answer": 1,
+              "explain": "The deploy moved code to production; the flag decides who sees it. That lets you release (and un-release) without a deploy."
+            },
+            {
+              "lang": null,
+              "q": "A feature behind a flag causes problems for the 10% of users who have it. What is the quickest fix?",
+              "choices": [
+                "Revert the commit and redeploy",
+                "Restart the pods",
+                "Turn the flag off",
+                "Scale the service up"
+              ],
+              "answer": 2,
+              "explain": "A flag acts as a kill switch: switching it off takes effect without a build or deploy. Reverting works too, but takes a full pipeline run."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/release-deployment/version-skew",
+          "title": "Version skew during rolling deploys",
+          "summary": "Old and new versions run side by side during a rollout, so each must handle the other's data and calls",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A rolling deploy replaces pods one at a time over ten minutes. The new version stops writing a field that the old version requires when reading. What happens during the rollout?",
+              "choices": [
+                "Nothing: old pods are drained before any new pod starts",
+                "The deploy tool blocks the rollout automatically",
+                "Only new pods see errors",
+                "Old pods can fail on records written by new pods"
+              ],
+              "answer": 3,
+              "explain": "During a rolling update both versions serve traffic and share data. Changes have to be backward and forward compatible for that window, which is why removals are done in a later release."
+            },
+            {
+              "lang": null,
+              "q": "You want to rename a message field consumed by another service. Producers and consumers deploy independently. Which plan avoids breaking either side?",
+              "choices": [
+                "Rename it in both services in one PR and deploy them together",
+                "Write both names, move readers, then drop the old one",
+                "Rename it in the producer first; consumers fail until they update",
+                "Version the topic name and delete the old topic the same day"
+              ],
+              "answer": 1,
+              "explain": "Independent deploys can't be made simultaneous, so there is always a window with mixed versions. Writing both fields covers that window; the old one is removed only after every reader has moved."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/release-deployment/graceful-shutdown",
+          "title": "Graceful shutdown",
+          "summary": "On SIGTERM: refuse new requests, let in-flight ones complete, release connections, then exit",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What is wrong with this shutdown code?\n\n```go\ngo func() {\n    <-sigterm\n    srv.Shutdown(context.Background())\n}()\nif err := srv.ListenAndServe(); err != nil {\n    log.Fatal(err)\n}\n```",
+              "choices": [
+                "`Shutdown` can't be called from a different goroutine",
+                "`ListenAndServe` ignores `Shutdown` and keeps serving",
+                "`log.Fatal` exits before in-flight requests drain",
+                "`context.Background()` makes `Shutdown` return at once"
+              ],
+              "answer": 2,
+              "explain": "`ListenAndServe` returns right away once `Shutdown` is called; the program must then wait for `Shutdown` itself to return. Treat `ErrServerClosed` as expected and block until draining is done."
+            },
+            {
+              "lang": null,
+              "q": "A Kubernetes pod gets SIGTERM and its process exits within 50 ms. For a few seconds afterwards, some clients still get connection errors. What is the usual fix?",
+              "choices": [
+                "Keep serving a few seconds after SIGTERM, then drain",
+                "Exit even faster so the pod is replaced sooner",
+                "Increase the liveness probe's timeout and period",
+                "Raise the number of replicas so the gap is covered"
+              ],
+              "answer": 0,
+              "explain": "Endpoint removal runs concurrently with SIGTERM, and load balancers and kube-proxy on every node take a moment to drop the pod. A short pause before closing (in the app, or a `preStop` sleep) lets those stragglers be served."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "docker",
+      "title": "Docker",
+      "concepts": [
+        {
+          "id": "delivery-ops/docker/layer-cache-order",
+          "title": "Layer cache ordering",
+          "summary": "Copying dependency manifests and installing before copying source, so code edits don't reinstall everything",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Every one-line code change makes this build reinstall all dependencies. Why?\n\n```dockerfile\nFROM node:22\nWORKDIR /app\nCOPY . .\nRUN npm ci\nCMD [\"node\", \"server.js\"]\n```",
+              "choices": [
+                "`npm ci` always ignores the Docker layer cache",
+                "`WORKDIR` resets the layer cache on every build",
+                "The `node:22` base image tag isn't pinned to a digest",
+                "`COPY . .` changes with any file, so `npm ci` reruns"
+              ],
+              "answer": 3,
+              "explain": "A layer is rebuilt when its inputs change, and so is everything after it. Copying `package.json` and the lockfile first, running `npm ci`, then copying the rest keeps the install layer cached until dependencies change."
+            },
+            {
+              "lang": null,
+              "q": "Which ordering keeps the dependency download cached across code-only changes in a Go image?",
+              "choices": [
+                "Copy all, download modules, build",
+                "Copy `go.mod`/`go.sum`, download modules, copy all, build",
+                "Download modules, copy all, build",
+                "Copy all, copy `go.mod`/`go.sum`, download modules, build"
+              ],
+              "answer": 1,
+              "explain": "Copying only the module files before downloading makes that layer depend on dependencies alone. Copying everything first, even if the module files are copied again, means any code edit invalidates the download layer; downloading before any copy fails because there's no `go.mod` yet."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/docker/multi-stage-builds",
+          "title": "Multi-stage builds",
+          "summary": "Building in one stage and copying only the output into a small runtime image",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A Dockerfile builds in a `FROM golang` stage and then has `FROM gcr.io/distroless/static` with `COPY --from=build /out/app /app`. What ends up in the final image?",
+              "choices": [
+                "The binary on a minimal base, no toolchain or source",
+                "Both stages, with the build stage hidden from `docker run`",
+                "The source code and the binary, but not the compiler",
+                "Only the build stage, since it appears first in the file"
+              ],
+              "answer": 0,
+              "explain": "Only the last stage becomes the image, and it contains just what was copied into it. The compiler, source and build cache stay in the discarded build stage."
+            },
+            {
+              "lang": null,
+              "q": "Why are multi-stage builds a security improvement, not just a size one?",
+              "choices": [
+                "They encrypt the final image's layers at rest",
+                "They scan the image for known CVEs during the build",
+                "Compilers and build tools aren't shipped",
+                "They run the whole build without any network access"
+              ],
+              "answer": 2,
+              "explain": "Each package left out of the runtime image is one less thing with vulnerabilities or useful to an attacker who gets in. Scanning is a separate step that multi-stage builds don't perform."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/docker/pid-1-signals",
+          "title": "PID 1 and signals",
+          "summary": "A container's PID 1 gets no default signal actions, so it must handle SIGTERM itself or pass it on",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A container's main process runs as PID 1 and installs no handler for SIGTERM. You run `docker stop`. What happens?",
+              "choices": [
+                "The process exits immediately, as with any SIGTERM",
+                "Docker falls back to sending SIGINT, which it handles",
+                "The process is restarted inside the same container",
+                "It's ignored, then SIGKILLed after the grace period"
+              ],
+              "answer": 3,
+              "explain": "The kernel doesn't apply default signal actions to PID 1 of a PID namespace, so an unhandled SIGTERM does nothing. Handle SIGTERM in the app or run under a small init such as `tini` (`docker run --init`)."
+            },
+            {
+              "lang": null,
+              "q": "The image uses `ENTRYPOINT [\"/app/start.sh\"]`, and the script is:\n\n```sh\n#!/bin/sh\n./migrate\nnode server.js\necho \"server exited\"\n```\n\nOn `docker stop`, why doesn't the Node server shut down gracefully?",
+              "choices": [
+                "Node can't receive signals when running inside a container",
+                "The shell is PID 1 and doesn't forward SIGTERM to `node`",
+                "The `echo` line runs first and closes the server's socket",
+                "Exec-form `ENTRYPOINT` blocks every signal to the script"
+              ],
+              "answer": 1,
+              "explain": "Signals go to PID 1, here the shell, and `sh` doesn't pass them on to the child it is waiting for. Launching the server with `exec node server.js` makes Node PID 1, and Node then needs its own SIGTERM handler (or an init like `tini` in front) to shut down cleanly."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/docker/secrets-in-layers",
+          "title": "Secrets in image layers",
+          "summary": "Files deleted in a later layer and build args stay readable in the image; use build secrets instead",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Is the token still recoverable from the final image?\n\n```dockerfile\nCOPY .npmrc /root/.npmrc\nRUN npm ci\nRUN rm /root/.npmrc\n```",
+              "choices": [
+                "No: the `rm` step removes it from the image",
+                "No: only the last layer's files are kept on push",
+                "Yes: the `COPY` layer still holds the file",
+                "Only to someone with a shell in a running container"
+              ],
+              "answer": 2,
+              "explain": "Each instruction adds a layer, and a later `rm` only hides the file in the merged view. Use a BuildKit secret mount (`RUN --mount=type=secret,...`) so the file never lands in a layer."
+            },
+            {
+              "lang": null,
+              "q": "A Dockerfile has `ARG NPM_TOKEN` and uses it in a `RUN` step. Why is this unsafe for a secret?",
+              "choices": [
+                "Build args can't be read by `RUN` steps",
+                "Its value is recorded in the image's history",
+                "Build args are uploaded to the registry's logs",
+                "`ARG` values are set in the running container"
+              ],
+              "answer": 1,
+              "explain": "Docker warns that build args are visible in `docker history` and in max-mode provenance attestations. `ARG` values aren't set in the running container's environment (that's `ENV`); use `RUN --mount=type=secret` instead."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/docker/dockerignore",
+          "title": ".dockerignore",
+          "summary": "Excluding files like `.git`, `.env` and local `node_modules` from the build context",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A repo has no `.dockerignore` and the Dockerfile does `COPY . .`. Which of these is the most serious consequence?",
+              "choices": [
+                "A local `.env` with real credentials lands in the image",
+                "The build can no longer use the layer cache for any step",
+                "The `Dockerfile` itself gets copied into the final image",
+                "Docker refuses to build without a `.dockerignore` file"
+              ],
+              "answer": 0,
+              "explain": "Without exclusions the whole directory, secrets included, becomes part of the context and the image. Slower builds and larger images are side effects; a leaked credential is the real damage."
+            },
+            {
+              "lang": null,
+              "q": "A Node image builds fine on CI but crashes on a Mac developer's local build with an error from a native module. The Dockerfile runs `npm ci` and later `COPY . .`. What is the likely cause?",
+              "choices": [
+                "`npm ci` doesn't support native modules in containers",
+                "The base image was pulled for the wrong CPU architecture",
+                "`COPY . .` brings the host's macOS `node_modules`",
+                "Docker Desktop disables native modules on macOS hosts"
+              ],
+              "answer": 2,
+              "explain": "Without `node_modules` in `.dockerignore`, the host's install overwrites the one built for Linux in the image. CI has no local `node_modules`, so it doesn't happen there."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "environment-management",
+      "title": "Environment management",
+      "concepts": [
+        {
+          "id": "delivery-ops/environment-management/config-in-environment",
+          "title": "Config in the environment",
+          "summary": "Keeping per-environment settings out of the code and supplying them at run time (Twelve-Factor)",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "A codebase has `config.staging.json` and `config.prod.json` committed, with database URLs and passwords. What does the Twelve-Factor approach recommend instead?",
+              "choices": [
+                "Encrypt the two files and keep them in the repo",
+                "Build a separate artifact for each environment",
+                "Move the files to a dedicated `config/` branch",
+                "Set them per environment at deploy time"
+              ],
+              "answer": 3,
+              "explain": "Config that differs per deploy belongs outside the code, so one artifact runs anywhere and secrets never live in the repo. Separate artifacts per environment break the build-once rule."
+            },
+            {
+              "lang": null,
+              "q": "Which value is \"config\" in the Twelve-Factor sense, and so should come from the environment?",
+              "choices": [
+                "The payment provider's API base URL",
+                "The list of HTTP routes this service exposes to callers",
+                "The JSON schema of the service's request bodies",
+                "The names of the tables in the service's database"
+              ],
+              "answer": 0,
+              "explain": "Config is whatever varies between deploys (a sandbox URL in staging, the live one in production). Routes, request schemas and table names are part of the code and are the same everywhere."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/environment-management/fail-fast-config",
+          "title": "Validating config at startup",
+          "summary": "Parsing and checking every setting when the process starts, so bad config crashes the deploy, not a request",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "`HTTP_TIMEOUT` is not set in production. What does the client do?\n\n```go\nd, _ := time.ParseDuration(os.Getenv(\"HTTP_TIMEOUT\"))\nclient := &http.Client{Timeout: d}\n```",
+              "choices": [
+                "It falls back to Go's default 30-second client timeout",
+                "It panics with a parse error on the first request",
+                "No timeout at all: `d` is zero",
+                "It fails to compile because there's no default value"
+              ],
+              "answer": 2,
+              "explain": "`os.Getenv` returns `\"\"` for unset variables, parsing fails, and the zero `Duration` means no timeout on `http.Client`. Validate settings at startup and refuse to boot on a missing or invalid one."
+            },
+            {
+              "lang": "ts",
+              "q": "`MAX_RETRIES` isn't set, and `tryOnce` is never called. Why?\n\n```ts\nconst maxRetries = Number(process.env.MAX_RETRIES)\nfor (let i = 0; i < maxRetries; i++) {\n  if (await tryOnce()) break\n}\n```",
+              "choices": [
+                "`maxRetries` is `NaN`, and `0 < NaN` is false",
+                "`maxRetries` is `0`, because `Number(undefined)` is `0`",
+                "`maxRetries` is `null`, and `0 < null` is false",
+                "`maxRetries` is `undefined`, and `0 < undefined` is false"
+              ],
+              "answer": 0,
+              "explain": "`Number(undefined)` is `NaN` (it's `Number(null)` and `Number(\"\")` that give `0`), and every comparison with `NaN` is false, so the loop silently never runs. Parse env vars with a schema at startup so this fails loudly instead."
+            },
+            {
+              "lang": "python",
+              "q": "Which line makes a missing `DATABASE_URL` stop the service as soon as it starts?",
+              "choices": [
+                "`URL = os.getenv(\"DATABASE_URL\")` at module level",
+                "`URL = os.environ[\"DATABASE_URL\"]` at module level",
+                "`os.environ.get(\"DATABASE_URL\")` inside the first query",
+                "`os.getenv(\"DATABASE_URL\", \"\")` inside the pool setup"
+              ],
+              "answer": 1,
+              "explain": "Indexing `os.environ` raises `KeyError` for a missing key, and at module level that happens at import, before the service accepts traffic. `getenv` returns `None` (or the default), so the failure turns up later, on a request."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/environment-management/configuration-drift",
+          "title": "Configuration drift",
+          "summary": "Real infrastructure diverging from what's in code, usually through manual changes",
+          "variants": [
+            {
+              "lang": null,
+              "q": "During an incident someone edits a Terraform-managed security group in the cloud console to open an extra port. What happens on the next `terraform apply` from the unchanged code?",
+              "choices": [
+                "Terraform imports the manual change into the code automatically",
+                "Terraform skips resources that were edited by hand",
+                "The apply fails until the console change is reverted",
+                "The plan shows drift and the apply reverts it"
+              ],
+              "answer": 3,
+              "explain": "Terraform reconciles real resources toward the code, so a manual change shows up as drift and gets undone. Fixes made by hand need to go back into code, or they disappear."
+            },
+            {
+              "lang": null,
+              "q": "Staging and production were built from the same scripts a year ago, but a bug now appears only in production. Investigation finds a different kernel parameter on prod hosts that nobody remembers setting. What is this an example of?",
+              "choices": [
+                "Version skew",
+                "Configuration drift",
+                "Cache poisoning",
+                "Bit rot"
+              ],
+              "answer": 1,
+              "explain": "Environments that started the same diverge through untracked manual changes. Defining infrastructure as code and regularly detecting drift keeps them comparable."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/environment-management/leaked-secret-rotation",
+          "title": "Rotating a leaked secret",
+          "summary": "Once a secret is committed or exposed, revoke and replace it; deleting it from the code isn't enough",
+          "variants": [
+            {
+              "lang": null,
+              "q": "An API key was committed and pushed to a shared repo. A follow-up commit removes it. What still needs to happen?",
+              "choices": [
+                "Nothing more: the key is no longer in the code",
+                "Squash the two commits so the key disappears from history",
+                "Make the repo private so nobody else can see the commit",
+                "Revoke the key and issue a new one"
+              ],
+              "answer": 3,
+              "explain": "Git history, forks, clones and CI logs keep the old value, and automated scanners pick up pushed keys quickly. Rotation is the only real fix; rewriting history is cleanup on top."
+            },
+            {
+              "lang": null,
+              "q": "A database password was printed in a CI log visible to the whole company. The log was deleted within an hour. What is the right next step?",
+              "choices": [
+                "Rotate it and check for use during the exposure",
+                "Nothing, since the log was deleted within the hour",
+                "Restrict who can read CI logs from now on, to prevent repeats",
+                "Change the port the database listens on"
+              ],
+              "answer": 0,
+              "explain": "You can't know who read or copied it in that hour, so treat it as compromised. Restricting log access is a good follow-up but doesn't fix this exposure."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/environment-management/preview-environments",
+          "title": "Preview environments",
+          "summary": "A short-lived, full copy of the app deployed per pull request and torn down when it merges",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Five teams share one staging environment, and someone's half-finished change often blocks everyone's testing. What addresses this directly?",
+              "choices": [
+                "A second staging environment for the team that breaks it most",
+                "A shared booking calendar for the staging environment",
+                "A preview environment per PR, deleted on merge",
+                "Testing only in production, behind feature flags"
+              ],
+              "answer": 2,
+              "explain": "Per-PR environments isolate each change, so one broken branch no longer blocks the others. A calendar or extra fixed environment just rations the contention."
+            },
+            {
+              "lang": null,
+              "q": "A team wants a preview environment for every PR. What has to be true first?",
+              "choices": [
+                "Every PR must be reviewed and signed off by QA first",
+                "Setup and teardown are fully automated",
+                "The app must be able to run as a single container",
+                "Production data must be copied into each preview"
+              ],
+              "answer": 1,
+              "explain": "Environments created per PR only work if setup and teardown are scripted end to end. Copying production data is usually something to avoid, for privacy reasons."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cloud",
+      "title": "Cloud",
+      "concepts": [
+        {
+          "id": "delivery-ops/cloud/least-privilege",
+          "title": "Least privilege",
+          "summary": "Giving each service and person only the permissions it needs, scoped to the resources it uses",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A service only reads objects from one bucket. Its role has `storage:*` on all buckets \"to be safe\". What is the main risk?",
+              "choices": [
+                "Requests get slower when a role has broad permissions",
+                "A compromise exposes every bucket",
+                "The cloud provider bills extra for wildcard permissions",
+                "The service is more likely to be rate limited"
+              ],
+              "answer": 1,
+              "explain": "Permissions set the blast radius of a compromise. Read-only on the one bucket limits damage to what the service needed anyway."
+            },
+            {
+              "lang": null,
+              "q": "Which policy follows least privilege for a worker that writes results to `reports/` in one bucket?",
+              "choices": [
+                "Admin on the project, restricted by network rules",
+                "Write access to every bucket in the account",
+                "Read and write on the whole bucket",
+                "Write only, on `reports/` in that bucket"
+              ],
+              "answer": 3,
+              "explain": "The narrowest action set on the narrowest resource is least privilege. Network rules don't limit what a compromised process with admin rights can do."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/cloud/requests-and-limits",
+          "title": "Kubernetes requests and limits",
+          "summary": "Requests reserve capacity for scheduling; going over the CPU limit throttles, over the memory limit kills",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A container regularly goes over its memory limit. What does Kubernetes do?",
+              "choices": [
+                "Throttles the container until its usage drops",
+                "Moves the pod to a node with more free memory",
+                "Kills it (OOMKilled, exit 137)",
+                "Logs a warning and lets the container continue"
+              ],
+              "answer": 2,
+              "explain": "Memory can't be throttled the way CPU time can, so the kernel's OOM killer ends the process and the app gets no chance to log why. Throttling is what happens at the CPU limit, not the memory limit."
+            },
+            {
+              "lang": null,
+              "q": "An API's latency spikes under load and health checks start timing out, but the pod never restarts for memory. Usage graphs show it pinned at its CPU limit. What is happening?",
+              "choices": [
+                "It's CPU-throttled, so all work runs slower",
+                "It's being OOMKilled silently and restarted",
+                "The scheduler keeps moving it between nodes",
+                "Its CPU request is set too high for the node"
+              ],
+              "answer": 0,
+              "explain": "Going over a CPU limit doesn't kill anything; the kernel restricts how much CPU time the container gets, so work slows down. Raise the limit or scale out."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/cloud/runtime-memory-limit",
+          "title": "Runtime heap vs container memory limit",
+          "summary": "Telling the language runtime about the container's memory limit so its GC works before the OOM killer does",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "A Go service has about 600 MiB of live heap, a 1 GiB container limit, default `GOGC=100` and no `GOMEMLIMIT`. It gets OOMKilled at traffic peaks. Which change addresses this most directly (Go 1.19+)?",
+              "choices": [
+                "Set `GOMAXPROCS` to match the container's CPU limit",
+                "Set `GOGC=200` so collections happen less often",
+                "Call `runtime.GC()` on a timer every few seconds",
+                "Set `GOMEMLIMIT` a bit under the limit"
+              ],
+              "answer": 3,
+              "explain": "With `GOGC=100` the heap can grow to about twice the live heap before the next GC, past 1 GiB here. `GOMEMLIMIT` makes the GC work harder as total memory nears the limit; raising `GOGC` makes it worse."
+            },
+            {
+              "lang": "ts",
+              "q": "A Node service runs in a 1 GiB container with `--max-old-space-size=4096`. Under load memory climbs. How does it most likely die?",
+              "choices": [
+                "OOMKilled by the kernel (exit 137), no JS stack",
+                "A JS `heap out of memory` error at the 4 GiB heap cap",
+                "The event loop blocks and the liveness probe restarts it",
+                "V8 shrinks the heap to fit the container automatically"
+              ],
+              "answer": 0,
+              "explain": "The flag tells V8 it may grow the heap to 4 GiB, so it lets garbage pile up past what the container allows and the kernel kills the process. Set the old-space size below the container limit; about three quarters of it is a common rule of thumb, leaving room for buffers and native memory."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/cloud/liveness-vs-readiness",
+          "title": "Liveness vs readiness probes",
+          "summary": "Readiness decides if a pod gets traffic; liveness decides if it is restarted, and shouldn't check dependencies",
+          "variants": [
+            {
+              "lang": null,
+              "q": "The liveness probe of every API pod checks that the database answers. The database has a 30-second blip. What happens?",
+              "choices": [
+                "Pods stop getting traffic until the database is back",
+                "All pods fail liveness and restart together",
+                "Kubernetes fails over to a replica database automatically",
+                "Nothing, since liveness ignores failures under a minute"
+              ],
+              "answer": 1,
+              "explain": "Liveness failures trigger restarts, and a restarted pod finds the same unreachable database, so every pod churns at once and then reconnects together. Liveness should check only the process itself; dependency trouble is at most a readiness concern."
+            },
+            {
+              "lang": null,
+              "q": "A pod is still loading a large cache at startup and shouldn't get requests yet, but it isn't broken. Which probe should report failure?",
+              "choices": [
+                "Liveness",
+                "Both liveness and readiness",
+                "Readiness",
+                "Neither: Kubernetes waits for the container to start"
+              ],
+              "answer": 2,
+              "explain": "Readiness keeps traffic away without killing the pod (a startup probe can also hold off liveness during a slow boot). Failing liveness here would restart the pod before it ever finishes loading."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/cloud/autoscaling-signal",
+          "title": "Choosing the autoscaling signal",
+          "summary": "Scaling on the metric that tracks this workload's load, such as queue depth for a worker",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A queue consumer spends most of its time waiting on an external API. CPU stays at 15% while the backlog grows to millions of messages. It autoscales on CPU. What should it scale on?",
+              "choices": [
+                "Memory usage",
+                "Queue backlog or consumer lag",
+                "Number of HTTP requests to the pod",
+                "Node CPU instead of pod CPU"
+              ],
+              "answer": 1,
+              "explain": "For an I/O-bound consumer, CPU doesn't reflect how far behind it is. Backlog (or lag, or oldest message age) measures the work waiting, which is what scaling should respond to."
+            },
+            {
+              "lang": null,
+              "q": "Scaling out a consumer from 10 to 50 replicas doesn't reduce the backlog, and the downstream database's connections are now maxed out. What is the lesson?",
+              "choices": [
+                "Scale to 100 replicas so the backlog finally drops",
+                "Switch the autoscaler's signal from CPU to memory",
+                "Make the consumers retry failed writes faster",
+                "Cap replicas at what the downstream can take"
+              ],
+              "answer": 3,
+              "explain": "When the limit is downstream, more consumers just add load where it hurts. Set a maximum based on what the dependency can handle and fix the real bottleneck."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "observability",
+      "title": "Observability",
+      "concepts": [
+        {
+          "id": "delivery-ops/observability/structured-logging",
+          "title": "Structured logging",
+          "summary": "Logging events as key-value fields (usually JSON) so they can be filtered and searched",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What does this `log/slog` call log for the trailing `\"user\"` argument?\n\n```go\nslog.Info(\"login failed\", \"user\")\n```",
+              "choices": [
+                "`user=` with an empty value",
+                "A compile error, because the arguments are unbalanced",
+                "Nothing: the extra argument is dropped",
+                "`!BADKEY=user`, since a key has no value"
+              ],
+              "answer": 3,
+              "explain": "slog takes alternating keys and values; a lone string at the end has no value, so it is logged as a value under the key `!BADKEY`. `go vet` (Go 1.21+) flags the mismatched pair, and `slog.String(\"user\", id)` avoids it."
+            },
+            {
+              "lang": "python",
+              "q": "With `logging.basicConfig(level=logging.INFO)`, what shows up for this call?\n\n```python\nlog.info(\"order created\", extra={\"order_id\": oid})\n```",
+              "choices": [
+                "The message, with `order_id` as a JSON field",
+                "Only the message: `extra` isn't in the format",
+                "An error, because `extra` needs a custom formatter",
+                "`order_id` appended to the message as `key=value`"
+              ],
+              "answer": 1,
+              "explain": "`extra` attaches attributes to the log record, but the default format string only includes the level, logger name and message. You need a JSON formatter (or a format string naming the field) for it to be emitted."
+            },
+            {
+              "lang": null,
+              "q": "Why log `{\"msg\": \"payment failed\", \"invoice_id\": \"inv_7\", \"provider\": \"x\"}` instead of the string `\"payment failed for invoice inv_7 via x\"`?",
+              "choices": [
+                "The JSON line takes fewer bytes to store",
+                "Log shippers drop lines that aren't JSON",
+                "You can query by field, not by regex",
+                "String logs can't safely include IDs"
+              ],
+              "answer": 2,
+              "explain": "Structured fields let a log tool query \"all failures for provider x\" directly. With free text you depend on regexes that break whenever the wording changes."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/observability/trace-context-propagation",
+          "title": "Trace context propagation",
+          "summary": "Passing the trace ID across every hop (the `traceparent` header, message metadata) so one request is one trace",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Service A calls service B over HTTP and both are instrumented with OpenTelemetry. How does B know its spans belong to A's trace?",
+              "choices": [
+                "B queries A's tracing backend by timestamp to match spans",
+                "A sends a `traceparent` header that B continues",
+                "Both services share a global trace ID set at deploy time",
+                "The load balancer matches spans up by client IP address"
+              ],
+              "answer": 1,
+              "explain": "Trace context travels with the request; each service reads it, creates child spans, and passes it on. Without propagation, B starts a new, unrelated trace."
+            },
+            {
+              "lang": null,
+              "q": "HTTP traces look complete, but every trace stops where service A publishes to a queue, and the consumer's work shows up as separate traces. What is missing?",
+              "choices": [
+                "The consumer's trace sampling rate is set too low",
+                "Message queues can't be traced at all",
+                "The consumer must use the same service name as A",
+                "The context isn't put in the message headers"
+              ],
+              "answer": 3,
+              "explain": "Async hops have no HTTP header, so the producer must put the context in message metadata and the consumer must extract it. Many queue client libraries need instrumentation for this to happen."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/observability/percentiles-over-averages",
+          "title": "Latency percentiles",
+          "summary": "Using p50/p95/p99 instead of averages, which hide the slow requests users notice",
+          "variants": [
+            {
+              "lang": null,
+              "q": "An endpoint's average latency is 90 ms and its p99 is 3.2 s. What does that mean?",
+              "choices": [
+                "The endpoint is fast; the p99 is noise",
+                "Most requests take around 3.2 s",
+                "About 1 request in 100 takes 3.2 s or longer",
+                "The average is wrong and should be recomputed"
+              ],
+              "answer": 2,
+              "explain": "p99 is the value 99% of requests are under, so 1% are at or above it. Averages blend that tail into fast requests and hide it."
+            },
+            {
+              "lang": null,
+              "q": "A page makes 20 backend calls in parallel and must wait for all of them. Each call's p99 is 1 s. Why is a single call's p99 a poor guide to the page's speed?",
+              "choices": [
+                "Parallel calls are always slower than sequential ones",
+                "One slow call in 20 delays the whole page",
+                "p99 only applies to single-threaded code paths",
+                "The page's latency is the average of the 20 calls"
+              ],
+              "answer": 1,
+              "explain": "With 20 independent calls, the chance at least one is in its slowest 1% is about 18%. Fan-out makes tail latency the common case, so look at the tail end to end."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/observability/histogram-aggregation",
+          "title": "Aggregating latency with histograms",
+          "summary": "Percentiles can't be averaged across instances; combine histograms, then compute the percentile",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Each of 10 pods reports its own p99 latency. A dashboard shows the average of those ten numbers as \"service p99\". What is wrong?",
+              "choices": [
+                "An average of percentiles isn't a percentile",
+                "It should be the sum of the ten values instead",
+                "Nothing, as long as every pod gets equal traffic",
+                "It should be the median of the ten values instead"
+              ],
+              "answer": 0,
+              "explain": "The true p99 depends on the whole distribution, which the ten summaries have thrown away. Exporting histograms (bucket counts) lets you add buckets across pods and compute the real percentile."
+            },
+            {
+              "lang": null,
+              "q": "Why do Prometheus users usually record request latency as a histogram rather than a summary when they want a service-wide p99?",
+              "choices": [
+                "Histograms use less memory than summaries in every case",
+                "Summaries can't record latency values, only counts",
+                "Histogram buckets can be summed across pods",
+                "Summaries are only available in the Go client"
+              ],
+              "answer": 2,
+              "explain": "A summary's quantiles are computed per instance and can't be combined; histogram bucket counters can be added up and fed to `histogram_quantile`. The price is that the percentile is an estimate limited by bucket boundaries."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/observability/metric-cardinality",
+          "title": "Metric label cardinality",
+          "summary": "Each unique label combination is a separate time series, so unbounded labels blow up the metrics store",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Someone adds a `user_id` label to `http_requests_total`. The service has 2 million users. What is the likely effect?",
+              "choices": [
+                "Nothing: labels are just text attached to one series",
+                "Queries get more precise, with no other cost",
+                "The client library rejects labels with over 100 values",
+                "Millions of new series, overloading the backend"
+              ],
+              "answer": 3,
+              "explain": "Every distinct label value creates its own series. Per-user detail belongs in logs or traces; metric labels should come from small, bounded sets like status code or route."
+            },
+            {
+              "lang": null,
+              "q": "Which label is safe on a request-count metric?",
+              "choices": [
+                "The raw URL path, such as `/orders/98213`",
+                "The route template, such as `/orders/:id`",
+                "The request ID",
+                "The client's IP address"
+              ],
+              "answer": 1,
+              "explain": "A route template has a small, fixed set of values. Raw paths, request IDs and IPs are unbounded and each creates new series."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/observability/red-and-use",
+          "title": "RED and USE methods",
+          "summary": "RED (rate, errors, duration) for services; USE (utilization, saturation, errors) for resources",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You are building a first dashboard for an HTTP service. Which three signals does the RED method say to show?",
+              "choices": [
+                "Rate, errors, duration",
+                "Replicas, events, deploys",
+                "Utilization, saturation, errors",
+                "Retries, exceptions, downtime"
+              ],
+              "answer": 0,
+              "explain": "RED describes a service from its callers' view: how much traffic, how much fails, how slow. Utilization, saturation and errors is USE, which is for resources like CPU, disks and pools."
+            },
+            {
+              "lang": null,
+              "q": "Using the USE method on a database connection pool, which measurement is \"saturation\"?",
+              "choices": [
+                "The share of pool connections currently in use",
+                "The number of failed connection attempts",
+                "Requests waiting for a free connection",
+                "The average query duration on the pool"
+              ],
+              "answer": 2,
+              "explain": "Saturation is work that can't be served yet and is queued. Share in use is utilization; failed attempts are errors."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "incident-response",
+      "title": "Incident response",
+      "concepts": [
+        {
+          "id": "delivery-ops/incident-response/mitigate-first",
+          "title": "Mitigate first, root cause later",
+          "summary": "Stopping user impact (rollback, flag off, failover) before working out exactly why it happened",
+          "basic": true,
+          "variants": [
+            {
+              "lang": null,
+              "q": "Error rates jumped right after a deploy 10 minutes ago. Nobody knows the cause yet. What should happen first?",
+              "choices": [
+                "Read the diff until the bug is found, then hotfix",
+                "Roll back the deploy, then investigate",
+                "Add more logging and redeploy to learn more",
+                "Wait to see whether it recovers on its own"
+              ],
+              "answer": 1,
+              "explain": "The deploy is the obvious suspect and rolling back is quick and low-risk, so it ends user impact now. Finding the root cause can happen calmly afterwards; debugging live keeps users waiting."
+            },
+            {
+              "lang": null,
+              "q": "During an incident one engineer wants to keep debugging a promising theory, while another can fail over to a healthy region in two minutes. What does good incident practice favour?",
+              "choices": [
+                "Debug first, since failing over destroys evidence",
+                "Run both at once without telling each other",
+                "Wait until the incident commander joins",
+                "Fail over now, keeping logs for later"
+              ],
+              "answer": 3,
+              "explain": "Restoring service comes before understanding it, as long as you capture what you need for the review. The faulty region can still be investigated after traffic has moved."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/incident-response/alert-on-symptoms",
+          "title": "Alerting on symptoms",
+          "summary": "Paging on user-visible impact such as error rate or latency, not on internal causes like CPU",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Which alert is most worth waking someone up for?",
+              "choices": [
+                "Login 5xx rate above 1% for 10 minutes",
+                "CPU above 90% on any pod in the cluster",
+                "Disk usage at 60% on the shared log volume",
+                "A pod restarted once in the last hour"
+              ],
+              "answer": 0,
+              "explain": "A symptom alert fires when users are actually affected and points at what to fix. High CPU can be perfectly healthy, so paging on it wakes people for nothing and trains them to ignore pages."
+            },
+            {
+              "lang": null,
+              "q": "An on-call engineer gets 40 pages a week and most need no action. What is the right response?",
+              "choices": [
+                "Add more on-call engineers to share the pages",
+                "Lower thresholds so real problems are caught sooner",
+                "Tune or remove the alerts nobody acts on",
+                "Forward all alerts to a chat channel nobody owns"
+              ],
+              "answer": 2,
+              "explain": "Alert fatigue makes people miss the page that matters. Every page should mean a human needs to act now; the rest go to tickets or dashboards."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/incident-response/error-budget",
+          "title": "SLOs and error budgets",
+          "summary": "A reliability target over a window, and the amount of failure it allows before reliability work takes priority",
+          "variants": [
+            {
+              "lang": null,
+              "q": "An SLO says 99.9% of requests succeed over 30 days. If the service were fully down, roughly how much downtime would use the whole error budget?",
+              "choices": [
+                "About 4.3 minutes",
+                "About 7.2 hours",
+                "About 43 minutes",
+                "About 3.6 days"
+              ],
+              "answer": 2,
+              "explain": "0.1% of 30 days (43,200 minutes) is about 43 minutes. 4.3 minutes would be a 99.99% target."
+            },
+            {
+              "lang": null,
+              "q": "A team has used its whole error budget for the month with two weeks left. Under a typical error budget policy, what changes?",
+              "choices": [
+                "The SLO target is lowered for the rest of the month",
+                "Risky launches pause; reliability work comes first",
+                "Nothing changes until the next month starts",
+                "The team stops all deploys, including bug fixes"
+              ],
+              "answer": 1,
+              "explain": "The budget is the agreed trade-off between shipping and reliability; once spent, the balance tips toward reliability. Fixes that improve reliability still ship, so a total freeze isn't the point."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/incident-response/burn-rate-alerts",
+          "title": "Burn-rate alerting",
+          "summary": "Alerting on how fast the error budget is being spent, over a short and a long window",
+          "variants": [
+            {
+              "lang": null,
+              "q": "With a 30-day SLO window, a burn rate of 1 means the budget will be exactly used up in 30 days. Sustained for 1 hour, what share of the 30-day budget does a burn rate of 14.4 use?",
+              "choices": [
+                "About 14%",
+                "About 0.5%",
+                "About 48%",
+                "About 2%"
+              ],
+              "answer": 3,
+              "explain": "One hour is 1/720 of 30 days, so 14.4 × 1/720 = 2% of the budget. That's why a high burn rate over a short window is a common paging threshold."
+            },
+            {
+              "lang": null,
+              "q": "Why do burn-rate alerts often require both a long window (say 1 hour) and a short window (say 5 minutes) to be over the threshold?",
+              "choices": [
+                "Long window shows it's real; short shows it's ongoing",
+                "Most monitoring tools can't evaluate a single-window rule",
+                "The short window catches problems the long one never sees",
+                "It halves the number of alert rules that need maintaining"
+              ],
+              "answer": 0,
+              "explain": "A long window alone keeps firing for a while after the problem is fixed; a short window alone is noisy. Requiring both gives alerts that are significant and current."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/incident-response/incident-commander",
+          "title": "Incident commander",
+          "summary": "One person who coordinates the response and makes calls, rather than debugging hands-on",
+          "variants": [
+            {
+              "lang": null,
+              "q": "In a major incident, what is the incident commander's main job?",
+              "choices": [
+                "Find and fix the root cause personally",
+                "Write the postmortem while the incident runs",
+                "Coordinate roles, decisions and updates",
+                "Approve every command before anyone runs it"
+              ],
+              "answer": 2,
+              "explain": "The commander keeps the response organised so responders can focus on the system. If they dive into debugging, nobody is watching the whole picture."
+            },
+            {
+              "lang": null,
+              "q": "Eight engineers have joined an incident call, three are trying different fixes at the same time, and nobody is updating stakeholders. What is the most useful first move?",
+              "choices": [
+                "Ask everyone to keep trying fixes until one works",
+                "Name a commander who assigns roles",
+                "Remove everyone except the most senior engineer",
+                "Start writing the postmortem timeline right away"
+              ],
+              "answer": 1,
+              "explain": "Uncoordinated changes make it impossible to tell what helped or hurt. A clear commander and roles turn a crowd into a response."
+            }
+          ]
+        },
+        {
+          "id": "delivery-ops/incident-response/blameless-postmortem",
+          "title": "Running a blameless postmortem",
+          "summary": "Reviewing an incident to find how the system allowed it and what to change, without blaming individuals",
+          "variants": []
+        }
+      ]
+    }
+  ]
+}

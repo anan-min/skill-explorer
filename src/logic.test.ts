@@ -101,13 +101,13 @@ describe("states", () => {
 });
 
 describe("pickVariant", () => {
-  it("with Both, prefers a language not yet tested", () => {
+  it("with Any, prefers a language not yet tested", () => {
     const c = quizzable("c", ["go", "ts"]);
     const p = answer(emptyProgress(), c, 0, 1);
     expect(pickVariant(c, p, "both", first)).toBe(1);
   });
 
-  it("with Both and every language tested, picks from all", () => {
+  it("with Any and every language tested, picks from all", () => {
     const c = quizzable("c", ["go", "ts"]);
     const p = answer(answer(emptyProgress(), c, 0, 1), c, 1, 1);
     expect([0, 1]).toContain(pickVariant(c, p, "both", Math.random));

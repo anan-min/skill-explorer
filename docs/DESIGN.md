@@ -82,7 +82,7 @@ One file per group: `content/NN-<group-id>.json` (`01-language-runtime.json` …
       "summary": "One line, shown in the gap list",
       "basic": true,                              // optional: a foundational question, see step 2
       "variants": [{                              // [] = scan-only
-        "lang": "go",                             // "go" | "ts" | null
+        "lang": "go",                             // "go" | "ts" | "python" | null
         "q": "Markdown, code fences allowed",
         "choices": ["…", "…", "…", "…"],
         "answer": 2,                              // index into choices
@@ -142,7 +142,7 @@ Home has two buttons, so people know up front what they're starting. Neither let
 - At most **12** checks. Never a `confirmed` concept.
 - Choices are shuffled when shown, since LLM-drafted questions tend to put the answer in the same position.
 - After each answer, show the right answer and `explain`. Each answer is saved immediately.
-- **Language toggle:** Go / TS / Both, default Both. With Both, prefer the language not yet tested for that concept. Variants with `lang: null` always qualify.
+- **Language toggle:** Go / TS / Python / Any, default Any. With Any, prefer the language not yet tested for that concept. Variants with `lang: null` always qualify.
 - Each question has a **"Report this question"** link: a prefilled new GitHub issue titled `[report] <concept id> #<variant index>`. Nothing personal in the link.
 
 ## Results page

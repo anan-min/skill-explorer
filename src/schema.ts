@@ -1,7 +1,10 @@
 import { z } from "zod";
 
+export const Lang = z.enum(["go", "ts", "python"]);
+export const LANG_LABELS: Record<z.infer<typeof Lang>, string> = { go: "Go", ts: "TS", python: "Python" };
+
 export const Variant = z.object({
-  lang: z.enum(["go", "ts"]).nullable(),
+  lang: Lang.nullable(),
   q: z.string().min(1),
   choices: z
     .array(z.string().min(1))

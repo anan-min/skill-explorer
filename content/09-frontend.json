@@ -1,0 +1,989 @@
+{
+  "group": {
+    "id": "frontend",
+    "title": "Frontend"
+  },
+  "skills": [
+    {
+      "id": "components",
+      "title": "Components",
+      "concepts": [
+        {
+          "id": "frontend/components/controlled-inputs",
+          "title": "Controlled vs uncontrolled inputs",
+          "summary": "Whether React state (`value` + `onChange`) or the DOM itself owns an input's current value",
+          "basic": true,
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What happens when the user types into this input?\n\n```tsx\nfunction Name() {\n  const [name, setName] = useState('Ada')\n  return <input value={name} />\n}\n```",
+              "choices": [
+                "The text updates and `name` stays `'Ada'`",
+                "The text updates and `name` updates with it",
+                "It stays `'Ada'`: nothing updates `name`",
+                "React throws an error on the first keystroke"
+              ],
+              "answer": 2,
+              "explain": "Passing `value` makes React the owner of the input, so without an `onChange` that updates state the displayed value never changes (React also warns about it). Use `defaultValue` for an uncontrolled input."
+            },
+            {
+              "lang": "ts",
+              "q": "`<input defaultValue={user.name} />` renders with `'Ada'`. Later the parent passes a user whose name is `'Grace'`. What does the input show?",
+              "choices": [
+                "`'Grace'`, because the prop changed",
+                "`'Ada'`: `defaultValue` only applies on mount",
+                "An empty input, since the old default was replaced",
+                "`'AdaGrace'`, appended to the existing value"
+              ],
+              "answer": 1,
+              "explain": "An uncontrolled input keeps its own value after mount, so later `defaultValue` changes are ignored. Make it controlled, or give it a `key` tied to the user so it remounts."
+            }
+          ]
+        },
+        {
+          "id": "frontend/components/list-keys",
+          "title": "Keys in lists",
+          "summary": "Giving list items stable, unique `key`s so React matches each item's state to the right row",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "Each row has its own text input with local state. After deleting the first todo, the remaining rows show the wrong typed text. Why?\n\n```tsx\n{todos.map((todo, i) => (\n  <TodoRow key={i} todo={todo} />\n))}\n```",
+              "choices": [
+                "Keys must be strings, not numbers, or React ignores them",
+                "React re-renders lists from scratch, so input state is lost",
+                "`TodoRow` needs `React.memo` to hold on to its state",
+                "Index keys tie state to position, so it shifts"
+              ],
+              "answer": 3,
+              "explain": "After removing item 0, the old key `1` becomes key `0`, so React reuses the first row's component (and state) for what was the second todo. Use a stable ID like `todo.id` as the key."
+            },
+            {
+              "lang": "ts",
+              "q": "Which `key` is the best choice for rows rendered from API data?",
+              "choices": [
+                "The item's database ID, `item.id`",
+                "`Math.random()`, so every key is unique",
+                "The array index",
+                "`JSON.stringify(item)`"
+              ],
+              "answer": 0,
+              "explain": "A key should be unique among siblings and stay the same for the same item across renders. Random keys remount every row on each render, and stringified content changes whenever any field changes."
+            }
+          ]
+        },
+        {
+          "id": "frontend/components/key-reset",
+          "title": "Resetting state with a key",
+          "summary": "Changing a component's `key` to make React throw away its state and mount a fresh one",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "`<ProfileForm userId={id} />` keeps the previous user's half-typed form data when you switch users. Which change resets the form whenever the user changes?",
+              "choices": [
+                "Wrap `ProfileForm` in `React.memo`",
+                "Add `key={id}` to `ProfileForm`",
+                "Call `forceUpdate()` when `id` changes",
+                "Move the form state into a `useRef`"
+              ],
+              "answer": 1,
+              "explain": "A new `key` tells React this is a different component instance, so it unmounts the old one and mounts a new one with fresh state. Re-rendering (memo or not) keeps the existing state."
+            },
+            {
+              "lang": "ts",
+              "q": "A chat window is rendered as `<Chat key={roomId} roomId={roomId} />`. What happens to `Chat`'s state and effects when `roomId` changes?",
+              "choices": [
+                "State is kept; only the props update",
+                "State is kept, but all effects rerun",
+                "It remounts with fresh state",
+                "React throws, since `key` duplicates a prop"
+              ],
+              "answer": 2,
+              "explain": "Different key, different instance: React runs the old instance's effect cleanups, discards its state and mounts a fresh one. Passing the same value as both `key` and a prop is normal."
+            }
+          ]
+        },
+        {
+          "id": "frontend/components/effect-cleanup",
+          "title": "Effect cleanup",
+          "summary": "Returning a cleanup function from `useEffect` to undo subscriptions, timers and listeners",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "In development with React 18+ `<StrictMode>`, this component receives every chat message twice. Why?\n\n```tsx\nuseEffect(() => {\n  socket.on('message', addMessage)\n}, [])\n```",
+              "choices": [
+                "StrictMode delivers every socket event twice",
+                "Setup ran twice and nothing removed a listener",
+                "`useEffect` with `[]` runs on every render in development",
+                "`addMessage` is a new function on every render"
+              ],
+              "answer": 1,
+              "explain": "StrictMode deliberately runs the setup, cleanup, setup cycle in development to expose missing cleanups. Returning `() => socket.off('message', addMessage)` fixes it, and fixes the same leak in production when the component remounts."
+            },
+            {
+              "lang": "ts",
+              "q": "What goes wrong here when `delayMs` changes a few times?\n\n```tsx\nuseEffect(() => {\n  setInterval(poll, delayMs)\n}, [delayMs])\n```",
+              "choices": [
+                "Nothing: React stops the old interval automatically",
+                "The effect runs once, so the new delay is ignored",
+                "`setInterval` can't be called inside an effect",
+                "Intervals pile up; old ones never stop"
+              ],
+              "answer": 3,
+              "explain": "React runs the effect again but doesn't know about the timer, so intervals pile up. Return `() => clearInterval(id)` so the previous one is cleared before the next starts and on unmount."
+            }
+          ]
+        },
+        {
+          "id": "frontend/components/derived-state",
+          "title": "Derived state instead of copied props",
+          "summary": "Computing values from props and state during render instead of copying them into extra state",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "The parent changes `initialPrice` after the first render. What does the component show?\n\n```tsx\nfunction Price({ initialPrice }: { initialPrice: number }) {\n  const [price] = useState(initialPrice)\n  return <span>{price}</span>\n}\n```",
+              "choices": [
+                "The first value: `useState` ignores later arguments",
+                "The new value, since prop changes re-run `useState`",
+                "The new value, but only one render later",
+                "Nothing: React throws on a changed initial value"
+              ],
+              "answer": 0,
+              "explain": "The argument to `useState` is just the initial value. If the component should follow the prop, read the prop directly instead of copying it into state."
+            },
+            {
+              "lang": "ts",
+              "q": "A component keeps `fullName` in state and updates it in a `useEffect` whenever `first` or `last` change. What is the simpler and more correct approach?",
+              "choices": [
+                "Store `fullName` in a `useRef` instead of state",
+                "Move the effect into a `useLayoutEffect`",
+                "Compute `fullName` during render",
+                "Keep `fullName` in a global store"
+              ],
+              "answer": 2,
+              "explain": "Values that can be computed from existing props or state shouldn't be state. The effect version renders once with a stale `fullName`, then again with the right one."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "title": "State",
+      "concepts": [
+        {
+          "id": "frontend/state/immutable-updates",
+          "title": "Immutable state updates",
+          "summary": "Creating new arrays and objects for state changes, because React compares by reference",
+          "basic": true,
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "Clicking the button doesn't show the new item. Why?\n\n```tsx\nconst [items, setItems] = useState<string[]>([])\nconst add = () => {\n  items.push('new')\n  setItems(items)\n}\n```",
+              "choices": [
+                "`push` is asynchronous inside React components",
+                "`setItems` needs to be awaited before rendering",
+                "`useState` arrays are frozen, so `push` does nothing",
+                "Same array reference, so React skips the render"
+              ],
+              "answer": 3,
+              "explain": "React compares the new state with the old using `Object.is`; mutating and passing the same reference looks unchanged. Use `setItems([...items, 'new'])` to create a new array."
+            },
+            {
+              "lang": "ts",
+              "q": "Which update correctly changes `user.address.city` in state?",
+              "choices": [
+                "`user.address.city = 'Oslo'; setUser(user)`",
+                "`setUser({ ...user, address: { ...user.address, city: 'Oslo' } })`",
+                "`setUser({ ...user, city: 'Oslo' })`",
+                "`setUser(Object.assign(user, { address: { ...user.address, city: 'Oslo' } }))`"
+              ],
+              "answer": 1,
+              "explain": "Each level on the path to the change needs a new object, while untouched fields are copied over. `Object.assign` onto `user` mutates and returns the same reference, so React won't re-render."
+            }
+          ]
+        },
+        {
+          "id": "frontend/state/functional-updates",
+          "title": "Functional state updates",
+          "summary": "Passing an updater like `setCount(c => c + 1)` so each update builds on the latest value",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "`count` starts at 0. What is it after one click?\n\n```tsx\nconst onClick = () => {\n  setCount(count + 1)\n  setCount(count + 1)\n  setCount(count + 1)\n}\n```",
+              "choices": [
+                "1",
+                "3",
+                "0",
+                "It depends on whether React batches"
+              ],
+              "answer": 0,
+              "explain": "All three calls read the same `count` from this render, so each sets it to 1. `setCount(c => c + 1)` three times would give 3, because each updater gets the latest pending value."
+            },
+            {
+              "lang": "ts",
+              "q": "`count` starts at 0. What is it after one click?\n\n```tsx\nconst onClick = () => {\n  setCount(c => c + 1)\n  setCount(c => c + 1)\n}\n```",
+              "choices": [
+                "1",
+                "0",
+                "2",
+                "It throws, because updaters can't be chained"
+              ],
+              "answer": 2,
+              "explain": "React queues updater functions and runs them in order, each receiving the result of the previous one, so the count goes 0, 1, 2."
+            }
+          ]
+        },
+        {
+          "id": "frontend/state/stale-closures",
+          "title": "Stale closures in hooks",
+          "summary": "Callbacks created in one render keep seeing that render's state unless they are recreated",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "The button increments `count`, but the interval always logs `0`. Why?\n\n```tsx\nconst [count, setCount] = useState(0)\nuseEffect(() => {\n  const id = setInterval(() => console.log(count), 1000)\n  return () => clearInterval(id)\n}, [])\n```",
+              "choices": [
+                "`setInterval` copies its arguments when it starts",
+                "The callback holds the first render's `count`",
+                "`console.log` caches the first value it prints",
+                "State updates are paused while an interval runs"
+              ],
+              "answer": 1,
+              "explain": "Each render has its own `count`; the callback created in the first render only ever sees `0`. Add `count` to the dependencies, or read the latest value through a ref."
+            },
+            {
+              "lang": "ts",
+              "q": "A `keydown` listener is added in `useEffect(() => { ... }, [])` and calls `save(draft)`. After typing, pressing Ctrl+S saves an empty draft. What is the cause?",
+              "choices": [
+                "`keydown` events fire before React state updates",
+                "Window listeners can't read React state at all",
+                "`save` must be wrapped in `useCallback` first",
+                "The listener still holds the first `draft`"
+              ],
+              "answer": 3,
+              "explain": "With an empty dependency list the listener is never replaced, so it closes over the initial `draft`. Re-subscribe when `draft` changes, or keep the latest value in a ref the listener reads."
+            }
+          ]
+        },
+        {
+          "id": "frontend/state/context-rerenders",
+          "title": "Context re-renders",
+          "summary": "Every consumer re-renders when a context value changes, including when it's a new object each render",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "Every component using `AuthContext` re-renders whenever `App` re-renders, even when `user` hasn't changed. Why?\n\n```tsx\n<AuthContext.Provider value={{ user, setUser }}>\n  {children}\n</AuthContext.Provider>\n```",
+              "choices": [
+                "`value` is a new object on every render",
+                "Context consumers always re-render with their parent",
+                "`setUser` gets a new identity on every render",
+                "Providers must be placed outside `App` to work"
+              ],
+              "answer": 0,
+              "explain": "React compares the context value by reference, and an object literal is new each time. Wrap it in `useMemo(() => ({ user, setUser }), [user])`. `setUser` from `useState` is stable, so it isn't the cause."
+            },
+            {
+              "lang": "ts",
+              "q": "A component is wrapped in `React.memo` and calls `useContext(ThemeContext)`. Its props don't change, but the theme value does. Does it re-render?",
+              "choices": [
+                "No: `memo` blocks re-renders when props are equal",
+                "Only if it also receives the theme as a prop",
+                "Yes: context changes bypass `memo`",
+                "Only in development mode, not in production"
+              ],
+              "answer": 2,
+              "explain": "`memo` skips re-renders caused by the parent with equal props, but a component that reads a context always re-renders when that context's value changes."
+            }
+          ]
+        },
+        {
+          "id": "frontend/state/server-state-cache",
+          "title": "Server state caching",
+          "summary": "Treating fetched data as a cache keyed by query (TanStack Query, SWR), separate from UI state",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "Switching pages shows the same todos every time. What's wrong?\n\n```tsx\nconst { data } = useQuery({\n  queryKey: ['todos'],\n  queryFn: () => fetchTodos(page),\n})\n```",
+              "choices": [
+                "`queryFn` must be declared outside the component",
+                "TanStack Query caches only the first page by default",
+                "`page` must be passed as a separate query option",
+                "`page` is missing from `queryKey`"
+              ],
+              "answer": 3,
+              "explain": "The query key identifies the cached data; anything the fetch depends on must be in it. Use `queryKey: ['todos', page]` so each page has its own entry and changing it triggers a fetch."
+            },
+            {
+              "lang": "ts",
+              "q": "Two components mounted at the same time both call `useQuery({ queryKey: ['user', id], ... })` with the same `id`. How many requests does TanStack Query make?",
+              "choices": [
+                "Two, one per component that calls `useQuery`",
+                "One, shared by both components",
+                "None until one of them calls `refetch()`",
+                "One per render of each of the two components"
+              ],
+              "answer": 1,
+              "explain": "Queries with the same key share one cache entry, so concurrent consumers are deduplicated into a single fetch. This is a main reason to use a server-state library instead of fetching in each component's effect."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "performance",
+      "title": "Performance",
+      "concepts": [
+        {
+          "id": "frontend/performance/core-web-vitals",
+          "title": "Core Web Vitals",
+          "summary": "LCP (loading), INP (responsiveness) and CLS (visual stability), Google's user-experience metrics",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Users complain that text jumps down just as they tap it, because a banner image loads above it with no reserved space. Which Core Web Vital measures this?",
+              "choices": [
+                "Largest Contentful Paint (LCP)",
+                "Interaction to Next Paint (INP)",
+                "Time to First Byte (TTFB)",
+                "Cumulative Layout Shift (CLS)"
+              ],
+              "answer": 3,
+              "explain": "CLS measures unexpected movement of visible content. Giving images `width` and `height` (or an `aspect-ratio`) reserves the space and prevents the shift."
+            },
+            {
+              "lang": null,
+              "q": "Clicking \"Add to cart\" runs a 400 ms synchronous handler before the page visibly responds. Which Core Web Vital captures this?",
+              "choices": [
+                "Interaction to Next Paint (INP)",
+                "Cumulative Layout Shift (CLS)",
+                "Largest Contentful Paint (LCP)",
+                "First Contentful Paint (FCP)"
+              ],
+              "answer": 0,
+              "explain": "INP measures the delay from a user interaction to the next frame being painted; it replaced First Input Delay as a Core Web Vital in March 2024. LCP is about how fast the main content loads."
+            }
+          ]
+        },
+        {
+          "id": "frontend/performance/code-splitting",
+          "title": "Code splitting",
+          "summary": "Loading parts of the app on demand with dynamic `import()` instead of in one big bundle",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What does this change do to the app's bundles?\n\n```tsx\nconst Reports = lazy(() => import('./Reports'))\n// ...\n<Suspense fallback={<Spinner />}>\n  <Reports />\n</Suspense>\n```",
+              "choices": [
+                "Nothing: `lazy` only delays rendering, not loading",
+                "It removes `Reports` from the production build",
+                "`Reports` moves to its own chunk, loaded on use",
+                "It preloads `Reports` in a web worker at startup"
+              ],
+              "answer": 2,
+              "explain": "A dynamic `import()` is a split point: the module goes into its own chunk and loads on first use, with `Suspense` showing the fallback meanwhile. Users who never open Reports never download it."
+            },
+            {
+              "lang": "ts",
+              "q": "A dashboard's initial bundle is 2 MB, mostly from a charting library used only on one admin page. What's the most effective fix?",
+              "choices": [
+                "Run the bundle through a second minifier pass",
+                "Lazy-load the admin page's route",
+                "Serve the bundle from a CDN closer to users",
+                "Wrap the chart components in `React.memo`"
+              ],
+              "answer": 1,
+              "explain": "Splitting at the route keeps the library out of the code every user downloads. A CDN helps delivery but still sends 2 MB, and `memo` affects rendering, not download size."
+            }
+          ]
+        },
+        {
+          "id": "frontend/performance/memo-referential-equality",
+          "title": "Memoization and referential equality",
+          "summary": "`React.memo` only skips a render when every prop is the same reference, so new objects and functions defeat it",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "`Row` is wrapped in `React.memo`, yet every row re-renders when the parent does. Why?\n\n```tsx\n{rows.map(r => (\n  <Row key={r.id} row={r} onSelect={() => select(r.id)} />\n))}\n```",
+              "choices": [
+                "`memo` doesn't work for components rendered inside `map`",
+                "`onSelect` is a new function every render",
+                "Passing a `key` prop disables memoization",
+                "`row` objects are deep-compared and always differ"
+              ],
+              "answer": 1,
+              "explain": "`memo` does a shallow comparison by reference, and an inline arrow is a new function each time. Pass a stable callback (for example `useCallback` and `onSelect={select}` with the id passed inside `Row`)."
+            },
+            {
+              "lang": "ts",
+              "q": "A memoized `Chart` gets `options={{ color: 'red' }}` from its parent. Which change lets `memo` skip re-renders when nothing else changes?",
+              "choices": [
+                "Hoist it to a constant or use `useMemo`",
+                "Pass `options={Object.freeze({ color: 'red' })}` instead",
+                "Add `options` to `Chart`'s `key` prop",
+                "Convert `Chart` to a class component"
+              ],
+              "answer": 0,
+              "explain": "An object literal in JSX is a new reference every render, so the shallow prop check fails. A constant or `useMemo` keeps the same reference across renders."
+            }
+          ]
+        },
+        {
+          "id": "frontend/performance/list-virtualization",
+          "title": "List virtualization",
+          "summary": "Rendering only the rows in view for very long lists (react-window, TanStack Virtual)",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A table renders 20,000 rows and scrolling is janky. What does virtualization change?",
+              "choices": [
+                "It moves rendering of the rows into a web worker",
+                "It pages the data so only 50 rows are fetched",
+                "It keeps every row in the DOM but hides off-screen ones",
+                "It renders only rows near the viewport"
+              ],
+              "answer": 3,
+              "explain": "Virtualization keeps the DOM small by mounting just the visible window plus a buffer. Hiding rows with CSS still leaves 20,000 nodes for the browser to manage."
+            },
+            {
+              "lang": null,
+              "q": "After virtualizing a long list, what is a known trade-off?",
+              "choices": [
+                "Rows can no longer have their own click handlers",
+                "Find-in-page misses rows that aren't rendered",
+                "The list must be sorted on the server first",
+                "Every row must have the same length of text"
+              ],
+              "answer": 1,
+              "explain": "Off-screen rows don't exist in the DOM, so Ctrl+F and some assistive technologies can't reach them. That's one reason to use virtualization only when the list is truly long."
+            }
+          ]
+        },
+        {
+          "id": "frontend/performance/layout-thrashing",
+          "title": "Layout thrashing",
+          "summary": "Interleaving DOM reads and writes so the browser recalculates layout over and over",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "This loop is slow with many boxes. Why?\n\n```ts\nfor (const box of boxes) {\n  const h = box.offsetHeight\n  box.style.height = `${h + 10}px`\n}\n```",
+              "choices": [
+                "Template strings are slow inside hot loops",
+                "Each `style` write repaints the screen immediately",
+                "Each read after a write forces a layout",
+                "`for...of` is slower than a classic `for` loop"
+              ],
+              "answer": 2,
+              "explain": "Reading a layout property makes the browser apply pending style changes first, so every iteration lays out the page again. Read all heights first, then write all styles."
+            },
+            {
+              "lang": "ts",
+              "q": "Which pattern avoids layout thrashing when resizing many elements?",
+              "choices": [
+                "Do all reads first, then all writes",
+                "Alternate reads and writes inside one loop",
+                "Wrap each style write in its own `setTimeout`",
+                "Read with `getComputedStyle` instead of `offsetHeight`"
+              ],
+              "answer": 0,
+              "explain": "Batching reads before writes means layout is computed once for the reads and once after the writes. `getComputedStyle` reads also force style and layout work, so swapping APIs doesn't help."
+            }
+          ]
+        },
+        {
+          "id": "frontend/performance/react-profiler",
+          "title": "Profiling renders with React DevTools",
+          "summary": "Recording interactions in the React DevTools Profiler to see which components render and why",
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "accessibility",
+      "title": "Accessibility",
+      "concepts": [
+        {
+          "id": "frontend/accessibility/semantic-buttons",
+          "title": "Native buttons over clickable divs",
+          "summary": "Using `<button>` for actions so keyboard, focus and screen-reader support come built in",
+          "basic": true,
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What do keyboard users lose with this control?\n\n```tsx\n<div className=\"btn\" onClick={save}>Save</div>\n```",
+              "choices": [
+                "Nothing, as long as it has a visible text label",
+                "Only the hover and active styles",
+                "Mouse clicks stop working on touch devices",
+                "Tab focus, Enter/Space, and the button role"
+              ],
+              "answer": 3,
+              "explain": "A `div` has no role, no focusability and no keyboard activation. `<button type=\"button\" onClick={save}>` provides all three for free."
+            },
+            {
+              "lang": "ts",
+              "q": "A team adds `role=\"button\"` to a clickable `div`. What else is still needed for it to behave like a real button?",
+              "choices": [
+                "Nothing: the role adds keyboard support",
+                "`tabIndex={0}` plus Enter/Space handlers",
+                "Only an `aria-label` describing the action",
+                "Only a visible `:focus` outline style"
+              ],
+              "answer": 1,
+              "explain": "ARIA roles change what assistive technology announces, not how the element behaves. You must add focusability and keyboard activation yourself, which is why a native `<button>` is the better choice."
+            }
+          ]
+        },
+        {
+          "id": "frontend/accessibility/alt-text",
+          "title": "Alt text",
+          "summary": "Describing an image's purpose in `alt`, or using `alt=\"\"` when it's purely decorative",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A decorative divider image adds nothing to the content. What should its `alt` attribute be?",
+              "choices": [
+                "Leave `alt` off entirely",
+                "`alt=\"divider image\"`",
+                "`alt=\"\"`",
+                "`alt=\"decorative\"`"
+              ],
+              "answer": 2,
+              "explain": "An empty `alt` marks the image as decorative and screen readers skip it. Leaving `alt` off is worse: many screen readers then read the file name."
+            },
+            {
+              "lang": null,
+              "q": "A link contains only a magnifying-glass icon image and goes to the search page. What is the best `alt` for the image?",
+              "choices": [
+                "`alt=\"Search\"`",
+                "`alt=\"magnifying glass icon\"`",
+                "`alt=\"\"`",
+                "`alt=\"click here\"`"
+              ],
+              "answer": 0,
+              "explain": "When an image is a link's only content, its `alt` becomes the link's name, so it should say where the link goes or what it does. Describing the picture tells users nothing useful, and an empty `alt` leaves the link unnamed."
+            }
+          ]
+        },
+        {
+          "id": "frontend/accessibility/form-labels",
+          "title": "Labelling form fields",
+          "summary": "Associating every input with a `<label>`; a placeholder is not a label",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "A form uses `<input placeholder=\"Email\" />` with no label. What is the main accessibility problem?",
+              "choices": [
+                "Placeholders aren't supported in every browser yet",
+                "The input can't receive keyboard focus at all",
+                "Screen readers always read placeholders twice",
+                "It has no dependable label once typing starts"
+              ],
+              "answer": 3,
+              "explain": "A placeholder isn't a dependable label and it disappears while typing, which hurts screen reader users and anyone who forgets what the field was. Use a visible `<label>` tied to the input."
+            },
+            {
+              "lang": "ts",
+              "q": "Which markup correctly labels the input in React?",
+              "choices": [
+                "`<label for=\"email\">Email</label><input name=\"email\" />`",
+                "`<label htmlFor=\"email\">Email</label><input id=\"email\" />`",
+                "`<span id=\"email\">Email</span><input aria-describedby=\"email\" />`",
+                "`<label id=\"email\">Email</label><input />` as siblings"
+              ],
+              "answer": 1,
+              "explain": "`htmlFor` must match the input's `id` (React uses `htmlFor` for the HTML `for` attribute). `name` doesn't link a label, and a sibling label without `htmlFor` isn't associated, whatever its own `id`."
+            }
+          ]
+        },
+        {
+          "id": "frontend/accessibility/modal-focus",
+          "title": "Focus management in dialogs",
+          "summary": "Moving focus into a modal when it opens, keeping it there, and returning it when it closes",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A custom modal opens, but keyboard focus stays on the button behind it, and Tab moves through the page underneath. What should happen instead?",
+              "choices": [
+                "Focus stays on the opener so users don't lose their place",
+                "Focus moves to the browser's address bar",
+                "Into the dialog, trapped, back to the opener on close",
+                "Tab is disabled entirely until the dialog closes"
+              ],
+              "answer": 2,
+              "explain": "Keyboard and screen reader users need to land in the dialog and not wander behind it, then come back where they were. The native `<dialog>` element opened with `showModal()` handles much of this."
+            },
+            {
+              "lang": null,
+              "q": "After a modal closes, focus jumps to the top of the page. Why is that a problem, and what's the fix?",
+              "choices": [
+                "Users lose their place; return focus to the opener",
+                "It breaks browser history; call `history.back()` on close",
+                "It scrolls the page; disable page scrolling on close",
+                "It's fine: the top of the page is the expected target"
+              ],
+              "answer": 0,
+              "explain": "Sending focus to the start forces keyboard users to tab all the way back. Restoring focus to the opener keeps them where they were."
+            }
+          ]
+        },
+        {
+          "id": "frontend/accessibility/color-contrast",
+          "title": "Colour contrast",
+          "summary": "WCAG AA needs 4.5:1 for normal text and 3:1 for large text against its background",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Under WCAG 2 level AA, what is the minimum contrast ratio for normal-size body text?",
+              "choices": [
+                "3:1",
+                "7:1",
+                "2:1",
+                "4.5:1"
+              ],
+              "answer": 3,
+              "explain": "AA requires 4.5:1 for normal text and 3:1 for large text. 7:1 is the stricter AAA level."
+            },
+            {
+              "lang": null,
+              "q": "A design uses light grey `#999` text on white for form hints, which is below 3:1. What is the accessible fix?",
+              "choices": [
+                "Make the hint text italic",
+                "Darken it to at least 4.5:1",
+                "Add a tooltip repeating the text",
+                "Increase the letter spacing"
+              ],
+              "answer": 1,
+              "explain": "Contrast depends on colour, not style. Italics, spacing or tooltips don't make low-contrast text readable."
+            }
+          ]
+        },
+        {
+          "id": "frontend/accessibility/screen-reader-testing",
+          "title": "Testing with a screen reader",
+          "summary": "Using VoiceOver, NVDA or TalkBack yourself to check that a page can be used without seeing it",
+          "variants": []
+        }
+      ]
+    },
+    {
+      "id": "responsive-design",
+      "title": "Responsive design",
+      "concepts": [
+        {
+          "id": "frontend/responsive-design/viewport-meta",
+          "title": "Viewport meta tag",
+          "summary": "`<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">` so phones use the real screen width",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A page's media queries work in a resized desktop browser, but on phones it shows the desktop layout zoomed out. What is most likely missing?",
+              "choices": [
+                "A `min-width` set on the `body` element",
+                "The viewport meta tag",
+                "A mobile stylesheet linked with `media=\"handheld\"`",
+                "`box-sizing: border-box` on every element"
+              ],
+              "answer": 1,
+              "explain": "Without the viewport tag, mobile browsers lay the page out at a wide virtual width (often around 980 px) and scale it down, so small-screen media queries never match."
+            },
+            {
+              "lang": null,
+              "q": "What does `width=device-width` in the viewport meta tag do?",
+              "choices": [
+                "Sets layout width to the device width in CSS pixels",
+                "Locks the page to the device's physical pixel count",
+                "Disables pinch-to-zoom on the page for all users",
+                "Makes every image scale to the screen width"
+              ],
+              "answer": 0,
+              "explain": "It makes the layout viewport as wide as the device's screen in CSS pixels, so CSS widths and media queries behave as expected. Physical pixels are a separate thing, handled through the device pixel ratio."
+            }
+          ]
+        },
+        {
+          "id": "frontend/responsive-design/mobile-first",
+          "title": "Mobile-first media queries",
+          "summary": "Writing base styles for small screens and adding `min-width` queries as space grows",
+          "variants": [
+            {
+              "lang": null,
+              "q": "In a mobile-first stylesheet, how does a two-column layout for wider screens get added?\n\n```css\n.grid { display: grid; grid-template-columns: 1fr; }\n```",
+              "choices": [
+                "`@media (max-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } }`",
+                "`@media (orientation: portrait) { .grid { grid-template-columns: 1fr 1fr; } }`",
+                "`@media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } }`",
+                "Override `.grid` with `!important` in a separate file"
+              ],
+              "answer": 2,
+              "explain": "Mobile-first means the unqueried styles are for small screens, and `min-width` queries layer on changes for larger ones. A `max-width` query would apply two columns to small screens, the opposite of what's wanted."
+            },
+            {
+              "lang": null,
+              "q": "Why do many teams write mobile-first CSS rather than desktop-first?",
+              "choices": [
+                "Browsers evaluate `min-width` queries faster",
+                "`max-width` media queries are deprecated",
+                "Mobile-first CSS doesn't need the viewport tag",
+                "Wider layouts are added, not undone"
+              ],
+              "answer": 3,
+              "explain": "Starting simple and adding complexity for wider screens usually means fewer overrides. Desktop-first tends to require undoing layout rules for small screens. Neither approach removes the need for the viewport tag."
+            }
+          ]
+        },
+        {
+          "id": "frontend/responsive-design/responsive-images",
+          "title": "Responsive images with srcset and sizes",
+          "summary": "Offering several image widths so the browser downloads the one that fits the layout and screen",
+          "variants": [
+            {
+              "lang": null,
+              "q": "An image has `srcset=\"a-400.jpg 400w, a-800.jpg 800w, a-1600.jpg 1600w\"` but no `sizes`. It is shown at 300 px wide in a sidebar. Why do phones and laptops often download the 1600 px file?",
+              "choices": [
+                "`srcset` always picks the largest candidate available",
+                "Without `sizes`, it assumes `100vw`",
+                "The `w` descriptors are ignored when there's no `src`",
+                "Browsers only use `srcset` on slow mobile networks"
+              ],
+              "answer": 1,
+              "explain": "With `w` descriptors, the browser needs `sizes` to know the rendered width; the default is `100vw`. Adding `sizes=\"300px\"` (or a media-based list) lets it pick a smaller file."
+            },
+            {
+              "lang": null,
+              "q": "Two phones show the same image at 400 CSS pixels wide. One has a device pixel ratio of 1, the other 3. With `srcset` in `w` units and the right `sizes`, what happens?",
+              "choices": [
+                "Both get the same file, since the CSS width matches",
+                "Only the first phone uses `srcset` at all",
+                "The DPR 3 phone picks a wider file",
+                "The DPR 3 phone gets the smallest file to save data"
+              ],
+              "answer": 2,
+              "explain": "The browser multiplies the slot width by the device pixel ratio when choosing a candidate. That is the point of offering several widths: high-density screens get enough pixels without small screens overpaying."
+            }
+          ]
+        },
+        {
+          "id": "frontend/responsive-design/container-queries",
+          "title": "Container queries",
+          "summary": "Styling a component based on its container's size (`@container`) instead of the viewport's",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A card component should switch to a horizontal layout when it has 500 px of space, whether it's in a narrow sidebar or a wide main column. Which CSS feature fits this?",
+              "choices": [
+                "Container queries",
+                "Viewport media queries",
+                "`@supports` feature queries",
+                "`clamp()` on the card's width"
+              ],
+              "answer": 0,
+              "explain": "Media queries only know the viewport size, so the same card would get the same layout in both places. Container queries respond to the space the component actually has."
+            },
+            {
+              "lang": null,
+              "q": "This rule never applies. What's missing?\n\n```css\n@container (min-width: 500px) {\n  .card { flex-direction: row; }\n}\n```",
+              "choices": [
+                "`@container` must be nested inside an `@media` rule",
+                "The query must use `min-inline-size`, not `min-width`",
+                "The card needs `display: grid` for the query to apply",
+                "No ancestor has `container-type` set"
+              ],
+              "answer": 3,
+              "explain": "A container query is evaluated against the nearest ancestor declared as a container. Without a `container-type`, there is no container to measure. `min-width` is valid in container queries."
+            }
+          ]
+        },
+        {
+          "id": "frontend/responsive-design/flex-min-width",
+          "title": "Flex and grid items' automatic minimum size",
+          "summary": "Flex and grid items won't shrink below their content by default; `min-width: 0` lets them",
+          "variants": [
+            {
+              "lang": null,
+              "q": "In a `display: flex` row, the main column has `flex: 1` and contains a long URL with no spaces. On narrow screens the column overflows the page instead of shrinking. What's the usual fix?",
+              "choices": [
+                "Set `flex-shrink: 2` on the main column",
+                "Set `min-width: 0` on the column",
+                "Set `width: 100%` on the main column",
+                "Switch the row to `display: inline-flex`"
+              ],
+              "answer": 1,
+              "explain": "Flex items default to `min-width: auto`, which won't let them shrink below their content's minimum width. `min-width: 0` removes that floor; raising `flex-shrink` doesn't help while the floor is there."
+            },
+            {
+              "lang": null,
+              "q": "A grid uses `grid-template-columns: 200px 1fr`, and a wide `<pre>` block in the second column pushes the page wider than the screen. Which change keeps the column within the viewport?",
+              "choices": [
+                "Use `grid-template-columns: 200px auto`",
+                "Add `overflow: visible` to the `<pre>`",
+                "Use `200px minmax(0, 1fr)`",
+                "Set `width: 100vw` on the grid container"
+              ],
+              "answer": 2,
+              "explain": "`1fr` behaves like `minmax(auto, 1fr)`, so the track can't go below its content's minimum size. `minmax(0, 1fr)` allows it to shrink, and the `<pre>` can then scroll inside with `overflow: auto`."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "frontend-security",
+      "title": "Frontend security",
+      "concepts": [
+        {
+          "id": "frontend/frontend-security/xss-inner-html",
+          "title": "XSS and dangerouslySetInnerHTML",
+          "summary": "React escapes text it renders, but raw HTML you insert can run attacker scripts",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "A user's comment is `<img src=x onerror=alert(1)>`. What happens when it's rendered with `<p>{comment}</p>`?",
+              "choices": [
+                "It shows as text: React escapes strings",
+                "The image tag runs and the alert fires",
+                "React strips the tag and shows nothing",
+                "React throws an error on HTML in strings"
+              ],
+              "answer": 0,
+              "explain": "React treats a string child as text and escapes it, so no element is created. The danger starts when you use `dangerouslySetInnerHTML` or other raw-HTML APIs."
+            },
+            {
+              "lang": "ts",
+              "q": "User-written Markdown is converted to HTML and shown with `dangerouslySetInnerHTML`. What should happen before rendering?",
+              "choices": [
+                "Nothing: Markdown output can't contain raw HTML",
+                "Encode the HTML with `encodeURIComponent` first",
+                "Wrap it in a `<div>` so any scripts are contained",
+                "Sanitize it with an allow-list sanitizer"
+              ],
+              "answer": 3,
+              "explain": "CommonMark allows raw HTML, and many renderers pass it through, so the output can carry event handlers or scripts. An allow-list sanitizer removes them; URL-encoding would just garble the content."
+            }
+          ]
+        },
+        {
+          "id": "frontend/frontend-security/javascript-urls",
+          "title": "`javascript:` URLs",
+          "summary": "User-supplied links can carry `javascript:` URLs that run code when clicked; validate the scheme",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "A profile page renders `<a href={user.website}>Website</a>` with a value the user entered. In React 18, what happens if they enter `javascript:alert(document.cookie)`?",
+              "choices": [
+                "React escapes it, so clicking does nothing",
+                "React warns but renders it; the script runs",
+                "The browser refuses to render the link at all",
+                "React rewrites it to `https://javascript:...`"
+              ],
+              "answer": 1,
+              "explain": "Escaping protects text content, not the meaning of a URL. React 18 only warns about `javascript:` URLs, so validate that user links use `http:` or `https:` before rendering."
+            },
+            {
+              "lang": "ts",
+              "q": "What is the safest way to accept a user-provided URL for a link?",
+              "choices": [
+                "Parse with `new URL()`; allow only http(s)",
+                "Strip the substring `javascript:` from the value",
+                "HTML-escape the value before putting it in `href`",
+                "Check that the value starts with `www.`"
+              ],
+              "answer": 0,
+              "explain": "Allow-listing schemes after parsing handles casing, whitespace and encoding tricks. Stripping a substring is a deny-list that variants like `JaVaScRiPt:` or embedded tabs get around."
+            }
+          ]
+        },
+        {
+          "id": "frontend/frontend-security/content-security-policy",
+          "title": "Content Security Policy",
+          "summary": "A response header that limits where scripts and other resources may load from, as a second line against XSS",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A page sends `Content-Security-Policy: script-src 'self'`. An attacker injects `<script>steal()</script>` into the HTML. What happens?",
+              "choices": [
+                "It runs, because it comes from the same origin",
+                "It runs, but it can't make any network requests",
+                "The browser blocks the inline script",
+                "The server rejects the response before sending"
+              ],
+              "answer": 2,
+              "explain": "With `script-src 'self'`, only scripts loaded from the page's own origin run; inline scripts need `'unsafe-inline'`, a nonce or a hash. CSP is enforced by the browser, not the server."
+            },
+            {
+              "lang": null,
+              "q": "A team adds `'unsafe-inline'` to `script-src` because an old analytics snippet broke under their new CSP. What has this done?",
+              "choices": [
+                "Nothing important: it only affects the analytics snippet",
+                "It makes the policy apply only to inline scripts",
+                "It disables CSP for third-party scripts only",
+                "Injected inline scripts can run again"
+              ],
+              "answer": 3,
+              "explain": "Allowing all inline script re-enables the most common XSS payload. Use a nonce or hash for the one snippet, or load it as an external file."
+            }
+          ]
+        },
+        {
+          "id": "frontend/frontend-security/token-storage",
+          "title": "Where to store auth tokens",
+          "summary": "Tokens in `localStorage` are readable by any script on the page; `HttpOnly` cookies are not",
+          "variants": [
+            {
+              "lang": null,
+              "q": "An app keeps its session token in `localStorage`. An attacker finds an XSS hole. What can their script do with the token?",
+              "choices": [
+                "Nothing: `localStorage` is sandboxed from page scripts",
+                "Read it, but only if the token isn't encrypted",
+                "Use it only while the user's tab stays open",
+                "Read it and send it to the attacker's server"
+              ],
+              "answer": 3,
+              "explain": "Any script on the origin can read `localStorage`. With an `HttpOnly` cookie the script can't read the token, though it can still make requests from the victim's page, so XSS remains serious."
+            },
+            {
+              "lang": null,
+              "q": "What does marking a session cookie `HttpOnly` protect against?",
+              "choices": [
+                "Scripts reading the cookie's value",
+                "The cookie being sent over plain HTTP",
+                "Cross-site requests carrying the cookie",
+                "The server overwriting the cookie later"
+              ],
+              "answer": 0,
+              "explain": "`HttpOnly` hides the cookie from `document.cookie` and other scripts. Sending only over HTTPS is the `Secure` flag, and cross-site sending is governed by `SameSite`."
+            }
+          ]
+        },
+        {
+          "id": "frontend/frontend-security/samesite-cookies",
+          "title": "SameSite cookies and CSRF",
+          "summary": "The `SameSite` cookie attribute controls whether cookies go on cross-site requests, limiting CSRF",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A bank's session cookie is set with `SameSite=Lax`. A malicious site auto-submits a hidden `POST` form to the bank's transfer endpoint. Is the cookie sent?",
+              "choices": [
+                "Yes: `Lax` allows every top-level request",
+                "No: not on a cross-site `POST`",
+                "Yes, unless the cookie is also `HttpOnly`",
+                "No: `Lax` cookies are never sent cross-site"
+              ],
+              "answer": 1,
+              "explain": "`Lax` sends the cookie on cross-site top-level navigations using safe methods like `GET`, but not on cross-site `POST`s or subresource requests. That blocks the classic form-post CSRF."
+            },
+            {
+              "lang": null,
+              "q": "A cookie is `SameSite=Lax`. A user clicks a link on another site to `https://app.example/delete?id=5`, and that endpoint deletes on `GET`. What happens?",
+              "choices": [
+                "It isn't sent, so nothing is deleted",
+                "The browser asks the user to confirm first",
+                "It's sent, so the delete goes through",
+                "The request is blocked by CORS"
+              ],
+              "answer": 2,
+              "explain": "`Lax` still sends cookies on top-level `GET` navigations, so state changes on `GET` stay exploitable. Keep `GET` safe and do changes with `POST`, `PUT` or `DELETE`."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
