@@ -7,11 +7,13 @@
     {
       "id": "ci",
       "title": "CI",
+      "summary": "Pipelines that build and test every change, and keeping main green",
       "concepts": [
         {
           "id": "delivery-ops/ci/trunk-based-development",
           "title": "Trunk-based development",
           "summary": "Merging small changes to the main branch at least daily, with unfinished work hidden behind flags",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -37,13 +39,13 @@
               "answer": 2,
               "explain": "Flags let incomplete code ship to main and even to production without being reachable by users. Keeping it on a branch is exactly the long-lived divergence trunk-based development avoids."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "delivery-ops/ci/build-once-promote",
           "title": "Build once, promote the artifact",
           "summary": "Building one image or binary and deploying that same artifact to every environment",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -75,6 +77,7 @@
           "id": "delivery-ops/ci/pin-actions-to-sha",
           "title": "Pinning CI actions to a commit SHA",
           "summary": "Referencing third-party CI actions by full commit hash, because tags can be moved",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -106,6 +109,7 @@
           "id": "delivery-ops/ci/merge-queue",
           "title": "Merge queue",
           "summary": "Testing each PR combined with main and the PRs ahead of it before merging, so main stays green",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -137,6 +141,7 @@
           "id": "delivery-ops/ci/dependency-cache-keys",
           "title": "CI cache keys",
           "summary": "Keying dependency caches on a hash of the lockfile so the cache updates when dependencies change",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -169,12 +174,13 @@
     {
       "id": "release-deployment",
       "title": "Release & deployment",
+      "summary": "How code reaches production, rollouts and rolling back",
       "concepts": [
         {
           "id": "delivery-ops/release-deployment/blue-green-deployment",
           "title": "Blue-green deployment",
           "summary": "Running the new version beside the old one and switching all traffic over at once",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -206,6 +212,7 @@
           "id": "delivery-ops/release-deployment/canary-release",
           "title": "Canary release",
           "summary": "Sending a small share of traffic to the new version and widening it only if metrics stay healthy",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -237,6 +244,7 @@
           "id": "delivery-ops/release-deployment/feature-flags",
           "title": "Feature flags",
           "summary": "Shipping code switched off and turning it on separately, decoupling deploy from release",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -268,6 +276,7 @@
           "id": "delivery-ops/release-deployment/version-skew",
           "title": "Version skew during rolling deploys",
           "summary": "Old and new versions run side by side during a rollout, so each must handle the other's data and calls",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -299,6 +308,7 @@
           "id": "delivery-ops/release-deployment/graceful-shutdown",
           "title": "Graceful shutdown",
           "summary": "On SIGTERM: refuse new requests, let in-flight ones complete, release connections, then exit",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -343,11 +353,13 @@
     {
       "id": "docker",
       "title": "Docker",
+      "summary": "Writing Dockerfiles and building and running containers",
       "concepts": [
         {
           "id": "delivery-ops/docker/layer-cache-order",
           "title": "Layer cache ordering",
           "summary": "Copying dependency manifests and installing before copying source, so code edits don't reinstall everything",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -379,6 +391,7 @@
           "id": "delivery-ops/docker/multi-stage-builds",
           "title": "Multi-stage builds",
           "summary": "Building in one stage and copying only the output into a small runtime image",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -410,6 +423,7 @@
           "id": "delivery-ops/docker/pid-1-signals",
           "title": "PID 1 and signals",
           "summary": "A container's PID 1 gets no default signal actions, so it must handle SIGTERM itself or pass it on",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -441,6 +455,7 @@
           "id": "delivery-ops/docker/secrets-in-layers",
           "title": "Secrets in image layers",
           "summary": "Files deleted in a later layer and build args stay readable in the image; use build secrets instead",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -472,6 +487,7 @@
           "id": "delivery-ops/docker/dockerignore",
           "title": ".dockerignore",
           "summary": "Excluding files like `.git`, `.env` and local `node_modules` from the build context",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -504,12 +520,13 @@
     {
       "id": "environment-management",
       "title": "Environment management",
+      "summary": "Config and secrets across dev, staging and production",
       "concepts": [
         {
           "id": "delivery-ops/environment-management/config-in-environment",
           "title": "Config in the environment",
           "summary": "Keeping per-environment settings out of the code and supplying them at run time (Twelve-Factor)",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -541,6 +558,7 @@
           "id": "delivery-ops/environment-management/fail-fast-config",
           "title": "Validating config at startup",
           "summary": "Parsing and checking every setting when the process starts, so bad config crashes the deploy, not a request",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -596,6 +614,7 @@
           "id": "delivery-ops/environment-management/configuration-drift",
           "title": "Configuration drift",
           "summary": "Real infrastructure diverging from what's in code, usually through manual changes",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -612,12 +631,7 @@
             {
               "lang": null,
               "q": "Staging and production were built from the same scripts a year ago, but a bug now appears only in production. Investigation finds a different kernel parameter on prod hosts that nobody remembers setting. What is this an example of?",
-              "choices": [
-                "Version skew",
-                "Configuration drift",
-                "Cache poisoning",
-                "Bit rot"
-              ],
+              "choices": ["Version skew", "Configuration drift", "Cache poisoning", "Bit rot"],
               "answer": 1,
               "explain": "Environments that started the same diverge through untracked manual changes. Defining infrastructure as code and regularly detecting drift keeps them comparable."
             }
@@ -627,6 +641,7 @@
           "id": "delivery-ops/environment-management/leaked-secret-rotation",
           "title": "Rotating a leaked secret",
           "summary": "Once a secret is committed or exposed, revoke and replace it; deleting it from the code isn't enough",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -658,6 +673,7 @@
           "id": "delivery-ops/environment-management/preview-environments",
           "title": "Preview environments",
           "summary": "A short-lived, full copy of the app deployed per pull request and torn down when it merges",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -690,11 +706,13 @@
     {
       "id": "cloud",
       "title": "Cloud",
+      "summary": "Using cloud services (compute, storage, IAM) and running workloads on them",
       "concepts": [
         {
           "id": "delivery-ops/cloud/least-privilege",
           "title": "Least privilege",
           "summary": "Giving each service and person only the permissions it needs, scoped to the resources it uses",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -726,6 +744,7 @@
           "id": "delivery-ops/cloud/requests-and-limits",
           "title": "Kubernetes requests and limits",
           "summary": "Requests reserve capacity for scheduling; going over the CPU limit throttles, over the memory limit kills",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -757,6 +776,7 @@
           "id": "delivery-ops/cloud/runtime-memory-limit",
           "title": "Runtime heap vs container memory limit",
           "summary": "Telling the language runtime about the container's memory limit so its GC works before the OOM killer does",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -812,6 +832,7 @@
           "id": "delivery-ops/cloud/liveness-vs-readiness",
           "title": "Liveness vs readiness probes",
           "summary": "Readiness decides if a pod gets traffic; liveness decides if it is restarted, and shouldn't check dependencies",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -843,6 +864,7 @@
           "id": "delivery-ops/cloud/autoscaling-signal",
           "title": "Choosing the autoscaling signal",
           "summary": "Scaling on the metric that tracks this workload's load, such as queue depth for a worker",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -875,11 +897,13 @@
     {
       "id": "observability",
       "title": "Observability",
+      "summary": "Logs, metrics, traces and alerts: knowing if a system is healthy",
       "concepts": [
         {
           "id": "delivery-ops/observability/structured-logging",
           "title": "Structured logging",
           "summary": "Logging events as key-value fields (usually JSON) so they can be filtered and searched",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -935,6 +959,7 @@
           "id": "delivery-ops/observability/trace-context-propagation",
           "title": "Trace context propagation",
           "summary": "Passing the trace ID across every hop (the `traceparent` header, message metadata) so one request is one trace",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -966,6 +991,7 @@
           "id": "delivery-ops/observability/percentiles-over-averages",
           "title": "Latency percentiles",
           "summary": "Using p50/p95/p99 instead of averages, which hide the slow requests users notice",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -991,13 +1017,13 @@
               "answer": 1,
               "explain": "With 20 independent calls, the chance at least one is in its slowest 1% is about 18%. Fan-out makes tail latency the common case, so look at the tail end to end."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "delivery-ops/observability/histogram-aggregation",
           "title": "Aggregating latency with histograms",
           "summary": "Percentiles can't be averaged across instances; combine histograms, then compute the percentile",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -1029,6 +1055,7 @@
           "id": "delivery-ops/observability/metric-cardinality",
           "title": "Metric label cardinality",
           "summary": "Each unique label combination is a separate time series, so unbounded labels blow up the metrics store",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -1060,6 +1087,7 @@
           "id": "delivery-ops/observability/red-and-use",
           "title": "RED and USE methods",
           "summary": "RED (rate, errors, duration) for services; USE (utilization, saturation, errors) for resources",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -1092,12 +1120,13 @@
     {
       "id": "incident-response",
       "title": "Incident response",
+      "summary": "Handling incidents: mitigating, escalating and learning afterwards",
       "concepts": [
         {
           "id": "delivery-ops/incident-response/mitigate-first",
           "title": "Mitigate first, root cause later",
           "summary": "Stopping user impact (rollback, flag off, failover) before working out exactly why it happened",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -1129,6 +1158,7 @@
           "id": "delivery-ops/incident-response/alert-on-symptoms",
           "title": "Alerting on symptoms",
           "summary": "Paging on user-visible impact such as error rate or latency, not on internal causes like CPU",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -1160,16 +1190,12 @@
           "id": "delivery-ops/incident-response/error-budget",
           "title": "SLOs and error budgets",
           "summary": "A reliability target over a window, and the amount of failure it allows before reliability work takes priority",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "An SLO says 99.9% of requests succeed over 30 days. If the service were fully down, roughly how much downtime would use the whole error budget?",
-              "choices": [
-                "About 4.3 minutes",
-                "About 7.2 hours",
-                "About 43 minutes",
-                "About 3.6 days"
-              ],
+              "choices": ["About 4.3 minutes", "About 7.2 hours", "About 43 minutes", "About 3.6 days"],
               "answer": 2,
               "explain": "0.1% of 30 days (43,200 minutes) is about 43 minutes. 4.3 minutes would be a 99.99% target."
             },
@@ -1191,16 +1217,12 @@
           "id": "delivery-ops/incident-response/burn-rate-alerts",
           "title": "Burn-rate alerting",
           "summary": "Alerting on how fast the error budget is being spent, over a short and a long window",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "With a 30-day SLO window, a burn rate of 1 means the budget will be exactly used up in 30 days. Sustained for 1 hour, what share of the 30-day budget does a burn rate of 14.4 use?",
-              "choices": [
-                "About 14%",
-                "About 0.5%",
-                "About 48%",
-                "About 2%"
-              ],
+              "choices": ["About 14%", "About 0.5%", "About 48%", "About 2%"],
               "answer": 3,
               "explain": "One hour is 1/720 of 30 days, so 14.4 × 1/720 = 2% of the budget. That's why a high burn rate over a short window is a common paging threshold."
             },
@@ -1222,6 +1244,7 @@
           "id": "delivery-ops/incident-response/incident-commander",
           "title": "Incident commander",
           "summary": "One person who coordinates the response and makes calls, rather than debugging hands-on",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -1253,6 +1276,7 @@
           "id": "delivery-ops/incident-response/blameless-postmortem",
           "title": "Running a blameless postmortem",
           "summary": "Reviewing an incident to find how the system allowed it and what to change, without blaming individuals",
+          "level": "medium",
           "variants": []
         }
       ]

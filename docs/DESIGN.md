@@ -62,7 +62,15 @@ A **concept** is valid only if:
 Two kinds:
 
 - **Quizzable** (the default): 2 or more variants.
-- **Scan-only:** `variants: []`. Self-report only, for practices where a multiple-choice question would be trivia.
+- **Scan-only:** `variants: []`. Never asked; listed under its skill as something to explore.
+
+Each concept has a **level**:
+
+- **Easy:** what the skill's summary names (loops, recursion, promises, N+1). Quick scan asks only these.
+- **Medium:** everyday working knowledge.
+- **Hard:** the niche and senior-level material (switch fallthrough, PACELC).
+
+Aim for 2 easy, 2 medium and 2 hard per skill.
 
 Aim for 4–8 concepts per skill. First release: all groups, about 350 concepts × 2–4 variants ≈ 700–1,000 questions, LLM-drafted and reviewed by the owner.
 
@@ -75,12 +83,13 @@ One file per group: `content/NN-<group-id>.json` (`01-language-runtime.json` …
   "group": { "id": "language-runtime", "title": "Language & runtime" },
   "skills": [{
     "id": "async",
-    "title": "Asynchronous programming",
+    "title": "Async",
+    "summary": "Sync vs async, callbacks, promises, async/await and the event loop",  // the scan row
     "concepts": [{
       "id": "language-runtime/async/errgroup",   // group/skill/slug
       "title": "errgroup",
-      "summary": "One line, shown in the gap list",
-      "basic": true,                              // optional: a foundational question, see step 2
+      "summary": "One line, shown under the skill",
+      "level": "medium",                          // "easy" | "medium" | "hard", see Questions
       "variants": [{                              // [] = scan-only
         "lang": "go",                             // "go" | "ts" | "python" | null
         "q": "Markdown, code fences allowed",
@@ -101,79 +110,91 @@ One file per group: `content/NN-<group-id>.json` (`01-language-runtime.json` …
 - Exactly 4 choices, all distinct.
 - `answer` is 0–3; `explain` is non-empty.
 - More than 8 concepts in a skill: warning, not failure.
-- Every group has at least one quizzable concept with `"basic": true`.
+- Every group has at least one quizzable easy concept; a skill without one is a warning.
 
-## States
+## Progress
 
-Each concept is in one state:
+What a person did, saved in this browser:
 
-| State | Meaning | Set by |
-|---|---|---|
-| `fog` | Not looked at yet | default |
-| `gap` | Doesn't know it | "Never heard of it", "Know the name", or a wrong answer |
-| `claimed` | Says they've used it | "Used it" |
-| `confirmed` | Shown to know it | a correct answer (first try counts) |
+- **Ratings:** one per skill, keyed `<group id>/<skill id>`: `new`, `heard` or `used`.
+- **Answers:** the latest answer per concept: which variant was shown and which choice was picked.
+- **`finished`:** set once a Quick scan or Quiz reaches its result.
 
-- Later answers can move a concept between states.
-- **Explored** = any state except `fog`.
-- Scan-only concepts top out at `claimed`.
+Progress is `schemaVersion: 2`. Version 1 (one state per concept) doesn't load; the app starts empty instead.
 
 ## Two buttons, both cover every topic
 
-Home has two buttons, so people know up front what they're starting. Neither lets someone do only one topic and get a result.
+Home has two buttons, so people know up front what they're starting. Both rate every skill, then ask questions; they differ in how many and how hard.
 
-- **Quick scan** (`#/scan`, about 2 min): step 1 only, then the result, based on self-reports.
-- **Quiz** (`#/quiz`, about 5 min): step 1, then step 2, then the result, checked against quiz answers.
+| | Quick scan (`#/scan`) | Quiz (`#/quiz`) |
+|---|---|---|
+| Step 1 | Rate all 53 skills, one topic per page | Same, pre-filled from earlier runs |
+| Step 2 | 9 questions, one per topic, easy only | Up to 18 questions, easy → medium → hard |
+| Time | About 5 min | About 10 min |
 
-### Step 1: quick scan (breadth)
+### Step 1: rate every skill
 
-- One page, **4 concepts from every topic** under topic headings, unexplored concepts first, so repeat runs reach further into each topic.
-- Each row has a three-way toggle:
-  - **New** (never heard of it) → `gap`
-  - **Heard** (know the name) → `gap`
-  - **Used** → `claimed`
-- A gap remembers which button made it (`scan: "never" | "name"`), so rows show earlier answers.
-- The next button ("See my result" in a scan, "Next: quick check" in a quiz) stays disabled until every row is answered.
+- One page per topic, one row per skill: title and summary, then **New** (never heard of it) / **Heard** (know the name) / **Used**.
+- Rows show earlier ratings. "Next" stays disabled until every row on the page is rated.
 
-### Step 2: quick check (depth, aimed at claims)
+### Step 2: questions
 
-- **Every topic gets one check**, picked in this order: a **Used** claim, else a **Heard**, else the topic's **basic** question. "New" rows are never quizzed (that would be guessing); the basic question is a different, foundational concept.
-- Then up to **3 extra** checks on unchecked Used claims, spread round-robin over the topics with the most claims.
-- At most **12** checks. Never a `confirmed` concept.
+- **Quick scan:** in each topic, a skill rated Used, else Heard, else any skill; one of its **easy** concepts.
+- **Quiz:**
+  1. One question per topic from a skill rated Used, else Heard. A topic with nothing claimed gets an easy question from any skill.
+  2. Then the other claimed skills, Used before Heard, up to **18** questions.
+  3. Each skill's question is at the **lowest level not yet answered right**: easy, then medium once easy is right, then hard. So repeat runs climb.
+- A skill rated New is never asked in a topic that has claims (that would be guessing).
+- Concepts not asked before come first.
 - Choices are shuffled when shown, since LLM-drafted questions tend to put the answer in the same position.
 - After each answer, show the right answer and `explain`. Each answer is saved immediately.
 - **Language toggle:** Go / TS / Python, default TS. A question is picked at random from the variants in that language; variants with `lang: null` always qualify.
 - Each question has a **"Report this question"** link: a prefilled new GitHub issue titled `[report] <concept id> #<variant index>`. Nothing personal in the link.
 
+## Scoring
+
+Each skill gets a score from 0 to 1:
+
+1. **Start** from its rating: New **0**, Heard **0.4**, Used **0.7**.
+2. **Add** each answered concept's effect, counting only the latest answer per concept:
+
+| | Easy | Medium | Hard |
+|---|---|---|---|
+| Right | +0.10 | +0.15 | +0.20 |
+| Wrong | −0.25 | −0.15 | −0.05 |
+
+3. **Clamp** to 0–1.
+
+Missing an easy question says the most, missing a hard one little, and only right answers lift a skill above 0.7, so claiming everything doesn't pay. A topic's **strength** is the average of its rated skills. The numbers are constants in `src/logic.ts`.
+
 ## Results page
 
-The header's **Your map** link (to `#/results`) shows only once a Quick scan or Quiz reaches its result (saved as `finished` in progress, so answering the rows and then leaving doesn't count), and is hidden during a scan or quiz run, since leaving mid-run drops the run's queue.
+The header's **Your map** link (to `#/results`) shows only once a Quick scan or Quiz reaches its result (saved as `finished` in progress, so rating the skills and then leaving doesn't count), and is hidden during a run, since leaving mid-run drops the run's questions.
 
 ### Hero: persona + radar
 
-- **Strength** per topic = average over its explored concepts of: quiz right 1, unverified Used ¾, Heard ½, New 0, quiz wrong 0. A quiz answer replaces the self-report for that concept; unverified claims count less so claiming everything doesn't pay.
 - **Radar:** strength per topic, no numbers, drawn as a soft grey filled shape with no outline and no dots.
-- **Unlock:** once every topic has its scan rows answered (a finished Quick scan or Quiz). Before that, a silhouette and "finish a quick scan or a quiz".
-- **Checked or claimed:** until every quizzable topic has a quiz answer, the hero says "Based on what you said. Take the quiz to check it."
+- **Unlock:** once every skill is rated (a finished Quick scan or Quiz). Before that, a silhouette and "finish a quick scan or a quiz".
+- **Checked:** "Checked X of Y claimed skills", where a claimed skill is rated Used or Heard and checked means it has had a question. While some aren't checked: "Take the quiz to check more."
 - **Persona rule:** a topic **passes** at ≥ 60% strength.
   - No topic passes → **Apprentice**.
   - Every topic passes → **Wanderer**.
-  - Otherwise → the strongest passing topic's mascot. Tie → more `confirmed` concepts, then the lower group number.
-- Results accumulate across runs (latest answer per concept), so later runs sharpen the result.
+  - Otherwise → the strongest passing topic's mascot. Tie → more right answers, then the lower group number.
+- Results accumulate across runs, so later runs sharpen the result.
 
 ### Your gaps
 
-Every `gap` concept, grouped by group → skill, with groups sorted by gap count. Each item shows the title and summary, and expands to the question and explanation they saw if the gap came from a quiz. Each item is tagged by where the gap came from: **Missed** (wrong in the quiz; rose tag and left stripe), **Heard** (butter tag and stripe) or **New** (grey tag, no stripe, so a long list of unmet concepts doesn't read as an alarm). No links, no how-to-learn.
+By topic, sorted by size: every skill rated **New** (grey tag, no stripe) or **Heard** (butter), or scoring under 50% (**Low score**, rose), with its summary. Under each skill, every missed question, tagged with its level (easy first), expanding to the question, the picked choice, the answer and the explanation. No links, no how-to-learn.
 
-### Your numbers
+### Your skills
 
-Below the gaps, never on the share card: right and wrong quiz answers, "Used it" and unexplored counts, and per group "X of Y correct · X of Y explored".
+Below the gaps, never on the share card: right and missed answers, skills rated Used, and skills not rated. Then every topic's skills with their score and whether they're checked; each expands to its concepts ("To explore"), with their level and result.
 
 ### Footer
 
 - **Copy gap list** as plain text (it doubles as a personal growth note).
-- **Download report:** a Markdown file (`nerdscape-report.md`) with the persona (and whether the quiz checked it), then every topic → skill → concept with its status: Confirmed, Used, Missed, Heard, New or Not explored. Each Missed concept also has the question, the picked choice, the answer and the explanation.
-- **Backup / Restore:** a JSON file with `schemaVersion`, states keyed by concept ID, and `finished` once a run has reached its result.
+- **Download report:** a Markdown file (`nerdscape-report.md`) with the persona and how many claims are checked, then every topic → skill with its rating and score → concept with its level and result (Right, Missed or Not asked). Each missed concept also has the question, the picked choice, the answer and the explanation.
+- **Backup / Restore:** the progress as a JSON file.
 - One line on the first screen saying the data lives in this browser. No export nagging.
 
 ## Sharing

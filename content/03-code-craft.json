@@ -7,12 +7,13 @@
     {
       "id": "readability-standards",
       "title": "Readability & standards",
+      "summary": "Clear names, small functions, consistent style and coding standards",
       "concepts": [
         {
           "id": "code-craft/readability-standards/magic-numbers",
           "title": "Magic numbers",
           "summary": "Unexplained literal values in code, replaced by named constants",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -44,7 +45,7 @@
           "id": "code-craft/readability-standards/guard-clauses",
           "title": "Guard clauses",
           "summary": "Returning early when a precondition fails, so the main path isn't buried in nested `if`s",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -76,16 +77,12 @@
           "id": "code-craft/readability-standards/units-in-names",
           "title": "Units in names and types",
           "summary": "Making the unit of a value (seconds, ms, cents) explicit so callers can't mix them up",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "A config has `timeout: 30`, meant as seconds. One caller passes it to an API that expects milliseconds. Which name would most likely have prevented the bug?",
-              "choices": [
-                "`timeoutValue`",
-                "`retryTimeout`",
-                "`TIMEOUT`",
-                "`timeoutSeconds`"
-              ],
+              "choices": ["`timeoutValue`", "`retryTimeout`", "`TIMEOUT`", "`timeoutSeconds`"],
               "answer": 3,
               "explain": "Putting the unit in the name makes the mismatch visible where the value is used (`ms(timeoutSeconds)`). The other names still leave the unit to guesswork."
             },
@@ -119,6 +116,7 @@
           "id": "code-craft/readability-standards/flag-arguments",
           "title": "Flag arguments",
           "summary": "Bare `true`/`false` parameters that make call sites unreadable",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -174,16 +172,12 @@
           "id": "code-craft/readability-standards/cyclomatic-complexity",
           "title": "Cyclomatic complexity",
           "summary": "A count of the independent paths through a function, a rough measure of how hard it is to read and test",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
               "q": "What is the cyclomatic complexity of this function?\n\n```go\nfunc grade(score int) string {\n    if score >= 90 {\n        return \"A\"\n    }\n    if score >= 80 {\n        return \"B\"\n    }\n    if score >= 70 {\n        return \"C\"\n    }\n    return \"F\"\n}\n```",
-              "choices": [
-                "1",
-                "3",
-                "4",
-                "8"
-              ],
+              "choices": ["1", "3", "4", "8"],
               "answer": 2,
               "explain": "Cyclomatic complexity is the number of decision points plus one: three `if`s give 4, matching the four ways out of the function. It isn't 2³ = 8, because each `if` returns instead of letting every combination run."
             },
@@ -202,12 +196,7 @@
             {
               "lang": null,
               "q": "A function is one `switch` with five `case` branches and a `default`, and nothing else branches. Counting each `case` as one decision (and not the `default`), what is its cyclomatic complexity?",
-              "choices": [
-                "1",
-                "5",
-                "6",
-                "7"
-              ],
+              "choices": ["1", "5", "6", "7"],
               "answer": 2,
               "explain": "Complexity is one for the straight path plus one per decision point: 1 + 5 = 6. 5 forgets the base path, and 7 would count the `default` too."
             }
@@ -218,11 +207,13 @@
     {
       "id": "simple-design",
       "title": "Simple design",
+      "summary": "The simplest design that works: YAGNI, KISS, avoiding over-engineering",
       "concepts": [
         {
           "id": "code-craft/simple-design/yagni",
           "title": "YAGNI",
           "summary": "\"You aren't gonna need it\": don't build for requirements you don't have yet",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -254,6 +245,7 @@
           "id": "code-craft/simple-design/wrong-abstraction",
           "title": "The wrong abstraction",
           "summary": "Duplication is cheaper than a shared function that doesn't fit its callers",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -285,6 +277,7 @@
           "id": "code-craft/simple-design/command-query-separation",
           "title": "Command-query separation",
           "summary": "A function should either change state or return data, not both",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -316,6 +309,7 @@
           "id": "code-craft/simple-design/illegal-states",
           "title": "Make illegal states unrepresentable",
           "summary": "Shaping types so invalid combinations of fields can't be built",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -347,6 +341,7 @@
           "id": "code-craft/simple-design/functional-core",
           "title": "Functional core, imperative shell",
           "summary": "Keeping decisions in pure functions and pushing I/O, clocks and randomness to the edges",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -391,12 +386,13 @@
     {
       "id": "refactoring",
       "title": "Refactoring",
+      "summary": "Changing code structure without changing behaviour, and spotting code smells",
       "concepts": [
         {
           "id": "code-craft/refactoring/refactoring-definition",
           "title": "Refactoring",
           "summary": "Changing the structure of code without changing what it does",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -428,6 +424,7 @@
           "id": "code-craft/refactoring/characterization-tests",
           "title": "Characterization tests",
           "summary": "Tests that pin down what legacy code does today, so you can refactor it safely",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -459,6 +456,7 @@
           "id": "code-craft/refactoring/parallel-change",
           "title": "Parallel change",
           "summary": "Changing an interface others use in three steps: add the new one, migrate callers, remove the old one",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -490,16 +488,12 @@
           "id": "code-craft/refactoring/shotgun-surgery",
           "title": "Shotgun surgery",
           "summary": "A code smell where one small change means editing many scattered places",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "Adding a currency means editing 12 files across formatting, validation, pricing and reporting. Which smell is this?",
-              "choices": [
-                "Feature envy",
-                "Divergent change",
-                "Shotgun surgery",
-                "Primitive obsession"
-              ],
+              "choices": ["Feature envy", "Divergent change", "Shotgun surgery", "Primitive obsession"],
               "answer": 2,
               "explain": "One change spread over many places is shotgun surgery. Divergent change is the opposite: one module that changes for many unrelated reasons."
             },
@@ -521,16 +515,12 @@
           "id": "code-craft/refactoring/feature-envy",
           "title": "Feature envy",
           "summary": "A code smell where a function uses another object's data more than its own",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
               "q": "Which smell does this method show?\n\n```ts\nclass InvoicePrinter {\n  shippingCost(o: Order) {\n    const weight = o.items.reduce((s, i) => s + i.weight, 0)\n    return o.address.country === 'US' ? weight * 2 : weight * 5\n  }\n}\n```",
-              "choices": [
-                "Shotgun surgery",
-                "Feature envy",
-                "Data clumps",
-                "Speculative generality"
-              ],
+              "choices": ["Shotgun surgery", "Feature envy", "Data clumps", "Speculative generality"],
               "answer": 1,
               "explain": "The method uses nothing of `InvoicePrinter` and everything of `Order`. It most likely belongs on `Order` (or near it)."
             },
@@ -565,11 +555,13 @@
     {
       "id": "code-review",
       "title": "Code review",
+      "summary": "Giving and receiving clear, useful review feedback and knowing what to look for",
       "concepts": [
         {
           "id": "code-craft/code-review/stacked-prs",
           "title": "Stacked PRs",
           "summary": "Splitting a large change into a chain of small PRs, each based on the one before",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -601,6 +593,7 @@
           "id": "code-craft/code-review/automate-style-nits",
           "title": "Leave style to tooling",
           "summary": "Formatters and linters handle style, so reviewers spend their time on behaviour and design",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -632,6 +625,7 @@
           "id": "code-craft/code-review/test-fails-without-fix",
           "title": "A test that fails without the fix",
           "summary": "Checking a bug-fix test actually catches the bug by running it against the old code",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -663,6 +657,7 @@
           "id": "code-craft/code-review/comment-severity",
           "title": "Labelling review comments",
           "summary": "Marking each review comment as blocking, a suggestion or a nit, so authors know what must change",
+          "level": "medium",
           "variants": []
         }
       ]
@@ -670,12 +665,13 @@
     {
       "id": "git",
       "title": "Git",
+      "summary": "Branching, good commits, merging, rebasing and resolving conflicts",
       "concepts": [
         {
           "id": "code-craft/git/rebase-rewrites-history",
           "title": "Rebase rewrites history",
           "summary": "`git rebase` replays commits as new ones with new hashes",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -707,6 +703,7 @@
           "id": "code-craft/git/reflog",
           "title": "git reflog",
           "summary": "The local log of where `HEAD` and branches pointed, used to recover \"lost\" commits",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -738,16 +735,12 @@
           "id": "code-craft/git/bisect",
           "title": "git bisect",
           "summary": "Binary search through history to find the commit that introduced a bug",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "A bug appeared somewhere in the last 1,000 commits. With `git bisect`, about how many commits do you need to test?",
-              "choices": [
-                "About 10",
-                "About 100",
-                "About 500",
-                "All 1,000"
-              ],
+              "choices": ["About 10", "About 100", "About 500", "All 1,000"],
               "answer": 0,
               "explain": "Each test halves the range, and 2¹⁰ is 1,024. With `git bisect run <script>` git can do all of them automatically."
             },
@@ -769,6 +762,7 @@
           "id": "code-craft/git/force-with-lease",
           "title": "`--force-with-lease`",
           "summary": "A force push that refuses to overwrite remote commits you haven't seen",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -800,6 +794,7 @@
           "id": "code-craft/git/fixup-commits",
           "title": "Fixup commits",
           "summary": "`git commit --fixup` plus `rebase --autosquash` to fold a correction into an earlier commit",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -831,6 +826,7 @@
           "id": "code-craft/git/gitignore-tracked-files",
           "title": "`.gitignore` and tracked files",
           "summary": "`.gitignore` only affects untracked files; a file already committed stays tracked",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -863,11 +859,13 @@
     {
       "id": "debugging",
       "title": "Debugging",
+      "summary": "Finding bugs systematically: reproduce, isolate, hypothesise, verify",
       "concepts": [
         {
           "id": "code-craft/debugging/minimal-reproduction",
           "title": "Minimal reproduction",
           "summary": "Cutting a failing case down to the smallest input and code that still shows the bug",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -899,6 +897,7 @@
           "id": "code-craft/debugging/heisenbug",
           "title": "Heisenbug",
           "summary": "A bug that disappears when you try to observe it, usually because of timing",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -930,6 +929,7 @@
           "id": "code-craft/debugging/conditional-breakpoint",
           "title": "Conditional breakpoint",
           "summary": "A breakpoint that only pauses when an expression is true",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -961,16 +961,12 @@
           "id": "code-craft/debugging/stack-trace",
           "title": "Reading a stack trace",
           "summary": "Finding where an error came from in a trace, and which end of it to read first",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
               "q": "Which line does the out-of-range indexing?\n\n```text\npanic: runtime error: index out of range [5] with length 3\n\ngoroutine 1 [running]:\nmain.lookup(...)\n        /app/main.go:12\nmain.handle(0x5)\n        /app/main.go:20 +0x1d\nmain.main()\n        /app/main.go:25 +0x25\n```",
-              "choices": [
-                "`main.go:25`",
-                "`main.go:20`",
-                "`main.go:12`",
-                "The trace doesn't say"
-              ],
+              "choices": ["`main.go:25`", "`main.go:20`", "`main.go:12`", "The trace doesn't say"],
               "answer": 2,
               "explain": "Go lists the panicking goroutine's frames with the most recent call first, so the top frame, `lookup` at line 12, is where it happened. The lines below show who called it."
             },
@@ -989,12 +985,7 @@
             {
               "lang": "python",
               "q": "Which line raised the error?\n\n```text\nTraceback (most recent call last):\n  File \"/app/main.py\", line 25, in <module>\n    handle(5)\n  File \"/app/main.py\", line 20, in handle\n    return lookup(items, i)\n  File \"/app/main.py\", line 12, in lookup\n    return items[i]\nIndexError: list index out of range\n```",
-              "choices": [
-                "`main.py` line 25",
-                "`main.py` line 20",
-                "The trace doesn't say",
-                "`main.py` line 12"
-              ],
+              "choices": ["`main.py` line 25", "`main.py` line 20", "The trace doesn't say", "`main.py` line 12"],
               "answer": 3,
               "explain": "Python prints the most recent call last, the opposite of Go and Node, so the bottom frame, line 12, is where `IndexError` was raised."
             },
@@ -1016,6 +1007,7 @@
           "id": "code-craft/debugging/rubber-duck",
           "title": "Rubber duck debugging",
           "summary": "Explaining the code line by line, out loud or in writing, until the mistake shows itself",
+          "level": "medium",
           "variants": []
         }
       ]
@@ -1023,12 +1015,13 @@
     {
       "id": "documentation",
       "title": "Documentation",
+      "summary": "READMEs, code comments and docs others can actually use",
       "concepts": [
         {
           "id": "code-craft/documentation/why-comments",
           "title": "Comments explain why",
           "summary": "Code says what it does; comments are for the reasons and constraints the code can't show",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -1060,6 +1053,7 @@
           "id": "code-craft/documentation/doc-comments",
           "title": "Doc comments",
           "summary": "The comment syntax that docs tools and editors attach to a declaration",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1115,6 +1109,7 @@
           "id": "code-craft/documentation/go-example-tests",
           "title": "Go example functions",
           "summary": "`Example` functions in `_test.go` files appear in the docs and are checked by `go test`",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1146,28 +1141,19 @@
           "id": "code-craft/documentation/diataxis",
           "title": "Diátaxis",
           "summary": "Splitting docs into four kinds: tutorials, how-to guides, reference and explanation",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "In the Diátaxis framework, a page listing every configuration option with its type and default is which kind of doc?",
-              "choices": [
-                "Tutorial",
-                "How-to guide",
-                "Reference",
-                "Explanation"
-              ],
+              "choices": ["Tutorial", "How-to guide", "Reference", "Explanation"],
               "answer": 2,
               "explain": "Reference is dry, complete information you look up. A how-to guide walks through achieving one specific goal instead."
             },
             {
               "lang": null,
               "q": "In the Diátaxis framework, a page discussing why the system uses event sourcing and which alternatives were rejected is which kind of doc?",
-              "choices": [
-                "Explanation",
-                "Reference",
-                "Tutorial",
-                "How-to guide"
-              ],
+              "choices": ["Explanation", "Reference", "Tutorial", "How-to guide"],
               "answer": 0,
               "explain": "Explanation gives background and reasoning, to be read away from the task at hand. It doesn't tell you what to do, which is what tutorials and how-to guides are for."
             }
@@ -1177,6 +1163,7 @@
           "id": "code-craft/documentation/readme-quick-start",
           "title": "README quick start",
           "summary": "A README that gets a newcomer from clone to running in a few copy-paste commands",
+          "level": "medium",
           "variants": []
         }
       ]
@@ -1184,11 +1171,13 @@
     {
       "id": "tech-debt",
       "title": "Tech debt",
+      "summary": "Noticing, naming and communicating technical debt",
       "concepts": [
         {
           "id": "code-craft/tech-debt/debt-quadrant",
           "title": "Technical debt quadrant",
           "summary": "Martin Fowler's split of debt into deliberate or inadvertent, and reckless or prudent",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -1220,6 +1209,7 @@
           "id": "code-craft/tech-debt/boy-scout-rule",
           "title": "Boy Scout rule",
           "summary": "Leave the code a little better than you found it, in the area you're already changing",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -1251,6 +1241,7 @@
           "id": "code-craft/tech-debt/hotspot-analysis",
           "title": "Hotspot analysis",
           "summary": "Prioritising debt where high complexity meets frequent change",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -1282,6 +1273,7 @@
           "id": "code-craft/tech-debt/debt-register",
           "title": "Tech debt register",
           "summary": "Recording known debt with its cost and owner, so it can be weighed against feature work",
+          "level": "medium",
           "variants": []
         }
       ]

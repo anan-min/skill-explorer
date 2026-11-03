@@ -7,12 +7,13 @@
     {
       "id": "schema-design",
       "title": "Schema design",
+      "summary": "Tables, keys, normalisation and constraints",
       "concepts": [
         {
           "id": "data-storage/schema-design/normalization",
           "title": "Normalization",
           "summary": "Storing each fact once, so updating it can't leave conflicting copies behind",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -44,16 +45,12 @@
           "id": "data-storage/schema-design/money-types",
           "title": "Storing money",
           "summary": "Using exact types (`numeric` or integer minor units) for money, never binary floating point",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "Which Postgres column type is a poor choice for prices?",
-              "choices": [
-                "`numeric(12,2)`",
-                "`bigint` holding cents",
-                "`double precision`",
-                "`integer` holding cents"
-              ],
+              "choices": ["`numeric(12,2)`", "`bigint` holding cents", "`double precision`", "`integer` holding cents"],
               "answer": 2,
               "explain": "Binary floating point can't represent most decimal fractions exactly, so sums drift by tiny amounts. `numeric` is exact decimal, and integer minor units are exact too."
             },
@@ -69,13 +66,13 @@
               "answer": 3,
               "explain": "0.10 has no exact binary representation, so each value is slightly off and the errors add up. Exact decimal or integer cents avoid it."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "data-storage/schema-design/surrogate-keys",
           "title": "Surrogate vs natural keys",
           "summary": "Using a generated id as the primary key instead of a real-world value that can change",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -107,6 +104,7 @@
           "id": "data-storage/schema-design/soft-delete-unique",
           "title": "Unique constraints with soft delete",
           "summary": "Keeping a value unique among live rows only, when deleted rows stay in the table",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -138,6 +136,7 @@
           "id": "data-storage/schema-design/timestamptz",
           "title": "timestamptz vs timestamp",
           "summary": "In Postgres, `timestamptz` stores an instant (UTC); `timestamp` stores a wall-clock time with no zone",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -169,6 +168,7 @@
           "id": "data-storage/schema-design/db-constraints",
           "title": "Database constraints",
           "summary": "Enforcing invariants (CHECK, FOREIGN KEY, UNIQUE) in the database, where every code path hits them",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -194,26 +194,27 @@
               "answer": 3,
               "explain": "A foreign key rejects references to missing rows. It doesn't speed up joins by itself; Postgres doesn't index the referencing column automatically."
             }
-          ],
-          "basic": true
+          ]
         }
       ]
     },
     {
       "id": "query-optimization",
       "title": "Query optimization",
+      "summary": "Finding slow queries, using indexes and reading query plans",
       "concepts": [
         {
           "id": "data-storage/query-optimization/reading-query-plan",
           "title": "Reading a query plan",
           "summary": "Using `EXPLAIN ANALYZE` to see how a query actually ran: scans, joins, estimated vs actual rows",
+          "level": "medium",
           "variants": []
         },
         {
           "id": "data-storage/query-optimization/n-plus-one",
           "title": "N+1 query",
           "summary": "Running one query for a list, then one more per item, instead of loading them together",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": "ts",
@@ -269,6 +270,7 @@
           "id": "data-storage/query-optimization/composite-index-order",
           "title": "Composite index column order",
           "summary": "Which queries a multi-column index can serve depends on the order of its columns",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -300,6 +302,7 @@
           "id": "data-storage/query-optimization/sargable-predicates",
           "title": "Sargable predicates",
           "summary": "Writing conditions the index can search, without wrapping the indexed column in a function",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -331,6 +334,7 @@
           "id": "data-storage/query-optimization/covering-index",
           "title": "Covering index (index-only scan)",
           "summary": "An index that holds every column a query needs, so the table itself isn't read",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -363,12 +367,13 @@
     {
       "id": "transactions-consistency",
       "title": "Transactions & consistency",
+      "summary": "Transactions, isolation levels and concurrent writes",
       "concepts": [
         {
           "id": "data-storage/transactions-consistency/lost-update",
           "title": "Lost update",
           "summary": "Two read-modify-write transactions race, and one silently overwrites the other's change",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": "ts",
@@ -412,6 +417,7 @@
           "id": "data-storage/transactions-consistency/read-committed",
           "title": "Read committed (Postgres default)",
           "summary": "Each statement sees data committed before it began, so two reads in one transaction can differ",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -443,6 +449,7 @@
           "id": "data-storage/transactions-consistency/write-skew",
           "title": "Write skew",
           "summary": "Two transactions read the same data, then update different rows, breaking an invariant together",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -474,6 +481,7 @@
           "id": "data-storage/transactions-consistency/optimistic-locking",
           "title": "Optimistic locking",
           "summary": "Detecting concurrent edits with a version column instead of holding locks",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -505,6 +513,7 @@
           "id": "data-storage/transactions-consistency/transactional-outbox",
           "title": "Transactional outbox",
           "summary": "Writing an event to an outbox table in the same transaction as the data, then publishing it",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -548,16 +557,12 @@
           "id": "data-storage/transactions-consistency/read-your-writes",
           "title": "Read-your-writes consistency",
           "summary": "Guaranteeing users see their own changes even when reads go to lagging replicas",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "A user saves their profile (written to the primary). The page reloads, and the read goes to a replica 2 s behind, showing the old profile. Which guarantee is missing?",
-              "choices": [
-                "Monotonic reads",
-                "Atomicity",
-                "Snapshot isolation",
-                "Read-your-writes"
-              ],
+              "choices": ["Monotonic reads", "Atomicity", "Snapshot isolation", "Read-your-writes"],
               "answer": 3,
               "explain": "The user can't see a write they just made. Monotonic reads is a different promise: never seeing data go backwards across successive reads."
             },
@@ -580,11 +585,13 @@
     {
       "id": "migrations",
       "title": "Migrations",
+      "summary": "Changing a live schema safely, backward compatible and reversible",
       "concepts": [
         {
           "id": "data-storage/migrations/expand-contract",
           "title": "Expand and contract",
           "summary": "Changing a schema in backward-compatible steps so old and new code can run at the same time",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -616,6 +623,7 @@
           "id": "data-storage/migrations/add-column-default",
           "title": "Adding a column with a default",
           "summary": "On Postgres 11+, a constant default is stored in the catalog; a volatile one rewrites the table",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -647,6 +655,7 @@
           "id": "data-storage/migrations/create-index-concurrently",
           "title": "CREATE INDEX CONCURRENTLY",
           "summary": "Building a Postgres index without blocking writes, at the cost of a slower build and some restrictions",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -678,6 +687,7 @@
           "id": "data-storage/migrations/lock-timeout",
           "title": "Lock queues and lock_timeout",
           "summary": "A DDL statement waiting for a lock blocks every query queued behind it; `lock_timeout` limits the wait",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -709,6 +719,7 @@
           "id": "data-storage/migrations/batched-backfill",
           "title": "Batched backfills",
           "summary": "Updating large tables in small committed batches instead of one giant statement",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -741,11 +752,13 @@
     {
       "id": "relational-vs-nosql",
       "title": "Relational vs NoSQL",
+      "summary": "How relational and NoSQL databases differ, and choosing one",
       "concepts": [
         {
           "id": "data-storage/relational-vs-nosql/cap-theorem",
           "title": "CAP theorem",
           "summary": "During a network partition, a replicated system must choose between consistency and availability",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -777,6 +790,7 @@
           "id": "data-storage/relational-vs-nosql/pacelc",
           "title": "PACELC",
           "summary": "Extends CAP: when there's no partition, the trade-off is latency vs consistency",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -808,6 +822,7 @@
           "id": "data-storage/relational-vs-nosql/access-pattern-design",
           "title": "Access-pattern-first modeling",
           "summary": "In key-value stores like DynamoDB, designing keys around known queries instead of normalising entities",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -839,6 +854,7 @@
           "id": "data-storage/relational-vs-nosql/hot-partition",
           "title": "Hot partition",
           "summary": "A partition key that concentrates traffic on one partition, throttling it while the rest sit idle",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -855,12 +871,7 @@
             {
               "lang": null,
               "q": "An orders table serves 10,000 shops. Which partition key spreads write load most evenly?",
-              "choices": [
-                "`country`",
-                "`status`",
-                "`order_id`",
-                "`created_date`"
-              ],
+              "choices": ["`country`", "`status`", "`order_id`", "`created_date`"],
               "answer": 2,
               "explain": "Order ids have many distinct, evenly used values. Country, status and date have few values, and the busiest ones become hot."
             }
@@ -870,6 +881,7 @@
           "id": "data-storage/relational-vs-nosql/dynamodb-read-consistency",
           "title": "DynamoDB read consistency",
           "summary": "DynamoDB reads are eventually consistent unless you ask otherwise, and GSIs only offer eventual",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -901,6 +913,7 @@
           "id": "data-storage/relational-vs-nosql/jsonb-indexing",
           "title": "Indexing JSONB",
           "summary": "Which Postgres indexes help which `jsonb` queries: GIN for containment, expression B-trees for one field",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -933,11 +946,13 @@
     {
       "id": "db-integration",
       "title": "DB integration",
+      "summary": "Using a database from code: ORMs, connection pools and the N+1 problem",
       "concepts": [
         {
           "id": "data-storage/db-integration/connection-pool-sizing",
           "title": "Connection pool sizing",
           "summary": "Pools across all app instances add up, and their total must fit the database's connection limit",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -981,6 +996,7 @@
           "id": "data-storage/db-integration/release-connections",
           "title": "Returning connections to the pool",
           "summary": "Every path, including errors and early returns, must give its connection back",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1036,6 +1052,7 @@
           "id": "data-storage/db-integration/transaction-handle",
           "title": "Using the transaction's connection",
           "summary": "Statements meant for a transaction must go through its handle or connection, not the pool",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1091,6 +1108,7 @@
           "id": "data-storage/db-integration/no-network-in-transaction",
           "title": "Network calls inside transactions",
           "summary": "Holding a transaction open across an HTTP call keeps its locks and connection busy for the whole call",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -1134,6 +1152,7 @@
           "id": "data-storage/db-integration/pgbouncer-transaction-mode",
           "title": "PgBouncer transaction pooling",
           "summary": "In transaction mode each transaction may get a different server connection, so session state can't be relied on",
+          "level": "medium",
           "variants": [
             {
               "lang": null,

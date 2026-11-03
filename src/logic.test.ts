@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
-import type { Concept, GroupFile, Variant } from "./schema.ts";
+import type { Concept, GroupFile, Level, Variant } from "./schema.ts";
 import {
-  allChecked,
   answer,
+  claimsChecked,
   emptyProgress,
   finishRun,
   gapText,
   parseBackup,
   persona,
   pickVariant,
-  checkQueue,
+  quickChecks,
+  quizChecks,
+  rate,
   report,
-  scanSample,
-  scan,
-  scanAnswer,
-  stateOf,
+  resultOf,
+  skillScore,
   stats,
   strength,
   type Progress,
-  type State,
+  type Rating,
 } from "./logic.ts";
 
 const v = (lang: Variant["lang"]): Variant => ({
@@ -28,351 +28,288 @@ const v = (lang: Variant["lang"]): Variant => ({
   answer: 0,
   explain: "e",
 });
-const quizzable = (id: string, langs: Variant["lang"][] = ["go", "ts"]): Concept => ({
+const concept = (id: string, level: Level = "medium", langs: Variant["lang"][] = ["go", "ts"]): Concept => ({
   id,
   title: id,
   summary: `${id} summary`,
+  level,
   variants: langs.map(v),
 });
-const scanOnly = (id: string): Concept => ({ id, title: id, summary: `${id} summary`, variants: [] });
+const scanOnly = (id: string): Concept => ({ ...concept(id, "easy"), variants: [] });
 
-const group = (id: string, concepts: Concept[]): GroupFile => ({
+// A topic of skills, each skill a list of concepts; ids are `group/skill/concept`.
+const group = (id: string, skills: Record<string, [string, Level][]>): GroupFile => ({
   group: { id, title: id.toUpperCase() },
-  skills: [{ id: "s", title: "Skill S", concepts }],
+  skills: Object.entries(skills).map(([sid, concepts]) => ({
+    id: sid,
+    title: sid.toUpperCase(),
+    summary: `${sid} summary`,
+    concepts: concepts.map(([cid, level]) => concept(`${id}/${sid}/${cid}`, level)),
+  })),
 });
+const skill = (g: GroupFile, sid: string) => g.skills.find((s) => s.id === sid)!;
+const find = (g: GroupFile, cid: string) => g.skills.flatMap((s) => s.concepts).find((c) => c.id.endsWith(`/${cid}`))!;
 
-const withStates = (states: Record<string, State>): Progress => ({
-  ...emptyProgress(),
-  concepts: Object.fromEntries(Object.entries(states).map(([id, state]) => [id, { state }])),
-});
-
+const rateAll = (p: Progress, g: GroupFile, ratings: Record<string, Rating>) =>
+  Object.entries(ratings).reduce((acc, [sid, r]) => rate(acc, g, skill(g, sid), r), p);
+const right = (p: Progress, c: Concept) => answer(p, c, 0, 0);
+const wrong = (p: Progress, c: Concept) => answer(p, c, 0, 1);
 const first = () => 0;
+const ids = (checks: { concept: Concept }[]) => checks.map((c) => c.concept.id);
 
-describe("states", () => {
-  it("defaults to fog", () => {
-    expect(stateOf(emptyProgress(), "x")).toBe("fog");
-  });
+const g = group("g", {
+  a: [
+    ["a-easy", "easy"],
+    ["a-med", "medium"],
+    ["a-hard", "hard"],
+  ],
+  b: [
+    ["b-easy", "easy"],
+    ["b-med", "medium"],
+  ],
+});
 
-  it("maps scan buttons to states", () => {
-    const c = quizzable("c");
-    expect(stateOf(scan(emptyProgress(), c, "never"), "c")).toBe("gap");
-    expect(stateOf(scan(emptyProgress(), c, "name"), "c")).toBe("gap");
-    expect(stateOf(scan(emptyProgress(), c, "used"), "c")).toBe("claimed");
-  });
-
-  it("confirms on a correct answer and records a gap with what was seen on a wrong one", () => {
-    const c = quizzable("c");
-    expect(stateOf(answer(emptyProgress(), c, 1, 0), "c")).toBe("confirmed");
-    const wrong = answer(emptyProgress(), c, 1, 2);
-    expect(wrong.concepts.c).toEqual({ state: "gap", seen: { variant: 1, choice: 2 } });
-  });
-
-  it("lets later answers move a concept between states", () => {
-    const c = quizzable("c");
-    const p = answer(scan(emptyProgress(), c, "used"), c, 0, 3);
-    expect(stateOf(p, "c")).toBe("gap");
-    const fixed = answer(p, c, 1, 0);
-    expect(stateOf(fixed, "c")).toBe("confirmed");
-    expect(fixed.concepts.c.seen).toBeUndefined();
-    expect(stateOf(scan(fixed, c, "never"), "c")).toBe("gap");
-  });
-
-  it("remembers which scan answer was given, so a list can show it", () => {
-    const c = quizzable("c");
-    expect(scanAnswer(emptyProgress(), "c")).toBeNull();
-    expect(scanAnswer(scan(emptyProgress(), c, "never"), "c")).toBe("never");
-    expect(scanAnswer(scan(emptyProgress(), c, "name"), "c")).toBe("name");
-    expect(scanAnswer(scan(emptyProgress(), c, "used"), "c")).toBe("used");
-    // A quiz answer replaces the scan answer.
-    expect(scanAnswer(answer(scan(emptyProgress(), c, "name"), c, 0, 0), "c")).toBeNull();
-    expect(scanAnswer(answer(scan(emptyProgress(), c, "name"), c, 0, 1), "c")).toBeNull();
-  });
-
-  it("round-trips a scan answer through backup", () => {
-    const p = scan(emptyProgress(), quizzable("c"), "name");
-    expect(parseBackup(JSON.stringify(p))).toEqual(p);
+describe("ratings and answers", () => {
+  it("stores a rating per skill and the latest answer per concept", () => {
+    let p = rate(emptyProgress(), g, skill(g, "a"), "heard");
+    p = rate(p, g, skill(g, "a"), "used");
+    expect(p.skills).toEqual({ "g/a": "used" });
+    p = wrong(p, find(g, "a-easy"));
+    expect(resultOf(p, find(g, "a-easy"))).toBe("wrong");
+    p = right(p, find(g, "a-easy"));
+    expect(resultOf(p, find(g, "a-easy"))).toBe("right");
+    expect(resultOf(p, find(g, "a-med"))).toBeNull();
   });
 
   it("does not mutate the input", () => {
     const p = emptyProgress();
-    scan(p, quizzable("c"), "used");
-    expect(p.concepts).toEqual({});
+    rate(p, g, skill(g, "a"), "used");
+    answer(p, find(g, "a-easy"), 0, 0);
+    expect(p).toEqual(emptyProgress());
   });
 });
 
 describe("pickVariant", () => {
   it("restricts to the chosen language plus null variants", () => {
-    const c = quizzable("c", ["go", "ts", null]);
+    const c = concept("c", "easy", ["go", "ts", null]);
     for (let i = 0; i < 20; i++) expect([1, 2]).toContain(pickVariant(c, "ts", Math.random));
   });
 
   it("returns null when nothing qualifies", () => {
-    expect(pickVariant(quizzable("c", ["go", "go"]), "ts", first)).toBeNull();
+    expect(pickVariant(concept("c", "easy", ["go", "go"]), "ts", first)).toBeNull();
     expect(pickVariant(scanOnly("c"), "ts", first)).toBeNull();
   });
 });
 
-// A group "g" with concepts g1..gN; the first is basic.
-const topic = (id: string, n: number, over: Partial<Concept> = {}) =>
-  group(
-    id,
-    Array.from({ length: n }, (_, i) => ({ ...quizzable(`${id}${i + 1}`), basic: i === 0, ...over })),
-  );
-const heard = (...ids: string[]) =>
-  Object.fromEntries(ids.map((id) => [id, { state: "gap" as const, scan: "name" as const }]));
-const fresh = (...ids: string[]) =>
-  Object.fromEntries(ids.map((id) => [id, { state: "gap" as const, scan: "never" as const }]));
-const used = (...ids: string[]) => Object.fromEntries(ids.map((id) => [id, { state: "claimed" as const }]));
-const right = (...ids: string[]) => Object.fromEntries(ids.map((id) => [id, { state: "confirmed" as const }]));
-const wrong = (...ids: string[]) =>
-  Object.fromEntries(ids.map((id) => [id, { state: "gap" as const, seen: { variant: 0, choice: 1 } }]));
-const progress = (...parts: Progress["concepts"][]): Progress => ({
-  ...emptyProgress(),
-  concepts: Object.assign({}, ...parts) as Progress["concepts"],
-});
+describe("skillScore", () => {
+  const a = skill(g, "a");
 
-describe("scanSample", () => {
-  it("deals up to 4 concepts per topic, unexplored first, keeping topic order", () => {
-    const a = topic("a", 6);
-    const b = topic("b", 2);
-    for (let i = 0; i < 10; i++) {
-      const dealt = scanSample([a, b], progress(right("a1"), heard("a2")), Math.random);
-      expect(dealt.map((d) => d.group.group.id)).toEqual(["a", "b"]);
-      expect(dealt[0].concepts.map((c) => c.id).sort()).toEqual(["a3", "a4", "a5", "a6"]);
-      expect(dealt[1].concepts).toHaveLength(2);
-    }
-  });
-});
-
-describe("checkQueue", () => {
-  const ids = (q: Concept[]) => q.map((c) => c.id).sort();
-
-  it("gives every topic one check: a Used claim, else a Heard, else its basic question", () => {
-    const groups = [topic("a", 4), topic("b", 4), topic("c", 4)];
-    const p = progress(used("a3"), heard("b2"), fresh("c2", "c3", "c4"));
-    expect(ids(checkQueue(groups, p, "ts", Math.random))).toEqual(["a3", "b2", "c1"]);
+  it("is null until rated, then starts at New 0, Heard 0.4, Used 0.7", () => {
+    expect(skillScore(g, a, emptyProgress())).toBeNull();
+    expect(skillScore(g, a, rate(emptyProgress(), g, a, "new"))).toBe(0);
+    expect(skillScore(g, a, rate(emptyProgress(), g, a, "heard"))).toBe(0.4);
+    expect(skillScore(g, a, rate(emptyProgress(), g, a, "used"))).toBe(0.7);
   });
 
-  it("never re-asks a confirmed concept or a New row", () => {
-    const g = topic("g", 3);
-    expect(ids(checkQueue([g], progress(right("g1"), fresh("g2", "g3")), "ts", Math.random))).toEqual([]);
+  it("moves by level: right easy/medium/hard +0.1/+0.15/+0.2, wrong −0.25/−0.15/−0.05", () => {
+    const used = rate(emptyProgress(), g, a, "used");
+    expect(skillScore(g, a, right(used, find(g, "a-easy")))).toBeCloseTo(0.8);
+    expect(skillScore(g, a, wrong(used, find(g, "a-easy")))).toBeCloseTo(0.45);
+    expect(skillScore(g, a, wrong(used, find(g, "a-hard")))).toBeCloseTo(0.65);
+    const heard = rate(emptyProgress(), g, a, "heard");
+    expect(skillScore(g, a, right(right(heard, find(g, "a-med")), find(g, "a-hard")))).toBeCloseTo(0.75);
   });
 
-  it("spends up to 3 extra checks on topics with the most unchecked claims", () => {
-    const groups = [topic("a", 6), topic("b", 6), topic("c", 6)];
-    const p = progress(used("a2", "a3", "a4", "a5", "a6", "b2", "b3"), fresh("c2"));
-    const q = checkQueue(groups, p, "ts", Math.random);
-    expect(q).toHaveLength(6);
-    expect(q.filter((c) => c.id.startsWith("a"))).toHaveLength(3);
-    expect(q.filter((c) => c.id.startsWith("b"))).toHaveLength(2);
-    expect(ids(q.filter((c) => c.id.startsWith("c")))).toEqual(["c1"]);
-  });
-
-  it("caps a run at 12 checks", () => {
-    const groups = "abcdefghi".split("").map((g) => topic(g, 5));
-    const p = progress(...groups.map((g) => used(...[2, 3, 4, 5].map((i) => `${g.group.id}${i}`))));
-    expect(checkQueue(groups, p, "ts", Math.random)).toHaveLength(12);
-  });
-
-  it("skips concepts with no variant in the chosen language", () => {
-    const g = group("g", [{ ...quizzable("go-only", ["go", "go"]), basic: true }, quizzable("any", [null, null])]);
-    expect(ids(checkQueue([g], progress(used("go-only", "any")), "ts", Math.random))).toEqual(["any"]);
+  it("counts only the latest answer per concept, and clamps to 0–1", () => {
+    const used = rate(emptyProgress(), g, a, "used");
+    expect(skillScore(g, a, right(wrong(used, find(g, "a-easy")), find(g, "a-easy")))).toBeCloseTo(0.8);
+    const all = [find(g, "a-easy"), find(g, "a-med"), find(g, "a-hard")];
+    expect(skillScore(g, a, all.reduce(right, used))).toBe(1);
+    expect(skillScore(g, a, all.reduce(wrong, rate(emptyProgress(), g, a, "new")))).toBe(0);
   });
 });
 
 describe("strength", () => {
-  it("averages explored concepts: right 1, Used ¾, Heard ½, New and wrong 0", () => {
-    const g = topic("g", 6);
-    expect(strength(g, progress(right("g1"), used("g2"), heard("g3"), fresh("g4"), wrong("g5")))).toBe(0.45);
+  it("averages the topic's rated skills", () => {
+    const p = rateAll(emptyProgress(), g, { a: "used", b: "heard" });
+    expect(strength(g, p)).toBeCloseTo(0.55);
+    expect(strength(g, rate(emptyProgress(), g, skill(g, "a"), "used"))).toBeCloseTo(0.7);
     expect(strength(g, emptyProgress())).toBe(0);
   });
 });
 
-describe("persona", () => {
-  const a = topic("a", 4);
-  const b = topic("b", 4);
-  const c = topic("c", 4);
-  // A finished scan: all 4 rows answered.
-  const run = (g: string, ...parts: Progress["concepts"][]) =>
-    Object.assign({}, fresh(`${g}1`, `${g}2`, `${g}3`, `${g}4`), ...parts) as Progress["concepts"];
+describe("quickChecks", () => {
+  const h = group("h", { x: [["x-easy", "easy"]], y: [["y-med", "medium"]] });
 
-  it("stays locked until every topic is scanned", () => {
-    expect(persona([a, b], progress(run("a"), fresh("b1", "b2", "b3")))).toEqual({ kind: "locked" });
+  it("asks one easy question per topic, from a Used skill first, then Heard", () => {
+    const p = rateAll(emptyProgress(), g, { a: "heard", b: "used" });
+    expect(ids(quickChecks([g, h], p, "go", Math.random))).toEqual(["g/b/b-easy", "h/x/x-easy"]);
   });
 
-  it("unlocks from a scan alone, on self-reports", () => {
-    const claimed = (g: string) => run(g, used(`${g}1`, `${g}2`, `${g}3`, `${g}4`));
-    expect(persona([a, b], progress(claimed("a"), run("b")))).toEqual({ kind: "group", id: "a" });
+  it("never asks a medium or hard question, and skips a topic with no easy one", () => {
+    const only = group("o", { y: [["y-med", "medium"]] });
+    expect(quickChecks([only], rate(emptyProgress(), only, skill(only, "y"), "used"), "go", first)).toEqual([]);
+  });
+
+  it("prefers an easy concept not asked before", () => {
+    const two = group("t", {
+      s: [
+        ["one", "easy"],
+        ["two", "easy"],
+      ],
+    });
+    const p = right(rate(emptyProgress(), two, skill(two, "s"), "used"), find(two, "one"));
+    for (let i = 0; i < 10; i++) expect(ids(quickChecks([two], p, "go", Math.random))).toEqual(["t/s/two"]);
+  });
+
+  it("skips concepts with no variant in the chosen language", () => {
+    const goOnly: GroupFile = {
+      group: { id: "l", title: "L" },
+      skills: [{ id: "s", title: "S", summary: "s", concepts: [concept("l/s/c", "easy", ["go", "go"])] }],
+    };
+    expect(quickChecks([goOnly], emptyProgress(), "python", first)).toEqual([]);
+    expect(ids(quickChecks([goOnly], emptyProgress(), "go", first))).toEqual(["l/s/c"]);
+  });
+});
+
+describe("quizChecks", () => {
+  it("climbs a skill's levels: easy first, medium once easy is right, then hard", () => {
+    let p = rateAll(emptyProgress(), g, { a: "used", b: "new" });
+    expect(ids(quizChecks([g], p, "go", Math.random))).toEqual(["g/a/a-easy"]);
+    p = right(p, find(g, "a-easy"));
+    expect(ids(quizChecks([g], p, "go", Math.random))).toEqual(["g/a/a-med"]);
+    p = right(p, find(g, "a-med"));
+    expect(ids(quizChecks([g], p, "go", Math.random))).toEqual(["g/a/a-hard"]);
+  });
+
+  it("stays at a level after a wrong answer", () => {
+    const p = wrong(rateAll(emptyProgress(), g, { a: "used", b: "new" }), find(g, "a-easy"));
+    expect(ids(quizChecks([g], p, "go", Math.random))).toEqual(["g/a/a-easy"]);
+  });
+
+  it("asks every claimed skill, Used before Heard, and never a New one in a topic with claims", () => {
+    const three = group("t", { u: [["u", "easy"]], h: [["h", "easy"]], n: [["n", "easy"]] });
+    const p = rateAll(emptyProgress(), three, { u: "used", h: "heard", n: "new" });
+    expect(ids(quizChecks([three], p, "go", Math.random))).toEqual(["t/u/u", "t/h/h"]);
+  });
+
+  it("asks an easy question in a topic where nothing is claimed", () => {
+    const p = rateAll(emptyProgress(), g, { a: "new", b: "new" });
+    const q = ids(quizChecks([g], p, "go", Math.random));
+    expect(q).toHaveLength(1);
+    expect(["g/a/a-easy", "g/b/b-easy"]).toContain(q[0]);
+  });
+
+  it("caps a run at 18 questions, one per topic first", () => {
+    const groups = Array.from({ length: 4 }, (_, i) =>
+      group(`g${i}`, Object.fromEntries(Array.from({ length: 6 }, (_, s) => [`s${s}`, [[`c${s}`, "easy"]]]))),
+    );
+    const p = groups.reduce((acc, gr) => gr.skills.reduce((a2, s) => rate(a2, gr, s, "used"), acc), emptyProgress());
+    const q = quizChecks(groups, p, "go", Math.random);
+    expect(q).toHaveLength(18);
+    expect(new Set(q.slice(0, 4).map((c) => c.concept.id.split("/")[0])).size).toBe(4);
+  });
+});
+
+describe("persona", () => {
+  const strong = group("strong", { s: [["s", "easy"]] });
+  const weak = group("weak", { w: [["w", "easy"]] });
+
+  it("stays locked until every skill is rated", () => {
+    expect(persona([strong, weak], rate(emptyProgress(), strong, skill(strong, "s"), "used"))).toEqual({
+      kind: "locked",
+    });
   });
 
   it("is the Apprentice when no topic reaches 60%", () => {
-    expect(persona([a, b], progress(run("a", wrong("a1")), run("b", wrong("b1"))))).toEqual({
-      kind: "apprentice",
-    });
+    const p = rate(rate(emptyProgress(), strong, skill(strong, "s"), "heard"), weak, skill(weak, "w"), "new");
+    expect(persona([strong, weak], p)).toEqual({ kind: "apprentice" });
   });
 
   it("is the Wanderer when every topic reaches 60%", () => {
-    const strong = (g: string) => run(g, right(`${g}1`, `${g}2`), used(`${g}3`, `${g}4`));
-    expect(persona([a, b], progress(strong("a"), strong("b")))).toEqual({ kind: "wanderer" });
+    const p = rate(rate(emptyProgress(), strong, skill(strong, "s"), "used"), weak, skill(weak, "w"), "used");
+    expect(persona([strong, weak], p)).toEqual({ kind: "wanderer" });
   });
 
   it("otherwise is the strongest passing topic, ties broken by right answers then topic order", () => {
-    const p = progress(
-      run("a", right("a1", "a2"), used("a3", "a4")),
-      run("b", right("b1", "b2", "b3", "b4")),
-      run("c", wrong("c1")),
-    );
-    expect(persona([a, b, c], p)).toEqual({ kind: "group", id: "b" });
-    const tie = progress(
-      run("a", right("a1", "a2", "a3", "a4")),
-      run("b", right("b1", "b2", "b3", "b4")),
-      run("c", wrong("c1")),
-    );
-    expect(persona([a, b, c], tie)).toEqual({ kind: "group", id: "a" });
+    const third = group("third", { t: [["t", "easy"]], u: [["u", "easy"]] });
+    let p = rate(emptyProgress(), strong, skill(strong, "s"), "used");
+    p = rate(p, weak, skill(weak, "w"), "new");
+    p = rateAll(p, third, { t: "used", u: "used" });
+    // Both 0.7: the earlier topic wins.
+    expect(persona([strong, weak, third], p)).toEqual({ kind: "group", id: "strong" });
+    // Both 0.8, but third has two right answers.
+    p = right(right(right(p, find(strong, "s")), find(third, "t")), find(third, "u"));
+    expect(persona([strong, weak, third], p)).toEqual({ kind: "group", id: "third" });
+    // Higher strength beats more right answers.
+    p = right(p, find(strong, "s"));
+    expect(persona([weak, third, strong], wrong(p, find(third, "u")))).toEqual({ kind: "group", id: "strong" });
   });
 });
 
-describe("allChecked", () => {
-  it("is true once every quizzable topic has a quiz answer", () => {
-    const a = topic("a", 2);
-    const b = topic("b", 2);
-    const scanOnly = group("s", [{ ...quizzable("s1"), variants: [] }]);
-    expect(allChecked([a, b, scanOnly], progress(used("a1", "a2", "b1", "b2")))).toBe(false);
-    expect(allChecked([a, b, scanOnly], progress(right("a1"), wrong("b2")))).toBe(true);
-  });
-});
-
-describe("stats", () => {
-  it("counts quiz results and topics overall and per group", () => {
-    const a = group("a", [quizzable("a1"), quizzable("a2"), scanOnly("a3")]);
-    const b = group("b", [quizzable("b1"), quizzable("b2")]);
-    const p: Progress = {
-      ...emptyProgress(),
-      concepts: {
-        a1: { state: "confirmed" },
-        a2: { state: "gap", seen: { variant: 0, choice: 1 } },
-        a3: { state: "claimed" },
-        b1: { state: "gap" },
-      },
-    };
-    expect(stats([a, b], p)).toEqual({
-      correct: 1,
-      wrong: 1,
-      used: 1,
-      gaps: 2,
-      unexplored: 1,
-      groups: [
-        { id: "a", title: "A", correct: 1, answered: 2, explored: 3, total: 3 },
-        { id: "b", title: "B", correct: 0, answered: 0, explored: 1, total: 2 },
-      ],
-    });
+describe("claimsChecked and stats", () => {
+  it("counts claimed skills with a question, and overall results", () => {
+    let p = rateAll(emptyProgress(), g, { a: "used", b: "heard" });
+    expect(claimsChecked([g], p)).toEqual({ checked: 0, claimed: 2 });
+    p = wrong(right(p, find(g, "a-easy")), find(g, "a-med"));
+    expect(claimsChecked([g], p)).toEqual({ checked: 1, claimed: 2 });
+    expect(stats([g], p)).toEqual({ right: 1, missed: 1, used: 1, unrated: 0 });
   });
 });
 
 describe("gapText", () => {
-  it("lists gaps grouped by group and skill, groups sorted by gap count", () => {
-    const a = group("a", [quizzable("a1"), quizzable("a2")]);
-    const b = group("b", [quizzable("b1"), quizzable("b2")]);
-    const text = gapText([a, b], withStates({ a1: "gap", b1: "gap", b2: "gap", a2: "claimed" }));
-    expect(text).toBe(
-      ["B", "  Skill S", "  - b1: b1 summary", "  - b2: b2 summary", "", "A", "  Skill S", "  - a1: a1 summary"].join(
-        "\n",
-      ),
+  it("lists New, Heard and low-scoring skills with their missed questions, easy misses first", () => {
+    let p = rateAll(emptyProgress(), g, { a: "used", b: "heard" });
+    p = wrong(wrong(p, find(g, "a-hard")), find(g, "a-easy"));
+    expect(gapText([g], p)).toBe(
+      [
+        "G",
+        "  A (Used): a summary",
+        "  - Missed (Easy) g/a/a-easy: g/a/a-easy summary",
+        "  - Missed (Hard) g/a/a-hard: g/a/a-hard summary",
+        "  B (Heard): b summary",
+      ].join("\n"),
     );
+  });
+
+  it("leaves out strong skills with nothing missed", () => {
+    expect(gapText([g], rateAll(emptyProgress(), g, { a: "used", b: "used" }))).toBe("");
   });
 });
 
 describe("report", () => {
-  const a = group("a", [quizzable("a1"), quizzable("a2"), quizzable("a3")]);
-  const b = group("b", [quizzable("b1"), quizzable("b2"), scanOnly("b3")]);
-
-  it("lists every topic and concept with its status, in content order", () => {
-    let p = scan(emptyProgress(), a.skills[0].concepts[0], "used");
-    p = scan(p, a.skills[0].concepts[1], "name");
-    p = scan(p, b.skills[0].concepts[0], "never");
-    p = answer(p, b.skills[0].concepts[1], 0, 0);
-    expect(report([a, b], p, "Ant · Porter")).toBe(
-      [
-        "# Nerdscape report",
-        "",
-        "Persona: **Ant · Porter** (self-reported; not checked by the quiz yet)",
-        "",
-        "## A",
-        "",
-        "### Skill S",
-        "",
-        "- **a1**: Used",
-        "- **a2**: Heard",
-        "- **a3**: Not explored",
-        "",
-        "## B",
-        "",
-        "### Skill S",
-        "",
-        "- **b1**: New",
-        "- **b2**: Confirmed",
-        "- **b3**: Not explored",
-        "",
-      ].join("\n"),
+  it("lists every skill's rating and score and every concept's result", () => {
+    let p = rateAll(emptyProgress(), g, { a: "used", b: "new" });
+    p = right(p, find(g, "a-easy"));
+    const md = report([g], p, "Octopus · Interpreter");
+    expect(md).toContain("Persona: **Octopus · Interpreter** (checked 1 of 1 claimed skills)");
+    expect(md).toContain(
+      "### A\n\nUsed · score 80%\n\n- **g/a/a-easy** (Easy): Right\n- **g/a/a-med** (Medium): Not asked",
     );
+    expect(md).toContain("### B\n\nNew · score 0%");
   });
 
   it("shows the question, picked choice, answer and explanation for a missed concept", () => {
-    const c: Concept = {
-      ...quizzable("m"),
-      variants: [{ ...v("go"), q: "Line one\n\n```go\nx := 1\n```", choices: ["`a`", "b", "c", "d"] }, v("ts")],
-    };
-    const p = answer(emptyProgress(), c, 0, 2);
-    expect(report([group("m", [c, scanOnly("n")])], p, "Ant · Porter")).toBe(
-      [
-        "# Nerdscape report",
-        "",
-        "Persona: **Ant · Porter** (checked by the quiz)",
-        "",
-        "## M",
-        "",
-        "### Skill S",
-        "",
-        "- **m**: Missed",
-        "",
-        "  Line one",
-        "",
-        "  ```go",
-        "  x := 1",
-        "  ```",
-        "",
-        "  You picked: c",
-        "  Answer: `a`",
-        "",
-        "  e",
-        "",
-        "- **n**: Not explored",
-        "",
-      ].join("\n"),
+    const p = wrong(rateAll(emptyProgress(), g, { a: "used", b: "used" }), find(g, "a-easy"));
+    const md = report([g], p, "X");
+    expect(md).toContain(
+      "- **g/a/a-easy** (Easy): Missed\n\n  go q\n\n  You picked: b\n  Answer: a\n\n  e\n\n- **g/a/a-med**",
     );
   });
 
   it("says when there is no persona yet", () => {
-    expect(report([a], emptyProgress(), null)).toContain("Persona: not unlocked yet (finish a quick scan or a quiz)");
+    expect(report([g], emptyProgress(), null)).toContain("Persona: not unlocked yet");
   });
 });
 
 describe("backup", () => {
-  it("round-trips", () => {
-    const p = answer(emptyProgress(), quizzable("c"), 0, 2);
+  it("round-trips, including a finished run", () => {
+    const p = finishRun(right(rate(emptyProgress(), g, skill(g, "a"), "used"), find(g, "a-easy")));
     expect(parseBackup(JSON.stringify(p))).toEqual(p);
   });
 
-  it("round-trips a finished run, and loads backups saved before the flag existed", () => {
-    const p = finishRun(scan(emptyProgress(), quizzable("c"), "used"));
-    expect(p.finished).toBe(true);
-    expect(parseBackup(JSON.stringify(p))).toEqual(p);
-    expect(parseBackup(JSON.stringify({ schemaVersion: 1, concepts: {} })).finished).toBeUndefined();
-  });
-
-  it("rejects junk and unknown schema versions", () => {
+  it("rejects junk and version-1 progress", () => {
     expect(() => parseBackup("nope")).toThrow();
-    expect(() => parseBackup(JSON.stringify({ schemaVersion: 99, concepts: {} }))).toThrow();
-    expect(() => parseBackup(JSON.stringify({ schemaVersion: 1, concepts: { x: { state: "bogus" } } }))).toThrow();
+    expect(() => parseBackup(JSON.stringify({ schemaVersion: 1, concepts: {} }))).toThrow();
   });
 });
