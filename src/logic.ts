@@ -7,6 +7,8 @@ const ConceptProgress = z.object({
   state: StateSchema,
   // The quiz question behind a gap, so the gap list can show it again.
   seen: z.object({ variant: z.number().int(), choice: z.number().int() }).optional(),
+  // Which scan button made this a gap ("Used it" is already `claimed`).
+  scan: z.enum(["never", "name"]).optional(),
   tested: z.array(Lang).optional(),
 });
 const ProgressSchema = z.object({
@@ -33,8 +35,14 @@ export const stateOf = (p: Progress, id: string): State => p.concepts[id]?.state
 
 export function scan(p: Progress, concept: Concept, button: ScanButton): Progress {
   const { tested } = p.concepts[concept.id] ?? {};
-  const state = button === "used" ? "claimed" : "gap";
-  return { ...p, concepts: { ...p.concepts, [concept.id]: { state, ...(tested && { tested }) } } };
+  const next = button === "used" ? { state: "claimed" as const } : { state: "gap" as const, scan: button };
+  return { ...p, concepts: { ...p.concepts, [concept.id]: { ...next, ...(tested && { tested }) } } };
+}
+
+export function scanAnswer(p: Progress, id: string): ScanButton | null {
+  const c = p.concepts[id];
+  if (c?.state === "claimed") return "used";
+  return c?.scan ?? null;
 }
 
 export function answer(p: Progress, concept: Concept, variant: number, choice: number): Progress {
@@ -87,10 +95,6 @@ export function quizQueue(groups: GroupFile[], p: Progress, lang: LangPref, rand
     (c) => (pickVariant(c, p, lang, rand) === null ? -1 : PRIORITY.indexOf(stateOf(p, c.id))),
     rand,
   );
-}
-
-export function expressQueue(groups: GroupFile[], p: Progress, rand: () => number): Concept[] {
-  return sample(groups, (c) => (stateOf(p, c.id) === "fog" ? 0 : 1), rand);
 }
 
 export const conceptsOf = (g: GroupFile): Concept[] => g.skills.flatMap((s) => s.concepts);

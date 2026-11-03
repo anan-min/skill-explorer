@@ -16,7 +16,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 ## Stack and hosting
 
 - Vite + React + TypeScript.
-- Hash routing (`#/express`, `#/quiz`, `#/results`), because GitHub Pages has no SPA fallback.
+- Hash routing (`#/express`, `#/express/<group>`, `#/quiz`, `#/results`), because GitHub Pages has no SPA fallback.
 - UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page so the mascots are the only colour.
 - GitHub Pages at `anan-min.github.io/skill-explorer`, deployed by GitHub Actions on push to `main`.
 - English only.
@@ -118,18 +118,22 @@ Each concept is in one state:
 
 ## Two routes
 
-Both mix all groups: each session takes **2 concepts from every group** (18 in all), shuffled together, so one session reads every group and nobody does one group in a row.
-
 ### Express (the scan)
 
-Each concept card shows its title and summary, with four buttons:
+A survey, so it goes topic by topic, as a list:
 
-- **Never heard of it** → `gap`
-- **Know the name** → `gap`
-- **Used it** → `claimed`
-- **Not sure** → asks one quiz variant on the spot; correct → `confirmed`, wrong → `gap`. Not shown for scan-only concepts.
+- `#/express` lists the groups with "scanned / total" and a progress bar.
+- `#/express/<group>` lists every concept in that group under its skill headings. Each row shows the title and summary and a three-way toggle:
+  - **New** (never heard of it) → `gap`
+  - **Heard** (know the name) → `gap`
+  - **Used** → `claimed`
+- The row remembers which button was picked (`scan: "never" | "name"` on a gap), so coming back is an edit, not a replay.
+- **?** (not sure) opens one quiz variant inline under the row; correct → `confirmed`, wrong → `gap`. Not shown for scan-only concepts.
+- A sticky bar shows "X of Y scanned" and links to the next topic (the last one links to results).
 
-Picks unexplored (`fog`) concepts first in each group. About 2 seconds per concept.
+### In-depth (the quiz)
+
+The quiz mixes all groups: each session takes **2 concepts from every group** (18 in all), shuffled together, so one session reads every group and nobody does one group in a row.
 
 ### In-depth (the quiz)
 

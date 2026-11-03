@@ -3,13 +3,13 @@ import type { Concept, GroupFile, Variant } from "./schema.ts";
 import {
   answer,
   emptyProgress,
-  expressQueue,
   gapText,
   parseBackup,
   persona,
   pickVariant,
   quizQueue,
   scan,
+  scanAnswer,
   stateOf,
   stats,
   strength,
@@ -71,6 +71,22 @@ describe("states", () => {
     expect(stateOf(fixed, "c")).toBe("confirmed");
     expect(fixed.concepts.c.seen).toBeUndefined();
     expect(stateOf(scan(fixed, c, "never"), "c")).toBe("gap");
+  });
+
+  it("remembers which scan answer was given, so a list can show it", () => {
+    const c = quizzable("c");
+    expect(scanAnswer(emptyProgress(), "c")).toBeNull();
+    expect(scanAnswer(scan(emptyProgress(), c, "never"), "c")).toBe("never");
+    expect(scanAnswer(scan(emptyProgress(), c, "name"), "c")).toBe("name");
+    expect(scanAnswer(scan(emptyProgress(), c, "used"), "c")).toBe("used");
+    // A quiz answer replaces the scan answer.
+    expect(scanAnswer(answer(scan(emptyProgress(), c, "name"), c, 0, 0), "c")).toBeNull();
+    expect(scanAnswer(answer(scan(emptyProgress(), c, "name"), c, 0, 1), "c")).toBeNull();
+  });
+
+  it("round-trips a scan answer through backup", () => {
+    const p = scan(emptyProgress(), quizzable("c"), "name");
+    expect(parseBackup(JSON.stringify(p))).toEqual(p);
   });
 
   it("does not mutate the input", () => {
@@ -142,20 +158,6 @@ describe("quizQueue", () => {
   it("skips concepts with no variant in the chosen language", () => {
     const g = group("g", [quizzable("go-only", ["go", "go"]), quizzable("any", [null, null])]);
     expect(quizQueue([g], emptyProgress(), "ts", first).map((c) => c.id)).toEqual(["any"]);
-  });
-});
-
-describe("expressQueue", () => {
-  it("takes 2 per group, unexplored first, scan-only included", () => {
-    const g = group("g", [quizzable("seen1"), scanOnly("new1"), quizzable("seen2"), quizzable("new2")]);
-    const p = withStates({ seen1: "gap", seen2: "confirmed" });
-    for (let i = 0; i < 20; i++) {
-      expect(
-        expressQueue([g], p, Math.random)
-          .map((c) => c.id)
-          .sort(),
-      ).toEqual(["new1", "new2"]);
-    }
   });
 });
 

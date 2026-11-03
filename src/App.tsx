@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import type { Progress } from "./logic.ts";
-import { Express } from "./pages/Express.tsx";
+import { ExpressTopic, ExpressTopics } from "./pages/Express.tsx";
 import { Home } from "./pages/Home.tsx";
 import { Quiz } from "./pages/Quiz.tsx";
 import { Results } from "./pages/Results.tsx";
@@ -37,7 +37,7 @@ export function App() {
     saveSettings(s);
   };
   const props: AppProps = { progress, update: setProgress, settings, setSettings };
-  const [route] = useHash();
+  const [route, groupId] = useHash();
 
   return (
     <div className="min-h-svh">
@@ -50,8 +50,10 @@ export function App() {
         </a>
       </header>
       <main className="mx-auto max-w-3xl px-4 pb-16">
-        {route === "express" ? (
-          <Express {...props} />
+        {route === "express" && groupId ? (
+          <ExpressTopic key={groupId} groupId={groupId} {...props} />
+        ) : route === "express" ? (
+          <ExpressTopics {...props} />
         ) : route === "quiz" ? (
           <Quiz {...props} />
         ) : route === "results" ? (
