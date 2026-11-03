@@ -91,50 +91,6 @@
           ]
         },
         {
-          "id": "data-structures-algorithms/data-structures/cache-locality",
-          "title": "Cache locality",
-          "summary": "Data laid out next to each other in memory is much faster to walk, even at the same Big O",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": null,
-              "q": "Summing 10 million integers takes O(n) whether they're in an array or a linked list, yet the array is several times faster. Why?",
-              "choices": [
-                "Arrays are always allocated on the stack, where access is faster",
-                "Neighbouring values share a cache line, so reads mostly hit the cache",
-                "Linked lists check bounds on every step they take",
-                "The compiler turns the array loop into an O(log n) one"
-              ],
-              "answer": 1,
-              "explain": "Walking contiguous memory uses every byte of each cache line and lets the prefetcher run ahead. A linked list's nodes are scattered, so many steps wait on a cache miss."
-            },
-            {
-              "lang": "go",
-              "q": "`grid` is a 4096×4096 `[][]int`. Swapping the two loops (rows outer, columns inner) makes this much faster. Why?\n\n```go\nfor c := 0; c < n; c++ {\n    for r := 0; r < n; r++ {\n        sum += grid[r][c]\n    }\n}\n```",
-              "choices": [
-                "The compiler can only vectorise the outer loop",
-                "Go checks bounds less often in the swapped order",
-                "Each row is contiguous, so a row is read in memory order",
-                "The swapped loop does fewer total iterations"
-              ],
-              "answer": 2,
-              "explain": "Each `grid[r]` is its own contiguous slice. Going down a column jumps to a different row on every step and misses the cache; going along a row reads neighbouring values."
-            },
-            {
-              "lang": null,
-              "q": "A program sums the `id` field of 10 million records, each a 200-byte struct. Keeping the ids in their own array makes the sum several times faster, though both versions are O(n). Why?",
-              "choices": [
-                "The CPU skips the comparisons for the other fields",
-                "The smaller array is compiled into an O(log n) loop",
-                "The ids can be kept in registers instead of memory",
-                "Each cache line then holds many ids instead of one id plus unused bytes"
-              ],
-              "answer": 3,
-              "explain": "The work is the same, but a cache line fetched from memory is now full of useful ids rather than mostly bytes of other fields. Big O ignores this constant factor, which is where the speed-up comes from."
-            }
-          ]
-        },
-        {
           "id": "data-structures-algorithms/data-structures/binary-heap",
           "title": "Binary heap (priority queue)",
           "summary": "A tree kept in an array that always gives the smallest (or largest) item cheaply",
@@ -194,10 +150,81 @@
           ]
         },
         {
+          "id": "data-structures-algorithms/data-structures/binary-search-tree",
+          "title": "Binary search tree",
+          "summary": "A tree kept in sorted order: O(log n) to search when balanced, O(n) when it isn't",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": null,
+              "q": "You insert 1, 2, 3, ..., 1000 in that order into a plain (not self-balancing) binary search tree. How long does a lookup take now?",
+              "choices": ["O(1)", "O(log n)", "O(n)", "O(n log n)"],
+              "answer": 2,
+              "explain": "Each new key is larger than all before it, so every node gets only a right child and the tree is effectively a linked list. Self-balancing trees (red-black, AVL, B-trees) exist to keep the height at O(log n)."
+            },
+            {
+              "lang": null,
+              "q": "Why would you pick a balanced search tree over a hash map for an index?",
+              "choices": [
+                "Its lookups are faster than a hash map's on average",
+                "It keeps keys in order, so range queries are cheap",
+                "It needs no extra memory per entry beyond the key",
+                "It never needs rebalancing, however keys are added"
+              ],
+              "answer": 1,
+              "explain": "A hash map scatters keys, so finding everything between two values means scanning it all. A balanced tree costs O(log n) per lookup but walks a range in order, which is why database indexes are usually B-trees."
+            }
+          ]
+        },
+        {
+          "id": "data-structures-algorithms/data-structures/cache-locality",
+          "title": "Cache locality",
+          "summary": "Data laid out next to each other in memory is much faster to walk, even at the same Big O",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Summing 10 million integers takes O(n) whether they're in an array or a linked list, yet the array is several times faster. Why?",
+              "choices": [
+                "Arrays are always allocated on the stack, where access is faster",
+                "Neighbouring values share a cache line, so reads mostly hit the cache",
+                "Linked lists check bounds on every step they take",
+                "The compiler turns the array loop into an O(log n) one"
+              ],
+              "answer": 1,
+              "explain": "Walking contiguous memory uses every byte of each cache line and lets the prefetcher run ahead. A linked list's nodes are scattered, so many steps wait on a cache miss."
+            },
+            {
+              "lang": "go",
+              "q": "`grid` is a 4096×4096 `[][]int`. Swapping the two loops (rows outer, columns inner) makes this much faster. Why?\n\n```go\nfor c := 0; c < n; c++ {\n    for r := 0; r < n; r++ {\n        sum += grid[r][c]\n    }\n}\n```",
+              "choices": [
+                "The compiler can only vectorise the outer loop",
+                "Go checks bounds less often in the swapped order",
+                "Each row is contiguous, so a row is read in memory order",
+                "The swapped loop does fewer total iterations"
+              ],
+              "answer": 2,
+              "explain": "Each `grid[r]` is its own contiguous slice. Going down a column jumps to a different row on every step and misses the cache; going along a row reads neighbouring values."
+            },
+            {
+              "lang": null,
+              "q": "A program sums the `id` field of 10 million records, each a 200-byte struct. Keeping the ids in their own array makes the sum several times faster, though both versions are O(n). Why?",
+              "choices": [
+                "The CPU skips the comparisons for the other fields",
+                "The smaller array is compiled into an O(log n) loop",
+                "The ids can be kept in registers instead of memory",
+                "Each cache line then holds many ids, not one plus padding"
+              ],
+              "answer": 3,
+              "explain": "The work is the same, but a cache line fetched from memory is now full of useful ids rather than mostly bytes of other fields. Big O ignores this constant factor, which is where the speed-up comes from."
+            }
+          ]
+        },
+        {
           "id": "data-structures-algorithms/data-structures/bloom-filter",
           "title": "Bloom filter",
           "summary": "A compact set that can say \"definitely not present\" or \"maybe present\"",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
@@ -269,6 +296,55 @@
           ]
         },
         {
+          "id": "data-structures-algorithms/big-o/logarithmic",
+          "title": "Logarithmic time, O(log n)",
+          "summary": "Work that grows by one step each time the input doubles, as in binary search",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Binary search on a sorted list of 1,000,000 items. About how many comparisons does it need at most?",
+              "choices": ["About 20", "About 1,000", "About 500,000", "About 100"],
+              "answer": 0,
+              "explain": "Each comparison halves what's left, and 2²⁰ is just over a million. That's what O(log n) means in practice."
+            },
+            {
+              "lang": null,
+              "q": "An O(log n) lookup takes 30 steps on a table. The table grows to twice its size. How many steps now, roughly?",
+              "choices": ["60", "About 31", "900", "About 42"],
+              "answer": 1,
+              "explain": "Doubling the input adds one more halving step to a log₂ algorithm. That's why logarithmic structures scale so well."
+            }
+          ]
+        },
+        {
+          "id": "data-structures-algorithms/big-o/constants-and-small-n",
+          "title": "Big O drops constants",
+          "summary": "Big O describes growth for large inputs; it ignores constant factors and small sizes",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Algorithm A's running time grows linearly with n, and algorithm B's grows quadratically. What does that guarantee?",
+              "choices": [
+                "A is faster for every input size",
+                "A uses less memory",
+                "B is faster for small inputs",
+                "Beyond some input size, A is faster"
+              ],
+              "answer": 3,
+              "explain": "Big O only compares growth. A's constant factors can be large enough that B wins on small inputs, which is why many sort routines switch to insertion sort for short runs."
+            },
+            {
+              "lang": null,
+              "q": "An algorithm does `3n² + 50n + 1000` steps. What is its Big O?",
+              "choices": ["O(n²)", "O(3n²)", "O(n² + n)", "O(1000)"],
+              "answer": 0,
+              "explain": "Big O keeps only the fastest-growing term and drops its constant factor. For large n, `3n²` dwarfs the rest."
+            }
+          ]
+        },
+        {
           "id": "data-structures-algorithms/big-o/hidden-linear-scan",
           "title": "Hidden O(n) inside a loop",
           "summary": "A built-in like `includes` or `in list` that scans on every call turns a loop quadratic",
@@ -316,28 +392,6 @@
               ],
               "answer": 1,
               "explain": "`contains` on a list scans it, and the list grows to n entries, so n calls cost O(n²) overall. A hash set makes each check O(1) on average."
-            }
-          ]
-        },
-        {
-          "id": "data-structures-algorithms/big-o/logarithmic",
-          "title": "Logarithmic time, O(log n)",
-          "summary": "Work that grows by one step each time the input doubles, as in binary search",
-          "level": "easy",
-          "variants": [
-            {
-              "lang": null,
-              "q": "Binary search on a sorted list of 1,000,000 items. About how many comparisons does it need at most?",
-              "choices": ["About 20", "About 1,000", "About 500,000", "About 100"],
-              "answer": 0,
-              "explain": "Each comparison halves what's left, and 2²⁰ is just over a million. That's what O(log n) means in practice."
-            },
-            {
-              "lang": null,
-              "q": "An O(log n) lookup takes 30 steps on a table. The table grows to twice its size. How many steps now, roughly?",
-              "choices": ["60", "About 31", "900", "About 42"],
-              "answer": 1,
-              "explain": "Doubling the input adds one more halving step to a log₂ algorithm. That's why logarithmic structures scale so well."
             }
           ]
         },
@@ -393,65 +447,6 @@
           ]
         },
         {
-          "id": "data-structures-algorithms/big-o/sorting-lower-bound",
-          "title": "Comparison sort lower bound",
-          "summary": "No sort that only compares elements can beat O(n log n) in the worst case",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": null,
-              "q": "What is the best possible worst-case time for a sort that only compares pairs of elements?",
-              "choices": ["O(n)", "O(log n)", "O(n²)", "O(n log n)"],
-              "answer": 3,
-              "explain": "There are n! possible orderings and each comparison can at best halve them, which takes about n log n comparisons. Merge sort and heapsort reach that bound."
-            },
-            {
-              "lang": null,
-              "q": "Counting sort sorts a million ages (0 to 120) in O(n + k). How does it get under O(n log n)?",
-              "choices": [
-                "It runs its comparisons in parallel across cores",
-                "It counts each value's occurrences instead of comparing",
-                "O(n log n) only bounds the average case",
-                "It needs the input to be already nearly sorted"
-              ],
-              "answer": 1,
-              "explain": "The lower bound applies only to comparison sorts. Counting and radix sorts exploit a small, known key range instead, so they don't compare elements."
-            }
-          ]
-        },
-        {
-          "id": "data-structures-algorithms/big-o/average-vs-worst-case",
-          "title": "Average vs worst case",
-          "summary": "An algorithm can be fast on typical input and much slower on particular input",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": null,
-              "q": "A textbook quicksort always picks the first element as the pivot. What happens on input that's already sorted?",
-              "choices": [
-                "It finishes in O(n), since nothing moves",
-                "It stays O(n log n), as on any input",
-                "It degrades to O(n²)",
-                "It recurses forever"
-              ],
-              "answer": 2,
-              "explain": "Each pivot is the smallest item, so every partition splits off just one element and the recursion is n levels deep. Quicksort's O(n log n) is the average case, not a guarantee."
-            },
-            {
-              "lang": null,
-              "q": "Why do production quicksorts pick a random pivot or the median of three elements instead of the first one?",
-              "choices": [
-                "To bring the average case down to O(n)",
-                "To make the sort stable for equal keys",
-                "To make it safe to run on several threads",
-                "To avoid O(n²) time on already-sorted input"
-              ],
-              "answer": 3,
-              "explain": "With a first-element pivot, sorted input splits off one element per level; a random or median-of-three pivot keeps those partitions balanced. It doesn't make quicksort stable or linear, and the O(n²) worst case still exists for unlucky or crafted input."
-            }
-          ]
-        },
-        {
           "id": "data-structures-algorithms/big-o/space-complexity",
           "title": "Space complexity",
           "summary": "How much extra memory an algorithm needs as the input grows, call stack included",
@@ -493,29 +488,61 @@
           ]
         },
         {
-          "id": "data-structures-algorithms/big-o/constants-and-small-n",
-          "title": "Big O drops constants",
-          "summary": "Big O describes growth for large inputs; it ignores constant factors and small sizes",
-          "level": "medium",
+          "id": "data-structures-algorithms/big-o/sorting-lower-bound",
+          "title": "Comparison sort lower bound",
+          "summary": "No sort that only compares elements can beat O(n log n) in the worst case",
+          "level": "hard",
           "variants": [
             {
               "lang": null,
-              "q": "Algorithm A's running time grows linearly with n, and algorithm B's grows quadratically. What does that guarantee?",
-              "choices": [
-                "A is faster for every input size",
-                "A uses less memory",
-                "B is faster for small inputs",
-                "Beyond some input size, A is faster"
-              ],
+              "q": "What is the best possible worst-case time for a sort that only compares pairs of elements?",
+              "choices": ["O(n)", "O(log n)", "O(n²)", "O(n log n)"],
               "answer": 3,
-              "explain": "Big O only compares growth. A's constant factors can be large enough that B wins on small inputs, which is why many sort routines switch to insertion sort for short runs."
+              "explain": "There are n! possible orderings and each comparison can at best halve them, which takes about n log n comparisons. Merge sort and heapsort reach that bound."
             },
             {
               "lang": null,
-              "q": "An algorithm does `3n² + 50n + 1000` steps. What is its Big O?",
-              "choices": ["O(n²)", "O(3n²)", "O(n² + n)", "O(1000)"],
-              "answer": 0,
-              "explain": "Big O keeps only the fastest-growing term and drops its constant factor. For large n, `3n²` dwarfs the rest."
+              "q": "Counting sort sorts a million ages (0 to 120) in O(n + k). How does it get under O(n log n)?",
+              "choices": [
+                "It runs its comparisons in parallel across cores",
+                "It counts each value's occurrences instead of comparing",
+                "O(n log n) only bounds the average case",
+                "It needs the input to be already nearly sorted"
+              ],
+              "answer": 1,
+              "explain": "The lower bound applies only to comparison sorts. Counting and radix sorts exploit a small, known key range instead, so they don't compare elements."
+            }
+          ]
+        },
+        {
+          "id": "data-structures-algorithms/big-o/average-vs-worst-case",
+          "title": "Average vs worst case",
+          "summary": "An algorithm can be fast on typical input and much slower on particular input",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": null,
+              "q": "A textbook quicksort always picks the first element as the pivot. What happens on input that's already sorted?",
+              "choices": [
+                "It finishes in O(n), since nothing moves",
+                "It stays O(n log n), as on any input",
+                "It degrades to O(n²)",
+                "It recurses forever"
+              ],
+              "answer": 2,
+              "explain": "Each pivot is the smallest item, so every partition splits off just one element and the recursion is n levels deep. Quicksort's O(n log n) is the average case, not a guarantee."
+            },
+            {
+              "lang": null,
+              "q": "Why do production quicksorts pick a random pivot or the median of three elements instead of the first one?",
+              "choices": [
+                "To bring the average case down to O(n)",
+                "To make the sort stable for equal keys",
+                "To make it safe to run on several threads",
+                "To avoid O(n²) time on already-sorted input"
+              ],
+              "answer": 3,
+              "explain": "With a first-element pivot, sorted input splits off one element per level; a random or median-of-three pivot keeps those partitions balanced. It doesn't make quicksort stable or linear, and the O(n²) worst case still exists for unlucky or crafted input."
             }
           ]
         }

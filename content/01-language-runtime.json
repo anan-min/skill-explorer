@@ -51,24 +51,62 @@
           ]
         },
         {
-          "id": "language-runtime/types-memory/nil-interface",
-          "title": "Nil pointer in an interface",
-          "summary": "A Go interface holding a typed nil pointer is not itself `nil`",
-          "level": "medium",
+          "id": "language-runtime/types-memory/type-coercion",
+          "title": "Type coercion",
+          "summary": "Converting a value to another type implicitly, and which languages refuse to do it",
+          "level": "easy",
           "variants": [
             {
-              "lang": "go",
-              "q": "What does this print?\n\n```go\ntype MyErr struct{}\n\nfunc (*MyErr) Error() string { return \"boom\" }\n\nfunc run() error {\n    var e *MyErr\n    return e\n}\n\nfmt.Println(run() == nil)\n```",
-              "choices": ["`true`", "It panics with a nil dereference", "It doesn't compile", "`false`"],
-              "answer": 3,
-              "explain": "The returned `error` holds a type (`*MyErr`) and a nil value, and an interface is only `nil` when both are unset. Return a literal `nil` on the success path instead of a typed nil pointer."
+              "lang": "ts",
+              "q": "`input.value` is the string `\"5\"`. What does `input.value + 1` evaluate to?",
+              "choices": ["`\"51\"`", "`6`", "`NaN`", "It throws a `TypeError`"],
+              "answer": 0,
+              "explain": "When either operand of `+` is a string, the other is converted to a string and they're concatenated. Use `Number(input.value) + 1` to get `6`."
+            },
+            {
+              "lang": "ts",
+              "q": "Does `ship()` run?\n\n```ts\nconst qty = \"0\"\nif (qty) {\n  ship()\n}\n```",
+              "choices": [
+                "No: `\"0\"` is coerced to the number `0`, which is falsy",
+                "No: TypeScript rejects a string as an `if` condition",
+                "Yes: every non-empty string is truthy, `\"0\"` included",
+                "Only when `qty` is compared with `== 0` first"
+              ],
+              "answer": 2,
+              "explain": "An `if` converts its condition to a boolean, and the only falsy string is `\"\"`. Converting `\"0\"` to a number first (`Number(qty) > 0`) gives the intended check."
+            },
+            {
+              "lang": "python",
+              "q": "What happens here?\n\n```python\ncount = \"5\"\ntotal = count + 1\n```",
+              "choices": ["`total` is `\"51\"`", "`total` is `6`", "It raises `TypeError`", "`total` is `None`"],
+              "answer": 2,
+              "explain": "Python doesn't convert between `str` and `int` implicitly, so `+` with mixed types raises `TypeError`. You convert explicitly: `int(count) + 1`."
+            },
+            {
+              "lang": "python",
+              "q": "A form sends `\"False\"` as a string. What is `bool(\"False\")`?",
+              "choices": ["`False`", "`True`", "It raises `ValueError`", "`None`"],
+              "answer": 1,
+              "explain": "`bool()` on a string only checks whether it's empty, so any non-empty string, `\"False\"` included, is `True`. Parse it yourself, e.g. `s.lower() == \"true\"`."
             },
             {
               "lang": "go",
-              "q": "What does this print?\n\n```go\nvar p *int\nvar x any = p\nfmt.Println(p == nil, x == nil)\n```",
-              "choices": ["`true true`", "`true false`", "`false false`", "`false true`"],
+              "q": "What happens?\n\n```go\nvar n int = 5\nvar f float64 = n\n```",
+              "choices": [
+                "`f` is `5.0`, widened from the `int`",
+                "Compile error: an `int` isn't converted to `float64` implicitly",
+                "`f` is `0`, because the assignment is skipped",
+                "It compiles, then panics at runtime on the assignment"
+              ],
               "answer": 1,
-              "explain": "`p` is a nil pointer, but `x` is an interface that now carries the type `*int`, so it doesn't compare equal to `nil`."
+              "explain": "Go requires an explicit conversion, `float64(n)`, even between numeric types. That's a deliberate choice to make every conversion visible."
+            },
+            {
+              "lang": "go",
+              "q": "What is `f`?\n\n```go\na, b := 7, 2\nf := float64(a / b)\n```",
+              "choices": ["`3.5`", "`4`", "A compile error for mixing types", "`3`"],
+              "answer": 3,
+              "explain": "`a / b` is integer division on two `int`s, giving `3`, and only then is it converted. Convert first to keep the fraction: `float64(a) / float64(b)`."
             }
           ]
         },
@@ -91,38 +129,6 @@
               "choices": ["`2 2`", "`1 2`", "`1 1`", "It panics: index out of range"],
               "answer": 0,
               "explain": "`s` has spare capacity, so both appends write to the same slot of the same backing array; the second overwrites the first. Copy the slice first (or cap it with `s[:3:3]`) if the results must be independent."
-            }
-          ]
-        },
-        {
-          "id": "language-runtime/types-memory/escape-analysis",
-          "title": "Escape analysis",
-          "summary": "How the Go compiler decides whether a variable lives on the stack or the heap",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "Is this safe?\n\n```go\nfunc newCounter() *int {\n    n := 0\n    return &n\n}\n```",
-              "choices": [
-                "Yes: the compiler moves `n` to the heap",
-                "Only if `n` is created with `new(int)` instead",
-                "No: it's a dangling pointer to a dead stack frame",
-                "It compiles, but the pointer is `nil` after the function returns"
-              ],
-              "answer": 0,
-              "explain": "Go's escape analysis moves `n` to the heap because its address leaves the function. Unlike C, returning the address of a local is always safe; it just costs an allocation."
-            },
-            {
-              "lang": "go",
-              "q": "You want to see which variables the compiler moved to the heap (output like `moved to heap: n`). Which command shows that?",
-              "choices": [
-                "`go vet -escape ./...`",
-                "`go build -gcflags=-m ./...`",
-                "`GODEBUG=gctrace=1 go run .`",
-                "`go tool pprof -alloc_space`"
-              ],
-              "answer": 1,
-              "explain": "`-gcflags=-m` prints the compiler's escape and inlining decisions. `gctrace` reports GC cycles and pprof shows where allocations happen at runtime, but neither explains why a value escaped."
             }
           ]
         },
@@ -183,6 +189,60 @@
           "summary": "Finding what allocates memory with a heap profile (pprof, Chrome DevTools)",
           "level": "medium",
           "variants": []
+        },
+        {
+          "id": "language-runtime/types-memory/nil-interface",
+          "title": "Nil pointer in an interface",
+          "summary": "A Go interface holding a typed nil pointer is not itself `nil`",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\ntype MyErr struct{}\n\nfunc (*MyErr) Error() string { return \"boom\" }\n\nfunc run() error {\n    var e *MyErr\n    return e\n}\n\nfmt.Println(run() == nil)\n```",
+              "choices": ["`true`", "It panics with a nil dereference", "It doesn't compile", "`false`"],
+              "answer": 3,
+              "explain": "The returned `error` holds a type (`*MyErr`) and a nil value, and an interface is only `nil` when both are unset. Return a literal `nil` on the success path instead of a typed nil pointer."
+            },
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\nvar p *int\nvar x any = p\nfmt.Println(p == nil, x == nil)\n```",
+              "choices": ["`true true`", "`true false`", "`false false`", "`false true`"],
+              "answer": 1,
+              "explain": "`p` is a nil pointer, but `x` is an interface that now carries the type `*int`, so it doesn't compare equal to `nil`."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/types-memory/escape-analysis",
+          "title": "Escape analysis",
+          "summary": "How the Go compiler decides whether a variable lives on the stack or the heap",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Is this safe?\n\n```go\nfunc newCounter() *int {\n    n := 0\n    return &n\n}\n```",
+              "choices": [
+                "Yes: the compiler moves `n` to the heap",
+                "Only if `n` is created with `new(int)` instead",
+                "No: it's a dangling pointer to a dead stack frame",
+                "It compiles, but the pointer is `nil` after the function returns"
+              ],
+              "answer": 0,
+              "explain": "Go's escape analysis moves `n` to the heap because its address leaves the function. Unlike C, returning the address of a local is always safe; it just costs an allocation."
+            },
+            {
+              "lang": "go",
+              "q": "You want to see which variables the compiler moved to the heap (output like `moved to heap: n`). Which command shows that?",
+              "choices": [
+                "`go vet -escape ./...`",
+                "`go build -gcflags=-m ./...`",
+                "`GODEBUG=gctrace=1 go run .`",
+                "`go tool pprof -alloc_space`"
+              ],
+              "answer": 1,
+              "explain": "`-gcflags=-m` prints the compiler's escape and inlining decisions. `gctrace` reports GC cycles and pprof shows where allocations happen at runtime, but neither explains why a value escaped."
+            }
+          ]
         }
       ]
     },
@@ -192,52 +252,80 @@
       "summary": "Conditions, loops and recursion, and when to use which",
       "concepts": [
         {
-          "id": "language-runtime/control-flow/switch-fallthrough",
-          "title": "Switch fallthrough",
-          "summary": "Whether a `switch` case runs into the next one when it has no `break`",
-          "level": "medium",
+          "id": "language-runtime/control-flow/recursion-base-case",
+          "title": "Recursion base case",
+          "summary": "The condition that stops a recursive function; if it's missing or never reached, the calls don't end",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "What happens on `countdown(-1)`?\n\n```\nfunction countdown(n):\n    if n == 0:\n        return\n    print(n)\n    countdown(n - 1)\n```",
+              "choices": [
+                "It prints nothing, since `-1` fails the check",
+                "It prints `-1` once, then returns",
+                "It recurses until the stack overflows or a limit is hit",
+                "It prints `-1`, then `0`, then returns"
+              ],
+              "answer": 2,
+              "explain": "Starting below zero, `n` never equals `0`, so the base case is never reached. Writing it as `n <= 0` covers every input that should stop."
+            },
+            {
+              "lang": null,
+              "q": "What does this function need to work?\n\n```\nfunction factorial(n):\n    return n * factorial(n - 1)\n```",
+              "choices": [
+                "A base case, such as `if n <= 1: return 1`",
+                "A loop around the recursive call",
+                "A cache of earlier results",
+                "A tail call, so the compiler can optimise it"
+              ],
+              "answer": 0,
+              "explain": "Without a base case every call makes another, so it never returns. A cache or tail-call optimisation changes the cost of the calls, not whether they stop."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/control-flow/off-by-one",
+          "title": "Off-by-one error",
+          "summary": "A loop or range that runs one time too many or too few, often from `<=` vs `<` or an exclusive end",
+          "level": "easy",
           "variants": [
             {
               "lang": "go",
-              "q": "What does this print?\n\n```go\nswitch x := 1; x {\ncase 1:\n    fmt.Print(\"a\")\ncase 2:\n    fmt.Print(\"b\")\ndefault:\n    fmt.Print(\"c\")\n}\n```",
-              "choices": ["`a`", "`ab`", "`abc`", "`ac`"],
-              "answer": 0,
-              "explain": "Go cases don't fall through: each case ends on its own unless it says `fallthrough`. In JavaScript the same shape would print all three."
-            },
-            {
-              "lang": "ts",
-              "q": "With default compiler options, what does `f(1)` log?\n\n```ts\nfunction f(x: number) {\n  switch (x) {\n    case 1: console.log('a')\n    case 2: console.log('b')\n    default: console.log('c')\n  }\n}\n```",
-              "choices": ["`a`", "`a`, then `b`, then `c`", "`a`, then `c`", "`c`"],
-              "answer": 1,
-              "explain": "JavaScript cases fall through until a `break` or `return`, so case 1 runs on into case 2 and `default`. The `noFallthroughCasesInSwitch` compiler option flags this."
-            },
-            {
-              "lang": "python",
-              "q": "Python 3.10+. What does this print?\n\n```python\nx = 1\nmatch x:\n    case 1:\n        print(\"a\")\n    case 2:\n        print(\"b\")\n    case _:\n        print(\"c\")\n```",
-              "choices": ["`a`, `b` and `c`", "`a` and `c`", "`a`", "`c`"],
+              "q": "What happens?\n\n```go\ntotal := 0\nfor i := 0; i <= len(prices); i++ {\n    total += prices[i]\n}\n```",
+              "choices": [
+                "It sums every price correctly",
+                "It skips the first price",
+                "It panics with index out of range",
+                "It fails to compile"
+              ],
               "answer": 2,
-              "explain": "`match` runs only the first case that matches; there is no fallthrough and no `break` needed. `case _` runs only when nothing above matched."
-            },
-            {
-              "lang": "go",
-              "q": "What does this print?\n\n```go\nswitch x := 1; x {\ncase 1:\n    fmt.Print(\"a\")\n    fallthrough\ncase 2:\n    fmt.Print(\"b\")\ncase 3:\n    fmt.Print(\"c\")\n}\n```",
-              "choices": ["`a`", "`ab`", "`abc`", "`ac`"],
-              "answer": 1,
-              "explain": "`fallthrough` runs the next case's body without testing its condition, but only that one: control stops after `b`. Without the keyword, only `a` would print."
+              "explain": "Valid indexes run from `0` to `len(prices)-1`, so the last iteration reads one past the end and panics. Use `<`, or `for _, p := range prices`."
             },
             {
               "lang": "ts",
-              "q": "With default compiler options, what does `f(1)` log?\n\n```ts\nfunction f(x: number) {\n  switch (x) {\n    case 1: console.log('a')\n    case 2: console.log('b'); break\n    case 3: console.log('c')\n  }\n}\n```",
-              "choices": ["`a`", "`a`, `b`, then `c`", "`b`", "`a`, then `b`"],
-              "answer": 3,
-              "explain": "Case 1 has no `break`, so it runs on into case 2, which does `break`. The `break` there is what stops the run before case 3."
+              "q": "`prices` is a `number[]`. What is `total` afterwards?\n\n```ts\nlet total = 0\nfor (let i = 0; i <= prices.length; i++) {\n  total += prices[i]\n}\n```",
+              "choices": ["The correct sum", "`NaN`", "It throws a `RangeError`", "The sum without the last price"],
+              "answer": 1,
+              "explain": "The last iteration reads `prices[prices.length]`, which is `undefined`, and adding `undefined` to a number gives `NaN`. JavaScript doesn't throw on an out-of-range read."
             },
             {
               "lang": "python",
-              "q": "Python 3.10+. What does this print?\n\n```python\nx = 2\nmatch x:\n    case 1 | 2:\n        print(\"low\")\n    case 2:\n        print(\"two\")\n```",
-              "choices": ["`low`", "`low`, then `two`", "`two`", "A `SyntaxError`: or-patterns need parentheses"],
+              "q": "What is `sum(range(1, 10))`?",
+              "choices": ["`45`", "`55`", "`50`", "`54`"],
               "answer": 0,
-              "explain": "`match` runs only the first case that matches and never falls through, so the second `case 2` is unreachable here. `1 | 2` is a valid or-pattern."
+              "explain": "`range` excludes its end, so this sums 1 to 9. For 1 to 10 inclusive you need `range(1, 11)`."
+            },
+            {
+              "lang": null,
+              "q": "Pages are numbered from 1, and the code fetches `LIMIT pageSize OFFSET page * pageSize`. What do users see?",
+              "choices": [
+                "Every page shows the right rows",
+                "Page 1 skips the first `pageSize` rows",
+                "The last page is always empty",
+                "Page 1 shows the first row twice"
+              ],
+              "answer": 1,
+              "explain": "Page 1 gets offset `pageSize`, so the first page's rows are never shown. With 1-based pages the offset is `(page - 1) * pageSize`."
             }
           ]
         },
@@ -260,107 +348,6 @@
               "choices": ["`1`", "`2`", "`0`", "It doesn't compile"],
               "answer": 1,
               "explain": "The deferred closure takes no arguments, so nothing is captured early; it reads the variable `x` when it runs at return time. Passing `x` as an argument would print `1`."
-            }
-          ]
-        },
-        {
-          "id": "language-runtime/control-flow/finally-overrides-return",
-          "title": "`finally` and `defer` changing the result",
-          "summary": "Cleanup code that runs after `return` can replace the value the caller gets",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "ts",
-              "q": "What does `f()` return?\n\n```ts\nfunction f() {\n  try {\n    return 'try'\n  } finally {\n    return 'finally'\n  }\n}\n```",
-              "choices": ["`'try'`", "`undefined`", "It throws a `SyntaxError`", "`'finally'`"],
-              "answer": 3,
-              "explain": "`finally` runs after the `return 'try'` has been decided, and its own `return` replaces it. A `return` in `finally` also swallows any exception thrown in `try`."
-            },
-            {
-              "lang": "go",
-              "q": "What does `f()` return?\n\n```go\nfunc f() (n int) {\n    defer func() { n *= 10 }()\n    return 2\n}\n```",
-              "choices": ["`20`", "`2`", "`0`", "It doesn't compile"],
-              "answer": 0,
-              "explain": "`return 2` assigns `2` to the named result `n`, then deferred functions run and can modify it. Without a named result, the defer couldn't touch the returned value."
-            },
-            {
-              "lang": "python",
-              "q": "What does `f()` return?\n\n```python\ndef f():\n    try:\n        return \"try\"\n    finally:\n        return \"finally\"\n```",
-              "choices": ["`\"try\"`", "`\"finally\"`", "`None`", "It raises a `SyntaxError`"],
-              "answer": 1,
-              "explain": "The `finally` block runs after `return \"try\"` is decided, and its own `return` replaces the value (and would swallow any exception from `try`). Python 3.14 adds a `SyntaxWarning` for this (PEP 765), but it still runs and returns `\"finally\"`."
-            },
-            {
-              "lang": "go",
-              "q": "What does `f()` return?\n\n```go\nfunc f() int {\n    n := 2\n    defer func() { n *= 10 }()\n    return n\n}\n```",
-              "choices": ["`20`", "`0`", "`2`", "It doesn't compile"],
-              "answer": 2,
-              "explain": "`return n` copies the value into the unnamed result before the deferred function runs, so changing `n` afterwards has no effect. With a named result (`func f() (n int)`) the deferred change would be visible, as in the other example."
-            },
-            {
-              "lang": "ts",
-              "q": "What does this log?\n\n```ts\nfunction f() {\n  try {\n    throw new Error('A')\n  } finally {\n    return 'done'\n  }\n}\nconsole.log(f())\n```",
-              "choices": ["It throws `Error: A`", "`'done'`", "`undefined`", "`'done'`, then it throws `Error: A`"],
-              "answer": 1,
-              "explain": "A `return` in `finally` replaces the pending exception, which is silently discarded. That's why most linters forbid it."
-            },
-            {
-              "lang": "python",
-              "q": "What happens?\n\n```python\ndef f():\n    try:\n        raise ValueError(\"boom\")\n    finally:\n        return \"done\"\n\nprint(f())\n```",
-              "choices": [
-                "It raises `ValueError: boom`",
-                "It prints `None`",
-                "It prints `done`, then raises `ValueError: boom`",
-                "It prints `done`"
-              ],
-              "answer": 3,
-              "explain": "A `return` in `finally` cancels the exception that was in flight, so the error vanishes. Cleanup is fine in `finally`, but returning from it hides failures."
-            }
-          ]
-        },
-        {
-          "id": "language-runtime/control-flow/labeled-break",
-          "title": "Labeled break",
-          "summary": "A `break` inside a `switch` or `select` leaves only that statement, not the loop around it",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "What happens when `done` is closed?\n\n```go\nfor {\n    select {\n    case <-done:\n        break\n    case v := <-in:\n        handle(v)\n    }\n}\n```",
-              "choices": [
-                "The loop keeps running: `break` only leaves the `select`",
-                "The `for` loop exits",
-                "It panics: you can't `break` inside `select`",
-                "The goroutine blocks until `in` is closed too"
-              ],
-              "answer": 0,
-              "explain": "`break` exits the innermost `for`, `switch` or `select`, here the `select`. Put a label on the loop and use `break loop`, or `return`."
-            },
-            {
-              "lang": "ts",
-              "q": "What does `break` do when a job has `kind === 'stop'`?\n\n```ts\nfor (const job of jobs) {\n  switch (job.kind) {\n    case 'stop':\n      break\n    default:\n      run(job)\n  }\n}\n```",
-              "choices": [
-                "Stops the `for` loop",
-                "Skips straight to `default` and runs the job",
-                "Leaves the `switch`; the loop goes on to the next job",
-                "A compile error: `break` in a `switch` needs a label"
-              ],
-              "answer": 2,
-              "explain": "`break` binds to the nearest `switch`, so the loop carries on. To stop the loop, label it (`outer: for ...`) and use `break outer`."
-            },
-            {
-              "lang": "go",
-              "q": "What does this print?\n\n```go\nfor _, n := range []int{1, 2, 3} {\n    switch n {\n    case 2:\n        break\n    }\n    fmt.Print(n)\n}\n```",
-              "choices": ["`13`", "`1`", "`123`", "`12`"],
-              "answer": 2,
-              "explain": "`break` leaves only the `switch`, so the `Print` after it still runs for 2. It's not `continue`, which would skip it (giving `13`)."
-            },
-            {
-              "lang": "ts",
-              "q": "What does this log?\n\n```ts\nloop: for (const n of [1, 2, 3]) {\n  switch (n) {\n    case 2:\n      break loop\n  }\n  console.log(n)\n}\n```",
-              "choices": ["`1`", "`1 2`", "`1 3`", "`1 2 3`"],
-              "answer": 0,
-              "explain": "`break loop` names the `for` statement, so it exits the whole loop at 2, after only 1 was logged. A plain `break` would leave just the `switch`."
             }
           ]
         },
@@ -438,6 +425,102 @@
               "explain": "Dicts keep insertion order, and re-adding a deleted key puts it at the end. Updating an existing key would keep its position."
             }
           ]
+        },
+        {
+          "id": "language-runtime/control-flow/switch-fallthrough",
+          "title": "Switch fallthrough",
+          "summary": "Whether a `switch` case runs into the next one when it has no `break`",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\nswitch x := 1; x {\ncase 1:\n    fmt.Print(\"a\")\ncase 2:\n    fmt.Print(\"b\")\ndefault:\n    fmt.Print(\"c\")\n}\n```",
+              "choices": ["`a`", "`ab`", "`abc`", "`ac`"],
+              "answer": 0,
+              "explain": "Go cases don't fall through: each case ends on its own unless it says `fallthrough`. In JavaScript the same shape would print all three."
+            },
+            {
+              "lang": "ts",
+              "q": "With default compiler options, what does `f(1)` log?\n\n```ts\nfunction f(x: number) {\n  switch (x) {\n    case 1: console.log('a')\n    case 2: console.log('b')\n    default: console.log('c')\n  }\n}\n```",
+              "choices": ["`a`", "`a`, then `b`, then `c`", "`a`, then `c`", "`c`"],
+              "answer": 1,
+              "explain": "JavaScript cases fall through until a `break` or `return`, so case 1 runs on into case 2 and `default`. The `noFallthroughCasesInSwitch` compiler option flags this."
+            },
+            {
+              "lang": "python",
+              "q": "Python 3.10+. What does this print?\n\n```python\nx = 1\nmatch x:\n    case 1:\n        print(\"a\")\n    case 2:\n        print(\"b\")\n    case _:\n        print(\"c\")\n```",
+              "choices": ["`a`, `b` and `c`", "`a` and `c`", "`a`", "`c`"],
+              "answer": 2,
+              "explain": "`match` runs only the first case that matches; there is no fallthrough and no `break` needed. `case _` runs only when nothing above matched."
+            },
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\nswitch x := 1; x {\ncase 1:\n    fmt.Print(\"a\")\n    fallthrough\ncase 2:\n    fmt.Print(\"b\")\ncase 3:\n    fmt.Print(\"c\")\n}\n```",
+              "choices": ["`a`", "`ab`", "`abc`", "`ac`"],
+              "answer": 1,
+              "explain": "`fallthrough` runs the next case's body without testing its condition, but only that one: control stops after `b`. Without the keyword, only `a` would print."
+            },
+            {
+              "lang": "ts",
+              "q": "With default compiler options, what does `f(1)` log?\n\n```ts\nfunction f(x: number) {\n  switch (x) {\n    case 1: console.log('a')\n    case 2: console.log('b'); break\n    case 3: console.log('c')\n  }\n}\n```",
+              "choices": ["`a`", "`a`, `b`, then `c`", "`b`", "`a`, then `b`"],
+              "answer": 3,
+              "explain": "Case 1 has no `break`, so it runs on into case 2, which does `break`. The `break` there is what stops the run before case 3."
+            },
+            {
+              "lang": "python",
+              "q": "Python 3.10+. What does this print?\n\n```python\nx = 2\nmatch x:\n    case 1 | 2:\n        print(\"low\")\n    case 2:\n        print(\"two\")\n```",
+              "choices": ["`low`", "`low`, then `two`", "`two`", "A `SyntaxError`: or-patterns need parentheses"],
+              "answer": 0,
+              "explain": "`match` runs only the first case that matches and never falls through, so the second `case 2` is unreachable here. `1 | 2` is a valid or-pattern."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/control-flow/labeled-break",
+          "title": "Labeled break",
+          "summary": "A `break` inside a `switch` or `select` leaves only that statement, not the loop around it",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What happens when `done` is closed?\n\n```go\nfor {\n    select {\n    case <-done:\n        break\n    case v := <-in:\n        handle(v)\n    }\n}\n```",
+              "choices": [
+                "The loop keeps running: `break` only leaves the `select`",
+                "The `for` loop exits",
+                "It panics: you can't `break` inside `select`",
+                "The goroutine blocks until `in` is closed too"
+              ],
+              "answer": 0,
+              "explain": "`break` exits the innermost `for`, `switch` or `select`, here the `select`. Put a label on the loop and use `break loop`, or `return`."
+            },
+            {
+              "lang": "ts",
+              "q": "What does `break` do when a job has `kind === 'stop'`?\n\n```ts\nfor (const job of jobs) {\n  switch (job.kind) {\n    case 'stop':\n      break\n    default:\n      run(job)\n  }\n}\n```",
+              "choices": [
+                "Stops the `for` loop",
+                "Skips straight to `default` and runs the job",
+                "Leaves the `switch`; the loop goes on to the next job",
+                "A compile error: `break` in a `switch` needs a label"
+              ],
+              "answer": 2,
+              "explain": "`break` binds to the nearest `switch`, so the loop carries on. To stop the loop, label it (`outer: for ...`) and use `break outer`."
+            },
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\nfor _, n := range []int{1, 2, 3} {\n    switch n {\n    case 2:\n        break\n    }\n    fmt.Print(n)\n}\n```",
+              "choices": ["`13`", "`1`", "`123`", "`12`"],
+              "answer": 2,
+              "explain": "`break` leaves only the `switch`, so the `Print` after it still runs for 2. It's not `continue`, which would skip it (giving `13`)."
+            },
+            {
+              "lang": "ts",
+              "q": "What does this log?\n\n```ts\nloop: for (const n of [1, 2, 3]) {\n  switch (n) {\n    case 2:\n      break loop\n  }\n  console.log(n)\n}\n```",
+              "choices": ["`1`", "`1 2`", "`1 3`", "`1 2 3`"],
+              "answer": 0,
+              "explain": "`break loop` names the `for` statement, so it exits the whole loop at 2, after only 1 was logged. A plain `break` would leave just the `switch`."
+            }
+          ]
         }
       ]
     },
@@ -483,10 +566,134 @@
           ]
         },
         {
+          "id": "language-runtime/functions-scope/block-scope",
+          "title": "Block scope",
+          "summary": "Whether a variable declared inside an `if` or a loop is still visible after it",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What does `f()` return?\n\n```ts\nfunction f(): number {\n  for (var i = 0; i < 3; i++) {}\n  return i\n}\n```",
+              "choices": ["`3`", "`2`", "`undefined`", "Compile error: cannot find name `i`"],
+              "answer": 0,
+              "explain": "`var` is scoped to the whole function, not the loop, so `i` is still visible and holds `3`. With `let`, `i` would exist only inside the loop and TypeScript would report it."
+            },
+            {
+              "lang": "ts",
+              "q": "What happens?\n\n```ts\nfor (let i = 0; i < 3; i++) {}\nconsole.log(i)\n```",
+              "choices": ["It logs `3`", "It logs `2`", "It logs `undefined`", "Compile error: cannot find name `i`"],
+              "answer": 3,
+              "explain": "A `let` declared in the `for` header belongs to the loop's block, so it doesn't exist after the loop. Declare it before the loop if you need the final value."
+            },
+            {
+              "lang": "go",
+              "q": "What happens?\n\n```go\nif n, err := strconv.Atoi(s); err == nil {\n    fmt.Println(\"parsed\")\n}\nfmt.Println(n)\n```",
+              "choices": [
+                "It prints the parsed number",
+                "It prints `0` when parsing failed",
+                "Compile error: `n` is undefined after the `if`",
+                "It panics when `s` isn't a number"
+              ],
+              "answer": 2,
+              "explain": "Variables declared in an `if` statement's init clause are scoped to the `if` and its `else` branches. Declare `n` before the `if` to use it afterwards."
+            },
+            {
+              "lang": "go",
+              "q": "What happens?\n\n```go\nfor _, x := range xs {\n    last := x\n    _ = last\n}\nfmt.Println(last)\n```",
+              "choices": [
+                "It prints the last element of `xs`",
+                "Compile error: `last` is undefined outside the loop body",
+                "It prints the zero value, `0`",
+                "It prints the first element of `xs`"
+              ],
+              "answer": 1,
+              "explain": "Each `{}` block in Go is its own scope, so `last` exists only inside the loop body. Declare it before the loop and assign with `=` inside."
+            },
+            {
+              "lang": "python",
+              "q": "What does `f(True)` return?\n\n```python\ndef f(flag: bool) -> int:\n    if flag:\n        y = 1\n    return y\n```",
+              "choices": [
+                "It raises `NameError`: `y` only exists inside the `if`",
+                "`1`",
+                "`None`",
+                "It's a `SyntaxError`"
+              ],
+              "answer": 1,
+              "explain": "Python has no block scope: a name assigned anywhere in a function is local to the whole function. `f(False)`, though, raises `UnboundLocalError`, since `y` was never assigned."
+            },
+            {
+              "lang": "python",
+              "q": "What does this print?\n\n```python\nfor n in range(3):\n    pass\nprint(n)\n```",
+              "choices": ["`3`", "It raises `NameError`", "`None`", "`2`"],
+              "answer": 3,
+              "explain": "A `for` loop doesn't create a scope, so `n` keeps its last value, `2`, after the loop. Comprehensions are the exception: their variable doesn't leak out."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/functions-scope/this-binding",
+          "title": "Lost `this` binding",
+          "summary": "A method pulled off its object and called on its own no longer has `this`",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What happens?\n\n```ts\nclass Counter {\n  n = 0\n  inc() { this.n++ }\n}\nconst c = new Counter()\nconst inc = c.inc\ninc()\n```",
+              "choices": [
+                "A `TypeError`, because `this` is `undefined`",
+                "It increments a global `n`",
+                "`c.n` becomes `1`",
+                "A compile error on `const inc = c.inc`"
+              ],
+              "answer": 0,
+              "explain": "`this` is set by how a function is called, not where it was defined. Called bare, `inc` gets `this === undefined` (class bodies are strict mode), so `this.n` throws."
+            },
+            {
+              "lang": "ts",
+              "q": "Passing `c.inc` as a callback loses `this`. Which change to `Counter` makes `const inc = c.inc; inc()` increment `c.n`?",
+              "choices": [
+                "Mark the method `public` explicitly",
+                "Make it an arrow-function field",
+                "Make `n` a `readonly` field",
+                "Call it as `inc.call()` with no argument"
+              ],
+              "answer": 1,
+              "explain": "An arrow function takes `this` from where it's created, which for a class field is the instance. `public` changes nothing at runtime, and `inc.call()` with no argument still passes `undefined`."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/functions-scope/shadowing",
+          "title": "Variable shadowing with `:=`",
+          "summary": "`:=` in an inner block declares a new variable instead of assigning the outer one",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "`db.Insert` fails. What does `save` return?\n\n```go\nfunc save(db *DB, u User) error {\n    var err error\n    if u.IsNew {\n        id, err := db.Insert(u)\n        log.Println(\"inserted\", id, err)\n    }\n    return err\n}\n```",
+              "choices": [
+                "The error from `db.Insert`",
+                "It doesn't compile: `err` is declared twice",
+                "`nil`",
+                "It panics on the nil `err`"
+              ],
+              "answer": 2,
+              "explain": "Inside the `if`, `:=` declares a new `err` that shadows the outer one, so the outer `err` stays `nil`. Declare `id` first and use `=`, or return inside the block."
+            },
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\nx := 1\nif x > 0 {\n    x := x + 1\n    fmt.Print(x, \" \")\n}\nfmt.Print(x)\n```",
+              "choices": ["`2 2`", "`2 1`", "`1 1`", "It doesn't compile"],
+              "answer": 1,
+              "explain": "The inner `x := x + 1` creates a new `x` (initialised from the outer one) that only lives inside the block. The outer `x` is untouched."
+            }
+          ]
+        },
+        {
           "id": "language-runtime/functions-scope/loop-variable-capture",
           "title": "Loop variable capture in closures",
           "summary": "Whether a closure created in a loop sees one shared variable or a fresh one per iteration",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": "go",
@@ -533,42 +740,10 @@
           ]
         },
         {
-          "id": "language-runtime/functions-scope/this-binding",
-          "title": "Lost `this` binding",
-          "summary": "A method pulled off its object and called on its own no longer has `this`",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "ts",
-              "q": "What happens?\n\n```ts\nclass Counter {\n  n = 0\n  inc() { this.n++ }\n}\nconst c = new Counter()\nconst inc = c.inc\ninc()\n```",
-              "choices": [
-                "A `TypeError`, because `this` is `undefined`",
-                "It increments a global `n`",
-                "`c.n` becomes `1`",
-                "A compile error on `const inc = c.inc`"
-              ],
-              "answer": 0,
-              "explain": "`this` is set by how a function is called, not where it was defined. Called bare, `inc` gets `this === undefined` (class bodies are strict mode), so `this.n` throws."
-            },
-            {
-              "lang": "ts",
-              "q": "Passing `c.inc` as a callback loses `this`. Which change to `Counter` makes `const inc = c.inc; inc()` increment `c.n`?",
-              "choices": [
-                "Mark the method `public` explicitly",
-                "Make it an arrow-function field",
-                "Make `n` a `readonly` field",
-                "Call it as `inc.call()` with no argument"
-              ],
-              "answer": 1,
-              "explain": "An arrow function takes `this` from where it's created, which for a class field is the instance. `public` changes nothing at runtime, and `inc.call()` with no argument still passes `undefined`."
-            }
-          ]
-        },
-        {
           "id": "language-runtime/functions-scope/method-values",
           "title": "Go method values",
           "summary": "Taking `t.Method` as a value binds the receiver at that moment",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": "go",
@@ -585,60 +760,6 @@
               "explain": "With a pointer receiver, `t.Show` binds `&t`, so the call reads the current `t.n`. Go takes the address of addressable values automatically, so it compiles."
             }
           ]
-        },
-        {
-          "id": "language-runtime/functions-scope/temporal-dead-zone",
-          "title": "Temporal dead zone",
-          "summary": "`let` and `const` exist from the start of their block but throw if used before their line runs",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "ts",
-              "q": "What happens at runtime?\n\n```ts\nfunction show() { console.log(x) }\nshow()\nlet x = 1\n```",
-              "choices": ["Throws a `ReferenceError`", "Logs `1`", "Logs `undefined`", "Throws a `TypeError`"],
-              "answer": 0,
-              "explain": "`x` is hoisted but stays uninitialised until `let x = 1` runs, and reading it before then throws. With `var x = 1` it would log `undefined`."
-            },
-            {
-              "lang": "ts",
-              "q": "What happens at runtime?\n\n```ts\nfunction main() { greet() }\nmain()\nconst greet = () => console.log('hi')\n```",
-              "choices": [
-                "Logs `hi`: declarations are hoisted",
-                "Throws a `TypeError`: not a function",
-                "Logs nothing",
-                "Throws a `ReferenceError`"
-              ],
-              "answer": 3,
-              "explain": "Only `function greet() {}` declarations are usable before their line. A `const` is in its dead zone until assigned; the `TypeError` is what `var greet = ...` would give, since a `var` starts as `undefined`."
-            }
-          ]
-        },
-        {
-          "id": "language-runtime/functions-scope/shadowing",
-          "title": "Variable shadowing with `:=`",
-          "summary": "`:=` in an inner block declares a new variable instead of assigning the outer one",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "`db.Insert` fails. What does `save` return?\n\n```go\nfunc save(db *DB, u User) error {\n    var err error\n    if u.IsNew {\n        id, err := db.Insert(u)\n        log.Println(\"inserted\", id, err)\n    }\n    return err\n}\n```",
-              "choices": [
-                "The error from `db.Insert`",
-                "It doesn't compile: `err` is declared twice",
-                "`nil`",
-                "It panics on the nil `err`"
-              ],
-              "answer": 2,
-              "explain": "Inside the `if`, `:=` declares a new `err` that shadows the outer one, so the outer `err` stays `nil`. Declare `id` first and use `=`, or return inside the block."
-            },
-            {
-              "lang": "go",
-              "q": "What does this print?\n\n```go\nx := 1\nif x > 0 {\n    x := x + 1\n    fmt.Print(x, \" \")\n}\nfmt.Print(x)\n```",
-              "choices": ["`2 2`", "`2 1`", "`1 1`", "It doesn't compile"],
-              "answer": 1,
-              "explain": "The inner `x := x + 1` creates a new `x` (initialised from the outer one) that only lives inside the block. The outer `x` is untouched."
-            }
-          ]
         }
       ]
     },
@@ -647,6 +768,94 @@
       "title": "OOP",
       "summary": "Encapsulation, inheritance, polymorphism and abstraction",
       "concepts": [
+        {
+          "id": "language-runtime/oop/polymorphism",
+          "title": "Polymorphism",
+          "summary": "Calling the same method on different types and getting each type's own behaviour",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\ntype Shape interface{ Area() float64 }\ntype Square struct{ S float64 }\ntype Rect struct{ W, H float64 }\n\nfunc (s Square) Area() float64 { return s.S * s.S }\nfunc (r Rect) Area() float64   { return r.W * r.H }\n\nfor _, s := range []Shape{Square{2}, Rect{1, 3}} {\n    fmt.Println(s.Area())\n}\n```",
+              "choices": [
+                "`4`, then `3`",
+                "Compile error: a slice can't hold two struct types",
+                "`0`, then `0`",
+                "`4`, then `4`"
+              ],
+              "answer": 0,
+              "explain": "Both types satisfy `Shape`, and each call runs the `Area` of the value actually stored in the interface. That's polymorphism without inheritance."
+            },
+            {
+              "lang": "ts",
+              "q": "What does this log?\n\n```ts\nclass Notifier {\n  send(m: string) { return `log: ${m}` }\n}\nclass EmailNotifier extends Notifier {\n  send(m: string) { return `email: ${m}` }\n}\nconst n: Notifier = new EmailNotifier()\nconsole.log(n.send(\"hi\"))\n```",
+              "choices": [
+                "`log: hi`",
+                "`email: hi`",
+                "A compile error, since `n` is typed `Notifier`",
+                "`log: hi`, then `email: hi`"
+              ],
+              "answer": 1,
+              "explain": "Method calls are resolved on the object at runtime, so the subclass's override runs. The declared type `Notifier` only limits what you may call."
+            },
+            {
+              "lang": "python",
+              "q": "What does this print?\n\n```python\nclass Duck:\n    def speak(self) -> str: return \"quack\"\n\nclass Robot:\n    def speak(self) -> str: return \"beep\"\n\nfor x in [Duck(), Robot()]:\n    print(x.speak())\n```",
+              "choices": [
+                "`TypeError`: the classes share no base class",
+                "`quack` twice",
+                "`quack`, then `beep`",
+                "`AttributeError` on the `Robot`"
+              ],
+              "answer": 2,
+              "explain": "Python looks the method up on each object when it's called, so any object with a `speak` method works. This is duck typing: no shared base class needed."
+            },
+            {
+              "lang": null,
+              "q": "A payment module repeats `if type == \"card\" ... else if type == \"wallet\" ...` in five functions. Which change uses polymorphism to remove the repetition?",
+              "choices": [
+                "Move every chain into one shared helper with a big `switch`",
+                "Store the type as an enum instead of a string",
+                "Add a lookup table that maps type names to error messages",
+                "Give each payment type its own implementation of one `Payment` interface"
+              ],
+              "answer": 3,
+              "explain": "With one implementation per type, callers just call `payment.charge()` and the right code runs. A shared `switch` still has to be edited for every new type."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/oop/encapsulation",
+          "title": "Encapsulation",
+          "summary": "Keeping an object's data private and changing it only through methods that keep it valid",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "Why is `balance` private rather than a public field?\n\n```\nclass Account:\n    private balance\n\n    function withdraw(amount):\n        if amount > balance: fail(\"insufficient funds\")\n        balance = balance - amount\n```",
+              "choices": [
+                "So every change goes through `withdraw` and its check",
+                "So the object takes up less memory at runtime",
+                "So tests can't read or assert on the balance",
+                "So subclasses can override it with their own field"
+              ],
+              "answer": 0,
+              "explain": "Hiding the field means no caller can set it to an invalid value; the class's methods enforce the rule in one place. It doesn't save memory, and private fields can't be overridden."
+            },
+            {
+              "lang": null,
+              "q": "A caller runs `order.getItems().append(badItem)`. What went wrong?\n\n```\nclass Order:\n    private items = []\n\n    function getItems(): return items\n    function addItem(item): validate(item); items.append(item)\n```",
+              "choices": [
+                "Nothing: `items` is private, so the append fails at runtime",
+                "The getter returned the real list, so `addItem`'s checks were skipped",
+                "Nothing: the append changes a copy, so the order is unaffected",
+                "Nothing: `getItems` is public, so callers may change what it returns"
+              ],
+              "answer": 1,
+              "explain": "Returning the list itself returns a reference to the private state, and changes through it skip validation. Return a copy or a read-only view instead."
+            }
+          ]
+        },
         {
           "id": "language-runtime/oop/embedding-vs-inheritance",
           "title": "Embedding vs inheritance",
@@ -703,10 +912,42 @@
           ]
         },
         {
+          "id": "language-runtime/oop/exported-identifiers",
+          "title": "Exported identifiers",
+          "summary": "In Go, a lowercase name is private to its package, including to reflection-based encoders",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\ntype User struct {\n    Name  string\n    email string\n}\n\nb, _ := json.Marshal(User{Name: \"Al\", email: \"a@x.io\"})\nfmt.Println(string(b))\n```",
+              "choices": [
+                "`{\"Name\":\"Al\"}`",
+                "`{\"name\":\"Al\",\"email\":\"a@x.io\"}`",
+                "`{\"Name\":\"Al\",\"email\":\"a@x.io\"}`",
+                "An empty string: `Marshal` returns an error"
+              ],
+              "answer": 0,
+              "explain": "`encoding/json` only sees exported (capitalised) fields, so `email` is silently skipped. Export it and add a tag like `json:\"email\"` to control the key."
+            },
+            {
+              "lang": "go",
+              "q": "Package `user` defines `type User struct { Name string; email string }`. In package `main`, what does `u.email` give you?",
+              "choices": [
+                "The value, but read-only",
+                "A compile error: `email` is unexported",
+                "The zero value `\"\"`, not the real one",
+                "A runtime panic on first access"
+              ],
+              "answer": 1,
+              "explain": "Identifiers starting with a lowercase letter are only visible inside their own package. There's no read-only access; you'd add an exported method like `Email()`."
+            }
+          ]
+        },
+        {
           "id": "language-runtime/oop/method-sets",
           "title": "Method sets",
           "summary": "Whether a value or only a pointer satisfies an interface depends on the method receivers",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": "go",
@@ -738,7 +979,7 @@
           "id": "language-runtime/oop/ts-private-fields",
           "title": "`#private` vs `private`",
           "summary": "TypeScript's `private` is checked only at compile time; `#field` is private at runtime too",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": "ts",
@@ -755,38 +996,6 @@
               "explain": "`#balance` is a true private field: it isn't a normal property, so no cast or `Object.keys` can see it from outside the class body."
             }
           ]
-        },
-        {
-          "id": "language-runtime/oop/exported-identifiers",
-          "title": "Exported identifiers",
-          "summary": "In Go, a lowercase name is private to its package, including to reflection-based encoders",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "What does this print?\n\n```go\ntype User struct {\n    Name  string\n    email string\n}\n\nb, _ := json.Marshal(User{Name: \"Al\", email: \"a@x.io\"})\nfmt.Println(string(b))\n```",
-              "choices": [
-                "`{\"Name\":\"Al\"}`",
-                "`{\"name\":\"Al\",\"email\":\"a@x.io\"}`",
-                "`{\"Name\":\"Al\",\"email\":\"a@x.io\"}`",
-                "An empty string: `Marshal` returns an error"
-              ],
-              "answer": 0,
-              "explain": "`encoding/json` only sees exported (capitalised) fields, so `email` is silently skipped. Export it and add a tag like `json:\"email\"` to control the key."
-            },
-            {
-              "lang": "go",
-              "q": "Package `user` defines `type User struct { Name string; email string }`. In package `main`, what does `u.email` give you?",
-              "choices": [
-                "The value, but read-only",
-                "A compile error: `email` is unexported",
-                "The zero value `\"\"`, not the real one",
-                "A runtime panic on first access"
-              ],
-              "answer": 1,
-              "explain": "Identifiers starting with a lowercase letter are only visible inside their own package. There's no read-only access; you'd add an exported method like `Email()`."
-            }
-          ]
         }
       ]
     },
@@ -799,7 +1008,7 @@
           "id": "language-runtime/functional-programming/pure-functions",
           "title": "Pure functions",
           "summary": "Functions whose result depends only on their inputs and that change nothing outside themselves",
-          "level": "medium",
+          "level": "easy",
           "variants": [
             {
               "lang": "ts",
@@ -841,13 +1050,49 @@
               "lang": null,
               "q": "This function changes its argument instead of returning a result:\n\n```text\nfunction applyDiscount(cart, pct):\n    cart.total = cart.total * (1 - pct)\n```\n\nWhich rewrite makes it pure?",
               "choices": [
-                "Return a new cart with the reduced total and leave `cart` untouched",
-                "Return `cart.total` after changing it",
-                "Copy `cart.total` into a local variable first",
-                "Lock `cart` while it is being updated"
+                "Return a new cart with the reduced total",
+                "Return `cart.total` after changing it in place",
+                "Copy `cart.total` into a local variable and update that",
+                "Lock `cart` with a mutex while it is being updated"
               ],
               "answer": 0,
               "explain": "A pure function must not modify anything it was given, so it returns a fresh value. Returning the total after mutating still changes the caller's cart, and a lock only makes the mutation thread-safe."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/functional-programming/map-filter-reduce",
+          "title": "map, filter and reduce",
+          "summary": "Transforming, selecting and combining a collection by passing a function to each step",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What is `r`?\n\n```ts\nconst r = [1, 2, 3, 4]\n  .filter((n) => n % 2 === 0)\n  .map((n) => n * 10)\n  .reduce((sum, n) => sum + n, 0)\n```",
+              "choices": ["`100`", "`60`", "`40`", "`[20, 40]`"],
+              "answer": 1,
+              "explain": "`filter` keeps `[2, 4]`, `map` makes `[20, 40]` and `reduce` adds them into `60`. Without the `filter` step the total would be `100`."
+            },
+            {
+              "lang": "python",
+              "q": "What is `result`?\n\n```python\nnums = [1, 2, 3, 4]\nresult = list(map(lambda n: n * n, filter(lambda n: n > 2, nums)))\n```",
+              "choices": ["`[9, 16]`", "`[1, 4, 9, 16]`", "`[3, 4]`", "`[4, 9, 16]`"],
+              "answer": 0,
+              "explain": "`filter` runs first and keeps `3` and `4`; `map` then squares them. The comprehension `[n * n for n in nums if n > 2]` gives the same result."
+            },
+            {
+              "lang": null,
+              "q": "You have a list of orders and need the total amount across all of them, as one number. Which operation fits?",
+              "choices": ["`map`", "`filter`", "`reduce`", "`flatMap`"],
+              "answer": 2,
+              "explain": "`reduce` (or `fold`) combines every element into one accumulated value. `map` gives a list of the same length, and `filter` a shorter list."
+            },
+            {
+              "lang": null,
+              "q": "Applied to a list of 5 users, which of these always returns a list of exactly 5 items?",
+              "choices": ["`filter`", "`reduce`", "`find`", "`map`"],
+              "answer": 3,
+              "explain": "`map` calls its function once per element and keeps every result, so the length never changes. `filter` can drop items, and `reduce` and `find` return a single value."
             }
           ]
         },
@@ -947,7 +1192,7 @@
           "id": "language-runtime/functional-programming/range-over-func",
           "title": "Range-over-func iterators",
           "summary": "Go 1.23's `iter.Seq`: a function that calls `yield` for each value can be used in a `for range` loop",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": "go",
@@ -979,7 +1224,7 @@
           "id": "language-runtime/functional-programming/lazy-generators",
           "title": "Generators are lazy",
           "summary": "A generator function's body doesn't run until someone asks for the next value",
-          "level": "medium",
+          "level": "hard",
           "variants": [
             {
               "lang": "ts",
@@ -1074,13 +1319,57 @@
               "lang": null,
               "q": "```text\ntry:\n    row = db.query(order_id)\ncatch err:\n    throw ServiceError(\"could not load order\")   // err is dropped\n```\n\nOn-call sees only `could not load order`. What was lost?",
               "choices": [
-                "The cause: nothing shows whether it was a timeout, bad SQL or a missing row",
-                "The stack trace of the `ServiceError` itself",
-                "The request id, which the new error doesn't carry",
+                "The cause: nothing says if it was a timeout or bad SQL",
+                "The stack trace pointing at the `ServiceError` itself",
+                "The request id, which the new error doesn't carry over",
                 "The database connection, which is no longer released"
               ],
               "answer": 0,
               "explain": "Dropping the original error discards the one thing that tells you why it failed, and prevents callers matching on it. Wrapping keeps it attached; the new error still has its own stack trace."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/error-handling/expected-vs-unexpected",
+          "title": "Expected vs unexpected errors",
+          "summary": "Failures that are a normal outcome (not found, invalid input) vs bugs and outages, and handling each differently",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": null,
+              "q": "An API gets a request for order `123`, which doesn't exist. How should the handler treat that?",
+              "choices": [
+                "Crash the process so the supervisor restarts it",
+                "Log it at error level and page the on-call engineer",
+                "As a normal outcome: return 404, no alert",
+                "Retry the lookup until the order appears"
+              ],
+              "answer": 2,
+              "explain": "A missing record is an expected result the caller can act on, so it becomes a clear response, not an alarm. Paging on it would bury real incidents in noise."
+            },
+            {
+              "lang": null,
+              "q": "Which of these is an *unexpected* error that should propagate and alert, rather than be handled as a normal result?",
+              "choices": [
+                "A user enters an email address with no `@`",
+                "A null dereference inside the pricing code",
+                "A login with the wrong password",
+                "A search that matches nothing"
+              ],
+              "answer": 1,
+              "explain": "A null dereference is a bug: no caller can fix it by retrying with other input, so it should surface loudly. The other three are ordinary outcomes of valid use."
+            },
+            {
+              "lang": "go",
+              "q": "`GetUser` returns `sql.ErrNoRows` (wrapped) when the id doesn't exist. What should the HTTP handler do?\n\n```go\nu, err := store.GetUser(ctx, id)\nif err != nil {\n    // ?\n}\n```",
+              "choices": [
+                "Return 500 for every error, since all errors are failures",
+                "`panic(err)` and let the recovery middleware answer",
+                "Ignore the error and render the zero-value `User`",
+                "Return 404 when `errors.Is(err, sql.ErrNoRows)`, and 500 otherwise"
+              ],
+              "answer": 3,
+              "explain": "Not found is an expected outcome with its own response, while anything else (a lost connection, a bad query) is unexpected and becomes a 500 with logging. Treating them the same either hides bugs or pages on normal traffic."
             }
           ]
         },
@@ -1113,70 +1402,6 @@
               ],
               "answer": 2,
               "explain": "The target parameter is `any`, so it compiles, but `As` needs a pointer to somewhere it can store the match and panics on a nil one. `go vet` catches this."
-            }
-          ]
-        },
-        {
-          "id": "language-runtime/error-handling/errors-join",
-          "title": "`errors.Join`",
-          "summary": "Go 1.20's way to combine several errors into one that still matches each of them",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "Go 1.20+. What does this print?\n\n```go\nerrA := errors.New(\"a\")\nerrB := errors.New(\"b\")\nerr := errors.Join(errA, errB)\nfmt.Println(errors.Is(err, errB))\n```",
-              "choices": [
-                "`false`: only the first error is kept",
-                "`false`: `Is` doesn't look inside joins",
-                "It panics",
-                "`true`"
-              ],
-              "answer": 3,
-              "explain": "A joined error exposes all its parts through `Unwrap() []error`, and `errors.Is` and `errors.As` check every one."
-            },
-            {
-              "lang": "go",
-              "q": "Go 1.20+. What does `errors.Join(nil, nil) == nil` evaluate to?",
-              "choices": [
-                "`true`",
-                "`false`: it returns an empty joined error",
-                "It panics on nil input",
-                "It doesn't compile"
-              ],
-              "answer": 0,
-              "explain": "`Join` drops nil errors and returns `nil` if nothing is left, so you can join results from several steps and still check `err != nil` as usual."
-            }
-          ]
-        },
-        {
-          "id": "language-runtime/error-handling/recover-scope",
-          "title": "`recover` only covers its own goroutine",
-          "summary": "A panic in a goroutine can't be recovered by another goroutine and crashes the whole program",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "What happens?\n\n```go\nfunc main() {\n    defer func() {\n        if r := recover(); r != nil {\n            fmt.Println(\"recovered\")\n        }\n    }()\n    go func() { panic(\"boom\") }()\n    time.Sleep(time.Second)\n}\n```",
-              "choices": [
-                "Prints `recovered` and exits normally",
-                "The program crashes with `panic: boom`",
-                "Only the goroutine dies; `main` carries on silently",
-                "Prints `recovered` twice"
-              ],
-              "answer": 1,
-              "explain": "`recover` only stops a panic in the goroutine whose deferred function calls it. An unrecovered panic in any goroutine terminates the process."
-            },
-            {
-              "lang": "go",
-              "q": "An HTTP handler starts `go sendEmail(u)`, and `sendEmail` panics on a nil pointer. `net/http` recovers panics in handlers. What happens?",
-              "choices": [
-                "`net/http` recovers it and logs the stack trace",
-                "The request gets a 500, other requests are fine",
-                "Only that handler's goroutine stops",
-                "The whole server process crashes"
-              ],
-              "answer": 3,
-              "explain": "The server's recovery runs in the handler's goroutine, and `sendEmail` runs in a different one. Background goroutines need their own deferred `recover`."
             }
           ]
         },
@@ -1233,6 +1458,70 @@
               "explain": "A plain string was thrown, and strings have no `message` property. The cast only silences the compiler; that's why `e` is `unknown` and should be checked with `instanceof Error`."
             }
           ]
+        },
+        {
+          "id": "language-runtime/error-handling/errors-join",
+          "title": "`errors.Join`",
+          "summary": "Go 1.20's way to combine several errors into one that still matches each of them",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "Go 1.20+. What does this print?\n\n```go\nerrA := errors.New(\"a\")\nerrB := errors.New(\"b\")\nerr := errors.Join(errA, errB)\nfmt.Println(errors.Is(err, errB))\n```",
+              "choices": [
+                "`false`: only the first error is kept",
+                "`false`: `Is` doesn't look inside joins",
+                "It panics",
+                "`true`"
+              ],
+              "answer": 3,
+              "explain": "A joined error exposes all its parts through `Unwrap() []error`, and `errors.Is` and `errors.As` check every one."
+            },
+            {
+              "lang": "go",
+              "q": "Go 1.20+. What does `errors.Join(nil, nil) == nil` evaluate to?",
+              "choices": [
+                "`true`",
+                "`false`: it returns an empty joined error",
+                "It panics on nil input",
+                "It doesn't compile"
+              ],
+              "answer": 0,
+              "explain": "`Join` drops nil errors and returns `nil` if nothing is left, so you can join results from several steps and still check `err != nil` as usual."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/error-handling/recover-scope",
+          "title": "`recover` only covers its own goroutine",
+          "summary": "A panic in a goroutine can't be recovered by another goroutine and crashes the whole program",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "What happens?\n\n```go\nfunc main() {\n    defer func() {\n        if r := recover(); r != nil {\n            fmt.Println(\"recovered\")\n        }\n    }()\n    go func() { panic(\"boom\") }()\n    time.Sleep(time.Second)\n}\n```",
+              "choices": [
+                "Prints `recovered` and exits normally",
+                "The program crashes with `panic: boom`",
+                "Only the goroutine dies; `main` carries on silently",
+                "Prints `recovered` twice"
+              ],
+              "answer": 1,
+              "explain": "`recover` only stops a panic in the goroutine whose deferred function calls it. An unrecovered panic in any goroutine terminates the process."
+            },
+            {
+              "lang": "go",
+              "q": "An HTTP handler starts `go sendEmail(u)`, and `sendEmail` panics on a nil pointer. `net/http` recovers panics in handlers. What happens?",
+              "choices": [
+                "`net/http` recovers it and logs the stack trace",
+                "The request gets a 500, other requests are fine",
+                "Only that handler's goroutine stops",
+                "The whole server process crashes"
+              ],
+              "answer": 3,
+              "explain": "The server's recovery runs in the handler's goroutine, and `sendEmail` runs in a different one. Background goroutines need their own deferred `recover`."
+            }
+          ]
         }
       ]
     },
@@ -1242,29 +1531,133 @@
       "summary": "Sync vs async, callbacks, promises, async/await and the event loop",
       "concepts": [
         {
-          "id": "language-runtime/async/microtasks",
-          "title": "Microtasks vs macrotasks",
-          "summary": "Promise callbacks run before timers, once the current synchronous code finishes",
-          "level": "medium",
+          "id": "language-runtime/async/missing-await",
+          "title": "Not waiting for async work",
+          "summary": "Starting async work (a promise, coroutine or goroutine) without waiting for it, so the caller moves on first",
+          "level": "easy",
           "variants": [
             {
               "lang": "ts",
-              "q": "What order are these logged in?\n\n```ts\nsetTimeout(() => console.log('timeout'), 0)\nPromise.resolve().then(() => console.log('promise'))\nconsole.log('sync')\n```",
+              "q": "What happens?\n\n```ts\nasync function getUser(id: string): Promise<{ name: string }> { /* ... */ }\n\nconst user = getUser(\"42\")\nconsole.log(user.name)\n```",
               "choices": [
-                "`timeout`, `promise`, `sync`",
-                "`sync`, `timeout`, `promise`",
-                "`promise`, `sync`, `timeout`",
-                "`sync`, `promise`, `timeout`"
+                "It logs the user's name",
+                "It logs `undefined` at runtime",
+                "Compile error: `user` is a `Promise`, which has no `name`",
+                "It waits for `getUser` automatically"
               ],
-              "answer": 3,
-              "explain": "Synchronous code runs first, then the whole microtask queue (promise callbacks), and only then the next macrotask such as a timer. A `0` ms timeout still waits for all microtasks."
+              "answer": 2,
+              "explain": "Calling an `async` function returns a `Promise` straight away; you need `await getUser(\"42\")` for the value. In plain JavaScript the same line would quietly log `undefined`."
             },
             {
               "lang": "ts",
-              "q": "What order are these logged in?\n\n```ts\nasync function f() {\n  console.log('a')\n  await null\n  console.log('b')\n}\nf()\nconsole.log('c')\n```",
-              "choices": ["`a`, `b`, `c`", "`a`, `c`, `b`", "`c`, `a`, `b`", "`a`, `c` (never `b`)"],
+              "q": "`save()` rejects. What does this log?\n\n```ts\nasync function save(): Promise<void> {\n  throw new Error(\"db down\")\n}\n\ntry {\n  save()\n} catch {\n  console.log(\"caught\")\n}\n```",
+              "choices": [
+                "`caught`",
+                "Nothing: the rejection escapes the `try` unhandled",
+                "`caught`, then the error message",
+                "Nothing: `save` never runs without `await`"
+              ],
               "answer": 1,
-              "explain": "An `async` function runs synchronously up to its first `await`; the rest is queued as a microtask. So `a` logs, `f` returns, `c` logs, then `b`."
+              "explain": "Without `await`, `save()` returns a rejected promise and the `try` block finishes normally, so `catch` never sees it. `await save()` would route the rejection into `catch`."
+            },
+            {
+              "lang": "python",
+              "q": "What happens?\n\n```python\nasync def fetch_price() -> int: ...\n\nasync def main():\n    price = fetch_price()\n    print(price + 1)\n```",
+              "choices": [
+                "It prints the price plus one",
+                "It blocks until `fetch_price` finishes, then prints",
+                "It prints `1`",
+                "`TypeError`: `price` is a coroutine object, not an `int`"
+              ],
+              "answer": 3,
+              "explain": "Calling an `async def` function only creates a coroutine; nothing runs until it's awaited. Python also warns that the coroutine was never awaited."
+            },
+            {
+              "lang": "python",
+              "q": "What does this do?\n\n```python\nasync def main():\n    asyncio.sleep(1)\n    print(\"done\")\n```",
+              "choices": [
+                "Waits one second, then prints `done`",
+                "Prints `done` at once; the sleep never runs",
+                "Raises an error because `sleep` must be awaited",
+                "Prints `done`, then waits one second"
+              ],
+              "answer": 1,
+              "explain": "`asyncio.sleep(1)` without `await` only builds a coroutine, which is thrown away. You get `done` immediately and a `RuntimeWarning` that it was never awaited."
+            },
+            {
+              "lang": "go",
+              "q": "What does this program print?\n\n```go\nfunc main() {\n    go fmt.Println(\"sent\")\n}\n```",
+              "choices": [
+                "Always `sent`, once the goroutine is scheduled",
+                "Most likely nothing: `main` doesn't wait for it",
+                "It panics with a deadlock",
+                "Compile error: `go` needs a function literal"
+              ],
+              "answer": 1,
+              "explain": "When `main` returns, the program exits and other goroutines are stopped wherever they are. Waiting needs a `sync.WaitGroup`, a channel or `errgroup`."
+            },
+            {
+              "lang": "go",
+              "q": "How long does `wg.Wait()` block?\n\n```go\nvar wg sync.WaitGroup\nfor _, u := range users {\n    go notify(u)\n}\nwg.Wait()\n```",
+              "choices": [
+                "Until every `notify` call has returned",
+                "Forever, so the program deadlocks at the end",
+                "It returns at once: the counter was never raised",
+                "It panics, since the counter goes negative"
+              ],
+              "answer": 2,
+              "explain": "`Wait` blocks only while the counter is above zero. Call `wg.Add(1)` before each `go` and `defer wg.Done()` inside."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/async/event-loop",
+          "title": "Event loop",
+          "summary": "One thread runs callbacks one at a time, taking the next only when the current code finishes or yields",
+          "level": "easy",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What order are these logged in?\n\n```ts\nconsole.log(\"a\")\nsetTimeout(() => console.log(\"b\"), 0)\nconsole.log(\"c\")\n```",
+              "choices": ["`a`, `b`, `c`", "`a`, `c`, `b`", "`b`, `a`, `c`", "`c`, `a`, `b`"],
+              "answer": 1,
+              "explain": "A timer callback waits in a queue until the current synchronous code has finished, even with a 0 ms delay. So `c` logs before `b`."
+            },
+            {
+              "lang": "python",
+              "q": "What does this print?\n\n```python\nasync def worker(name: str):\n    print(name, 1)\n    await asyncio.sleep(0)\n    print(name, 2)\n\nasync def main():\n    await asyncio.gather(worker(\"a\"), worker(\"b\"))\n```",
+              "choices": [
+                "`a 1`, `a 2`, `b 1`, `b 2`",
+                "`b 1`, `b 2`, `a 1`, `a 2`",
+                "`a 1`, `b 1`, `a 2`, `b 2`",
+                "The order changes from run to run"
+              ],
+              "answer": 2,
+              "explain": "Each `await` hands control back to the event loop, which runs the next ready task. Tasks only switch at those points, so the interleaving is predictable."
+            },
+            {
+              "lang": null,
+              "q": "A Node or asyncio server handles thousands of connections on one thread. What makes that work?",
+              "choices": [
+                "Each request secretly gets its own OS thread",
+                "The runtime preempts running code every few milliseconds",
+                "While one request waits on I/O, the loop runs other requests' callbacks",
+                "Requests are queued and served strictly one after another, start to finish"
+              ],
+              "answer": 2,
+              "explain": "Most server time is spent waiting on the network or disk, and the loop uses that wait to run other work. It never interrupts running code, which is why a long synchronous step stalls everyone."
+            },
+            {
+              "lang": null,
+              "q": "In an event-loop runtime, a callback is scheduled on a 100 ms timer, but the code that is running when the timer expires needs another 50 ms. When does the callback run?",
+              "choices": [
+                "At exactly 100 ms, interrupting the running code",
+                "After about 150 ms, once the running code finishes",
+                "Never: an overdue timer is dropped",
+                "At 200 ms, on the timer's next tick"
+              ],
+              "answer": 1,
+              "explain": "A timer's delay is a minimum, not a deadline: the callback is queued at 100 ms but only runs when the loop is free. Nothing preempts the code that's running."
             }
           ]
         },
@@ -1360,69 +1753,13 @@
               "lang": "python",
               "q": "What happens when `await handle(order)` runs?\n\n```python\nasync def save(order): ...\n\nasync def handle(order):\n    save(order)\n    return \"ok\"\n```",
               "choices": [
-                "`save`'s body never runs, and Python warns the coroutine was never awaited",
+                "`save`'s body never runs; Python warns it was never awaited",
                 "`save` runs to completion before `handle` returns",
-                "`save` runs in the background as a task",
-                "A `SyntaxError`: coroutine calls need `await`"
+                "`save` runs in the background as its own task",
+                "A `SyntaxError`: coroutine calls need `await` first"
               ],
               "answer": 0,
               "explain": "Calling an `async def` only creates a coroutine object; nothing runs until it's awaited or scheduled. It isn't started as a background task automatically."
-            }
-          ]
-        },
-        {
-          "id": "language-runtime/async/cooperative-cancellation",
-          "title": "Cooperative cancellation",
-          "summary": "Cancelling a `context` or an `AbortSignal` only sends a signal; work stops only if it checks",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "`process` never looks at `ctx`, and the loop takes 10 s. What happens after 1 s?\n\n```go\nctx, cancel := context.WithTimeout(ctx, time.Second)\ndefer cancel()\ngo func() {\n    for _, row := range rows {\n        process(row)\n    }\n}()\n```",
-              "choices": [
-                "The runtime stops the goroutine",
-                "The goroutine panics with `context deadline exceeded`",
-                "The goroutine keeps going until it finishes all rows",
-                "`process` returns early on its next call"
-              ],
-              "answer": 2,
-              "explain": "Cancelling closes `ctx.Done()`, nothing more; Go has no way to kill a goroutine from outside. The loop has to check `ctx.Err()` or `ctx.Done()` to stop."
-            },
-            {
-              "lang": "ts",
-              "q": "`processAll` loops over `rows` and never looks at `signal`. What happens after 1 s?\n\n```ts\nconst ac = new AbortController()\nsetTimeout(() => ac.abort(), 1000)\nawait processAll(rows, ac.signal)\n```",
-              "choices": [
-                "`processAll` rejects with an `AbortError`",
-                "The loop keeps going until it finishes",
-                "The event loop drops the remaining work",
-                "`await` returns `undefined` straight away"
-              ],
-              "answer": 1,
-              "explain": "`abort()` only flips `signal.aborted` and fires an `abort` event. APIs like `fetch` react to it, but your own code has to check the signal or pass it on."
-            },
-            {
-              "lang": "go",
-              "q": "Inside a function that has `ctx`, which change makes this loop stop soon after `ctx` is cancelled?\n\n```go\nfor _, row := range rows {\n    process(row)\n}\n```",
-              "choices": [
-                "Check `ctx.Err()` at the top of each iteration and return if it's set",
-                "Wrap the loop in another `context.WithTimeout`",
-                "Call `cancel()` at the end of each iteration",
-                "Run each `process(row)` in its own goroutine"
-              ],
-              "answer": 0,
-              "explain": "Cancellation is cooperative: the loop has to look at `ctx` itself. A second timeout is still just a signal nobody reads, and goroutines don't stop on their own either."
-            },
-            {
-              "lang": "ts",
-              "q": "What happens to the pending request?\n\n```ts\nconst ac = new AbortController()\nconst p = fetch(url, { signal: ac.signal })\nac.abort()\nawait p\n```",
-              "choices": [
-                "`p` resolves with a partial response",
-                "`p` keeps waiting until the server replies",
-                "`p` resolves with `undefined`",
-                "`p` rejects with an `AbortError`"
-              ],
-              "answer": 3,
-              "explain": "`fetch` is one of the APIs that watches its signal and rejects when it's aborted. A function that never checks its signal, like the earlier `processAll`, keeps going."
             }
           ]
         },
@@ -1487,6 +1824,89 @@
               ],
               "answer": 1,
               "explain": "Each result has `status: 'fulfilled'` with a `value`, or `status: 'rejected'` with a `reason`."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/async/microtasks",
+          "title": "Microtasks vs macrotasks",
+          "summary": "Promise callbacks run before timers, once the current synchronous code finishes",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "What order are these logged in?\n\n```ts\nsetTimeout(() => console.log('timeout'), 0)\nPromise.resolve().then(() => console.log('promise'))\nconsole.log('sync')\n```",
+              "choices": [
+                "`timeout`, `promise`, `sync`",
+                "`sync`, `timeout`, `promise`",
+                "`promise`, `sync`, `timeout`",
+                "`sync`, `promise`, `timeout`"
+              ],
+              "answer": 3,
+              "explain": "Synchronous code runs first, then the whole microtask queue (promise callbacks), and only then the next macrotask such as a timer. A `0` ms timeout still waits for all microtasks."
+            },
+            {
+              "lang": "ts",
+              "q": "What order are these logged in?\n\n```ts\nasync function f() {\n  console.log('a')\n  await null\n  console.log('b')\n}\nf()\nconsole.log('c')\n```",
+              "choices": ["`a`, `b`, `c`", "`a`, `c`, `b`", "`c`, `a`, `b`", "`a`, `c` (never `b`)"],
+              "answer": 1,
+              "explain": "An `async` function runs synchronously up to its first `await`; the rest is queued as a microtask. So `a` logs, `f` returns, `c` logs, then `b`."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/async/cooperative-cancellation",
+          "title": "Cooperative cancellation",
+          "summary": "Cancelling a `context` or an `AbortSignal` only sends a signal; work stops only if it checks",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "`process` never looks at `ctx`, and the loop takes 10 s. What happens after 1 s?\n\n```go\nctx, cancel := context.WithTimeout(ctx, time.Second)\ndefer cancel()\ngo func() {\n    for _, row := range rows {\n        process(row)\n    }\n}()\n```",
+              "choices": [
+                "The runtime stops the goroutine",
+                "The goroutine panics with `context deadline exceeded`",
+                "The goroutine keeps going until it finishes all rows",
+                "`process` returns early on its next call"
+              ],
+              "answer": 2,
+              "explain": "Cancelling closes `ctx.Done()`, nothing more; Go has no way to kill a goroutine from outside. The loop has to check `ctx.Err()` or `ctx.Done()` to stop."
+            },
+            {
+              "lang": "ts",
+              "q": "`processAll` loops over `rows` and never looks at `signal`. What happens after 1 s?\n\n```ts\nconst ac = new AbortController()\nsetTimeout(() => ac.abort(), 1000)\nawait processAll(rows, ac.signal)\n```",
+              "choices": [
+                "`processAll` rejects with an `AbortError`",
+                "The loop keeps going until it finishes",
+                "The event loop drops the remaining work",
+                "`await` returns `undefined` straight away"
+              ],
+              "answer": 1,
+              "explain": "`abort()` only flips `signal.aborted` and fires an `abort` event. APIs like `fetch` react to it, but your own code has to check the signal or pass it on."
+            },
+            {
+              "lang": "go",
+              "q": "Inside a function that has `ctx`, which change makes this loop stop soon after `ctx` is cancelled?\n\n```go\nfor _, row := range rows {\n    process(row)\n}\n```",
+              "choices": [
+                "Check `ctx.Err()` each iteration and return if it's set",
+                "Wrap the loop in another `context.WithTimeout` call",
+                "Call `cancel()` at the end of every single iteration",
+                "Run each `process(row)` in its own new goroutine"
+              ],
+              "answer": 0,
+              "explain": "Cancellation is cooperative: the loop has to look at `ctx` itself. A second timeout is still just a signal nobody reads, and goroutines don't stop on their own either."
+            },
+            {
+              "lang": "ts",
+              "q": "What happens to the pending request?\n\n```ts\nconst ac = new AbortController()\nconst p = fetch(url, { signal: ac.signal })\nac.abort()\nawait p\n```",
+              "choices": [
+                "`p` resolves with a partial response",
+                "`p` keeps waiting until the server replies",
+                "`p` resolves with `undefined`",
+                "`p` rejects with an `AbortError`"
+              ],
+              "answer": 3,
+              "explain": "`fetch` is one of the APIs that watches its signal and rejects when it's aborted. A function that never checks its signal, like the earlier `processAll`, keeps going."
             }
           ]
         }
@@ -1574,65 +1994,6 @@
           ]
         },
         {
-          "id": "language-runtime/concurrency/goroutine-leak",
-          "title": "Goroutine leak",
-          "summary": "A goroutine blocked forever on a channel nobody will use again, never freed",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "`ctx` times out before `slowCall` finishes. What happens to the goroutine?\n\n```go\nfunc fetch(ctx context.Context) (string, error) {\n    ch := make(chan string)\n    go func() { ch <- slowCall() }()\n    select {\n    case v := <-ch:\n        return v, nil\n    case <-ctx.Done():\n        return \"\", ctx.Err()\n    }\n}\n```",
-              "choices": [
-                "It exits when `fetch` returns",
-                "The garbage collector frees it once `ch` is unreachable",
-                "It blocks forever on `ch <-`, leaking",
-                "It panics: send on closed channel"
-              ],
-              "answer": 2,
-              "explain": "Nobody will ever receive from `ch`, so the send blocks forever. Blocked goroutines are never garbage collected, so each timeout leaks one."
-            },
-            {
-              "lang": "go",
-              "q": "In the same `fetch` function, which one-line change stops the leak?",
-              "choices": [
-                "`ch := make(chan string, 1)`",
-                "`defer close(ch)` at the top of `fetch`",
-                "Move `go func()` after the `select`",
-                "Replace `select` with `time.Sleep`"
-              ],
-              "answer": 0,
-              "explain": "With a buffer of one, the send always succeeds and the goroutine exits even if nobody reads. Closing `ch` from `fetch` would make the late send panic."
-            }
-          ]
-        },
-        {
-          "id": "language-runtime/concurrency/copied-mutex",
-          "title": "Copying a mutex",
-          "summary": "A copied `sync.Mutex` is a separate lock, so it protects nothing",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "go",
-              "q": "1,000 goroutines call `c.Inc()` on the same `c`, and all finish. What is `c.n`?\n\n```go\ntype Counter struct {\n    mu sync.Mutex\n    n  int\n}\n\nfunc (c Counter) Inc() {\n    c.mu.Lock()\n    defer c.mu.Unlock()\n    c.n++\n}\n```",
-              "choices": ["`1000`", "Somewhere between 1 and 1000", "It deadlocks", "`0`"],
-              "answer": 3,
-              "explain": "The value receiver copies the whole struct, lock and counter included, on every call, so each call increments its own copy. Use `func (c *Counter) Inc()`."
-            },
-            {
-              "lang": "go",
-              "q": "`go vet` reports `passes lock by value: Stats contains sync.Mutex` for `func report(s Stats)`. Why is that a bug?",
-              "choices": [
-                "Copying a mutex is slow, so it costs time on every call",
-                "The copy is a separate lock, so it doesn't exclude users of the original",
-                "A copied mutex always starts locked, so `report` deadlocks",
-                "A `sync.Mutex` can't be passed to a function at all"
-              ],
-              "answer": 1,
-              "explain": "A copy is an independent lock, so holding it doesn't stop others touching the original data, and if it was copied while locked it stays locked. Pass `*Stats`."
-            }
-          ]
-        },
-        {
           "id": "language-runtime/concurrency/bounded-concurrency",
           "title": "Bounded concurrency",
           "summary": "Limiting how many tasks run at once, with a semaphore channel or `errgroup.SetLimit`",
@@ -1678,10 +2039,10 @@
               "lang": "python",
               "q": "`urls` has 10,000 entries and each `fetch` opens a connection. What is the problem?\n\n```python\nresults = await asyncio.gather(*(fetch(u) for u in urls))\n```",
               "choices": [
-                "`gather` runs them one at a time",
-                "`gather` caps itself at the number of CPU cores",
-                "All 10,000 fetches start at once, risking socket exhaustion and rate limits",
-                "`gather` raises `RuntimeError` above 1,000 tasks"
+                "`gather` runs them strictly one at a time, in order",
+                "`gather` caps itself at the number of CPU cores available",
+                "All 10,000 fetches start at once, risking socket exhaustion",
+                "`gather` raises `RuntimeError` above 1,000 tasks at once"
               ],
               "answer": 2,
               "explain": "`gather` schedules every coroutine immediately and has no limit of its own. A semaphore is what keeps the number in flight bounded."
@@ -1741,6 +2102,65 @@
               ],
               "answer": 1,
               "explain": "`to_thread` runs the blocking call on a worker thread and lets the loop serve others. The other lines still call `requests.get` on the loop thread, and `await` on its non-awaitable result fails."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/concurrency/goroutine-leak",
+          "title": "Goroutine leak",
+          "summary": "A goroutine blocked forever on a channel nobody will use again, never freed",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "`ctx` times out before `slowCall` finishes. What happens to the goroutine?\n\n```go\nfunc fetch(ctx context.Context) (string, error) {\n    ch := make(chan string)\n    go func() { ch <- slowCall() }()\n    select {\n    case v := <-ch:\n        return v, nil\n    case <-ctx.Done():\n        return \"\", ctx.Err()\n    }\n}\n```",
+              "choices": [
+                "It exits when `fetch` returns",
+                "The garbage collector frees it once `ch` is unreachable",
+                "It blocks forever on `ch <-`, leaking",
+                "It panics: send on closed channel"
+              ],
+              "answer": 2,
+              "explain": "Nobody will ever receive from `ch`, so the send blocks forever. Blocked goroutines are never garbage collected, so each timeout leaks one."
+            },
+            {
+              "lang": "go",
+              "q": "In the same `fetch` function, which one-line change stops the leak?",
+              "choices": [
+                "`ch := make(chan string, 1)`",
+                "`defer close(ch)` at the top of `fetch`",
+                "Move `go func()` after the `select`",
+                "Replace `select` with `time.Sleep`"
+              ],
+              "answer": 0,
+              "explain": "With a buffer of one, the send always succeeds and the goroutine exits even if nobody reads. Closing `ch` from `fetch` would make the late send panic."
+            }
+          ]
+        },
+        {
+          "id": "language-runtime/concurrency/copied-mutex",
+          "title": "Copying a mutex",
+          "summary": "A copied `sync.Mutex` is a separate lock, so it protects nothing",
+          "level": "hard",
+          "variants": [
+            {
+              "lang": "go",
+              "q": "1,000 goroutines call `c.Inc()` on the same `c`, and all finish. What is `c.n`?\n\n```go\ntype Counter struct {\n    mu sync.Mutex\n    n  int\n}\n\nfunc (c Counter) Inc() {\n    c.mu.Lock()\n    defer c.mu.Unlock()\n    c.n++\n}\n```",
+              "choices": ["`1000`", "Somewhere between 1 and 1000", "It deadlocks", "`0`"],
+              "answer": 3,
+              "explain": "The value receiver copies the whole struct, lock and counter included, on every call, so each call increments its own copy. Use `func (c *Counter) Inc()`."
+            },
+            {
+              "lang": "go",
+              "q": "`go vet` reports `passes lock by value: Stats contains sync.Mutex` for `func report(s Stats)`. Why is that a bug?",
+              "choices": [
+                "Copying a mutex is slow, so it costs time on every call",
+                "The copy is a separate lock, so it doesn't exclude users of the original",
+                "A copied mutex always starts locked, so `report` deadlocks",
+                "A `sync.Mutex` can't be passed to a function at all"
+              ],
+              "answer": 1,
+              "explain": "A copy is an independent lock, so holding it doesn't stop others touching the original data, and if it was copied while locked it stays locked. Pass `*Stats`."
             }
           ]
         }
