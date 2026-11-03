@@ -3,8 +3,8 @@ import { emptyProgress, parseBackup, type LangPref, type Progress } from "./logi
 const PROGRESS_KEY = "skill-explorer:progress";
 const SETTINGS_KEY = "skill-explorer:settings";
 
-export type Settings = { frontend: boolean; lang: LangPref };
-const defaultSettings: Settings = { frontend: false, lang: "both" };
+export type Settings = { lang: LangPref };
+const defaultSettings: Settings = { lang: "both" };
 
 function read(key: string): string | null {
   try {

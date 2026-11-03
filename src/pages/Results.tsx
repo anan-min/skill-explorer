@@ -1,15 +1,20 @@
 import { toBlob } from "html-to-image";
-import { useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { useRef } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Separator } from "@/components/ui/separator";
 import type { AppProps } from "../App.tsx";
 import { GROUPS } from "../content.ts";
-import { coverage, gapsByGroup, gapText, parseBackup, persona, visibleGroups, type Persona } from "../logic.ts";
+import { gapsByGroup, gapText, parseBackup, persona, stats, strength, type Persona } from "../logic.ts";
 import { Inline, Markdown } from "../Markdown.tsx";
 import { mascot } from "../mascots.ts";
 import { Radar } from "../Radar.tsx";
 
 function personaMascot(p: Persona) {
   if (p.kind === "locked") return null;
-  return mascot(p.kind === "wanderer" ? "wanderer" : p.id);
+  return mascot(p.kind === "group" ? p.id : p.kind);
 }
 
 function download(blob: Blob, name: string) {
@@ -19,126 +24,143 @@ function download(blob: Blob, name: string) {
   URL.revokeObjectURL(url);
 }
 
-export function Results({ progress, update, settings }: AppProps) {
-  const groups = visibleGroups(GROUPS, settings.frontend);
-  const who = persona(GROUPS, progress, settings.frontend);
+export function Results({ progress, update }: AppProps) {
+  const who = persona(GROUPS, progress);
   const m = personaMascot(who);
   const hero = useRef<HTMLDivElement>(null);
-  const [note, setNote] = useState("");
-
-  const flash = (text: string) => {
-    setNote(text);
-    setTimeout(() => setNote(""), 2500);
-  };
 
   const card = async () => {
     const blob = await toBlob(hero.current!, { pixelRatio: 2 });
     if (!blob) throw new Error("Could not render the card");
     return blob;
   };
-  const cardFile = async () => new File([await card()], "skill-explorer.png", { type: "image/png" });
   const canShare = typeof navigator.canShare === "function";
 
   const copyImage = async () => {
     try {
       // Pass the promise straight in: Safari drops the user gesture across an await.
       await navigator.clipboard.write([new ClipboardItem({ "image/png": card() })]);
-      flash("Image copied");
+      toast("Image copied");
     } catch {
-      flash("Couldn't copy the image here; try Download");
+      toast("Couldn't copy the image here; try Download");
     }
   };
   const share = async () => {
     try {
-      await navigator.share({ files: [await cardFile()] });
+      await navigator.share({ files: [new File([await card()], "nerdscape.png", { type: "image/png" })] });
     } catch {
       // Cancelled or unsupported.
     }
   };
-
   const copyGaps = async () => {
     try {
-      await navigator.clipboard.writeText(gapText(GROUPS, progress, settings.frontend));
-      flash("Gap list copied");
+      await navigator.clipboard.writeText(gapText(GROUPS, progress));
+      toast("Gap list copied");
     } catch {
-      flash("Couldn't copy here");
+      toast("Couldn't copy here");
     }
   };
   const backup = () =>
-    download(new Blob([JSON.stringify(progress, null, 2)], { type: "application/json" }), "skill-explorer-backup.json");
+    download(new Blob([JSON.stringify(progress, null, 2)], { type: "application/json" }), "nerdscape-backup.json");
   const restore = async (file: File | undefined) => {
     if (!file) return;
     try {
       const restored = parseBackup(await file.text());
       update(() => restored);
-      flash("Restored");
+      toast("Restored");
     } catch {
-      flash("That file isn't a Skill Explorer backup");
+      toast("That file isn't a Nerdscape backup");
     }
   };
 
-  const gaps = gapsByGroup(GROUPS, progress, settings.frontend);
+  const gaps = gapsByGroup(GROUPS, progress);
+  const numbers = stats(GROUPS, progress);
 
   return (
-    <>
-      <section className="hero-wrap">
-        <div className="hero" ref={hero}>
+    <div className="space-y-10">
+      <section className="flex flex-col items-center gap-4">
+        <div
+          ref={hero}
+          className="flex w-full max-w-lg flex-col items-center gap-1 bg-background px-6 py-8 text-center"
+        >
           {m ? (
             <>
-              <img className="persona-img" src={m.src} alt="" width={120} height={120} />
-              <div className="persona-name">
-                {m.animal} · {m.job}
-              </div>
-              {who.kind === "wanderer" && <div className="muted">You roam every group evenly.</div>}
+              <img className="mascot size-44" src={m.src} alt="" />
+              <p className="text-2xl font-semibold tracking-[0.25em] uppercase">{m.animal}</p>
+              <p className="text-sm tracking-[0.2em] text-muted-foreground uppercase">{m.job}</p>
+              {who.kind === "wanderer" && <p className="text-sm text-muted-foreground">Strong in every area.</p>}
+              {who.kind === "apprentice" && (
+                <p className="text-sm text-muted-foreground">Every area is still open to explore.</p>
+              )}
             </>
           ) : (
             <>
-              <img className="persona-img silhouette" src={mascot("wanderer").src} alt="" width={120} height={120} />
-              <div className="persona-name">Keep exploring</div>
-              <div className="muted">Explore half of two groups to meet your mascot.</div>
+              <img className="mascot size-44 opacity-30 grayscale" src={mascot("wanderer").src} alt="" />
+              <p className="text-2xl font-semibold tracking-[0.25em] uppercase">Keep exploring</p>
+              <p className="text-sm text-muted-foreground">Finish a quiz round to meet your mascot.</p>
             </>
           )}
-          <Radar axes={groups.map((g) => ({ id: g.group.id, title: g.group.title, value: coverage(g, progress) }))} />
-          <div className="hero-foot">Skill Explorer</div>
+          <Radar axes={GROUPS.map((g) => ({ id: g.group.id, title: g.group.title, value: strength(g, progress) }))} />
+          <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase">Nerdscape</p>
         </div>
-        <div className="row center">
-          <button onClick={copyImage}>Copy image</button>
-          <button onClick={async () => download(await card(), "skill-explorer.png")}>Download</button>
-          {canShare && <button onClick={share}>Share</button>}
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button variant="outline" onClick={copyImage}>
+            Copy image
+          </Button>
+          <Button variant="outline" onClick={async () => download(await card(), "nerdscape.png")}>
+            Download
+          </Button>
+          {canShare && (
+            <Button variant="outline" onClick={share}>
+              Share
+            </Button>
+          )}
         </div>
       </section>
 
-      <section>
-        <h2>Your gaps</h2>
-        {gaps.length === 0 && <p className="muted">No gaps yet. Scan or quiz a group to find some.</p>}
+      <Separator />
+
+      <section className="space-y-6">
+        <h2 className="text-2xl font-semibold tracking-tight">Your gaps</h2>
+        {gaps.length === 0 && <p className="text-muted-foreground">No gaps yet. Scan or quiz a group to find some.</p>}
         {gaps.map(({ group, skills }) => (
-          <div key={group.group.id} className="gap-group">
-            <h3>{group.group.title}</h3>
+          <div key={group.group.id} className="space-y-3">
+            <h3 className="text-lg font-semibold">{group.group.title}</h3>
             {skills.map(({ skill, gaps }) => (
-              <div key={skill.id}>
-                <h4>{skill.title}</h4>
-                <ul className="gap-list">
+              <div key={skill.id} className="space-y-1">
+                <h4 className="text-xs tracking-widest text-muted-foreground uppercase">{skill.title}</h4>
+                <ul className="divide-y rounded-lg border">
                   {gaps.map((c) => {
                     const seen = progress.concepts[c.id]?.seen;
                     const v = seen && c.variants[seen.variant];
+                    const label = (
+                      <span className="[overflow-wrap:anywhere]">
+                        <strong>{c.title}</strong>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · <Inline text={c.summary} />
+                        </span>
+                      </span>
+                    );
                     return (
-                      <li key={c.id}>
+                      <li key={c.id} className="px-4 py-3">
                         {v ? (
-                          <details>
-                            <summary>
-                              <strong>{c.title}</strong>: <Inline text={c.summary} />
-                            </summary>
-                            <Markdown text={v.q} />
-                            <p>
-                              You picked <Inline text={v.choices[seen.choice]} />. Answer:{" "}
-                              <Inline text={v.choices[v.answer]} />
-                            </p>
-                            <Markdown text={v.explain} />
-                          </details>
+                          <Collapsible>
+                            <CollapsibleTrigger className="group flex w-full items-start justify-between gap-2 text-left">
+                              {label}
+                              <ChevronDown className="mt-1 size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="space-y-3 pt-3 text-sm">
+                              <Markdown text={v.q} />
+                              <p>
+                                You picked <Inline text={v.choices[seen.choice]} />. Answer:{" "}
+                                <Inline text={v.choices[v.answer]} />
+                              </p>
+                              <Markdown text={v.explain} />
+                            </CollapsibleContent>
+                          </Collapsible>
                         ) : (
-                          <>
-                            <strong>{c.title}</strong>: <Inline text={c.summary} />
-                          </>
+                          label
                         )}
                       </li>
                     );
@@ -150,19 +172,51 @@ export function Results({ progress, update, settings }: AppProps) {
         ))}
       </section>
 
-      <footer className="row">
-        <button onClick={copyGaps} disabled={!gaps.length}>
+      <Separator />
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold tracking-tight">Your numbers</h2>
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {(
+            [
+              ["Correct", numbers.correct],
+              ["Wrong", numbers.wrong],
+              ["Used it", numbers.used],
+              ["Not explored", numbers.unexplored],
+            ] as const
+          ).map(([label, value]) => (
+            <div key={label} className="rounded-lg border px-4 py-3">
+              <dt className="text-xs tracking-widest text-muted-foreground uppercase">{label}</dt>
+              <dd className="text-2xl font-semibold tabular-nums">{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <ul className="divide-y rounded-lg border">
+          {numbers.groups.map((g) => (
+            <li key={g.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3">
+              <span className="font-medium">{g.title}</span>
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {g.correct} of {g.answered} correct · {g.explored} of {g.total} explored
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <footer className="flex flex-wrap gap-2 border-t pt-6">
+        <Button variant="outline" onClick={copyGaps} disabled={!gaps.length}>
           Copy gap list
-        </button>
-        <button onClick={backup}>Backup</button>
-        <label className="button">
-          Restore
-          <input type="file" accept="application/json" hidden onChange={(e) => restore(e.target.files?.[0])} />
-        </label>
+        </Button>
+        <Button variant="outline" onClick={backup}>
+          Backup
+        </Button>
+        <Button variant="outline" asChild>
+          <label>
+            Restore
+            <input type="file" accept="application/json" hidden onChange={(e) => void restore(e.target.files?.[0])} />
+          </label>
+        </Button>
       </footer>
-      <div className="toast" role="status">
-        {note}
-      </div>
-    </>
+    </div>
   );
 }

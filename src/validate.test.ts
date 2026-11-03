@@ -21,7 +21,7 @@ const concept = (slug: string, over = {}) => ({
 const file = (concepts: unknown[], name = "01-g.json") => ({
   name,
   data: {
-    group: { id: "g", title: "G", hidden: false },
+    group: { id: "g", title: "G" },
     skills: [{ id: "s", title: "S", concepts }],
   },
 });

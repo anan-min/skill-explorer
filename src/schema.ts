@@ -25,7 +25,7 @@ export const Skill = z.object({
 });
 
 export const GroupFile = z.object({
-  group: z.object({ id: z.string().min(1), title: z.string().min(1), hidden: z.boolean() }),
+  group: z.object({ id: z.string().min(1), title: z.string().min(1) }),
   skills: z.array(Skill),
 });
 

@@ -1,46 +1,72 @@
-import { mascot } from "./mascots.ts";
+import { ResponsiveRadar, type GridLabelProps } from "@nivo/radar";
 
 type Axis = { id: string; title: string; value: number };
 
-const SIZE = 320;
-const R = 110;
-const C = SIZE / 2;
-// Paint lives in attributes, not CSS classes: html-to-image drops class-based SVG paint.
-const ACCENT = "#e0763c";
-const ring = { fill: "none", stroke: "currentColor", strokeOpacity: 0.35 };
+// Paint must end up in SVG attributes (html-to-image drops class-based SVG paint),
+// so colours are literals.
+const INK = "#171717";
+const MUTED = "#737373";
+const GRID = "#cfcdc9";
 
-const point = (i: number, n: number, r: number) => {
-  const a = -Math.PI / 2 + (2 * Math.PI * i) / n;
-  return [C + r * Math.cos(a), C + r * Math.sin(a)] as const;
-};
+const LINE_CHARS = 12;
+const LINE_HEIGHT = 13;
 
-// Coverage per group, drawn without numbers so it can go on the share card.
+// SVG text doesn't wrap, so long group titles are split into short lines by word.
+function wrap(title: string) {
+  const lines: string[] = [];
+  for (const word of title.toUpperCase().split(" ")) {
+    const last = lines.at(-1);
+    if (last !== undefined && last.length + 1 + word.length <= LINE_CHARS) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(word);
+  }
+  return lines;
+}
+
+// Quiz strength per group, drawn without numbers so it can go on the share card.
 export function Radar({ axes }: { axes: Axis[] }) {
-  const n = axes.length;
-  const shape = axes.map((a, i) => point(i, n, Math.max(a.value, 0.02) * R).join(",")).join(" ");
+  const titles = new Map(axes.map((a) => [a.id, a.title]));
+  const Label = ({ id, x, y, anchor }: GridLabelProps) => {
+    const lines = wrap(titles.get(id) ?? id);
+    const top = y - ((lines.length - 1) * LINE_HEIGHT) / 2;
+    return (
+      <text
+        textAnchor={anchor}
+        dominantBaseline="central"
+        fill={MUTED}
+        fontSize={11}
+        fontWeight={500}
+        letterSpacing="0.06em"
+      >
+        {lines.map((line, i) => (
+          <tspan key={i} x={x} y={top + i * LINE_HEIGHT}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    );
+  };
   return (
-    <svg className="radar" viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label="Coverage per group">
-      {[0.25, 0.5, 0.75, 1].map((f) => (
-        <polygon key={f} {...ring} points={axes.map((_, i) => point(i, n, f * R).join(",")).join(" ")} />
-      ))}
-      {n < 3 && <circle {...ring} cx={C} cy={C} r={R} />}
-      {axes.map((a, i) => {
-        const [x, y] = point(i, n, R);
-        const [lx, ly] = point(i, n, R + 26);
-        return (
-          <g key={a.id}>
-            <line {...ring} x1={C} y1={C} x2={x} y2={y} />
-            <image href={mascot(a.id).src} x={lx - 14} y={ly - 14} width={28} height={28}>
-              <title>{a.title}</title>
-            </image>
-          </g>
-        );
-      })}
-      <polygon points={shape} fill={ACCENT} fillOpacity={0.3} stroke={ACCENT} strokeWidth={2} />
-      {axes.map((a, i) => {
-        const [x, y] = point(i, n, Math.max(a.value, 0.02) * R);
-        return <circle key={a.id} fill={ACCENT} cx={x} cy={y} r={4} />;
-      })}
-    </svg>
+    <div className="aspect-square w-full max-w-md [&_svg]:overflow-visible" role="img" aria-label="Strength per group">
+      <ResponsiveRadar
+        data={axes.map((a) => ({ group: a.id, strength: Math.max(a.value, 0.02) }))}
+        keys={["strength"]}
+        indexBy="group"
+        maxValue={1}
+        margin={{ top: 40, right: 80, bottom: 40, left: 80 }}
+        gridShape="linear"
+        gridLevels={4}
+        gridLabel={Label}
+        gridLabelOffset={14}
+        curve="linearClosed"
+        colors={[INK]}
+        fillOpacity={0.08}
+        borderWidth={2}
+        borderColor={INK}
+        dotSize={6}
+        dotColor={INK}
+        isInteractive={false}
+        theme={{ grid: { line: { stroke: GRID, strokeWidth: 1 } } }}
+      />
+    </div>
   );
 }

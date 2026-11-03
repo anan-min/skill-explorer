@@ -1,4 +1,6 @@
-# Skill Explorer — design
+# Nerdscape — design
+
+The app is called **Nerdscape**. The repo, Pages URL (`/skill-explorer/`) and `localStorage` keys keep the old `skill-explorer` name so links and saved progress survive.
 
 A for-fun static web app where software engineers discover hard-skill concepts they've missed and see a map of their gaps. It's for learning, not evaluation: no grades, no rankings, no comparisons between people, and all data stays in the browser.
 
@@ -7,14 +9,15 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 ## Principles
 
 - **For fun.** Don't over-engineer; fix problems later.
-- **No ratings.** Never ask "how well do you know X?". Every answer is a fact the person can check against memory.
+- **No ratings.** Never ask "how well do you know X?". Every answer is a fact the person can check against memory. The persona and the numbers come only from quiz answers, never from self-assessment, and the beginner class is named as a stage (Apprentice), not a level.
 - **No learning guidance.** No reading lists, links, reading time, "mark as read" or prerequisites. The explanation shown after each answer is the only teaching.
 - **Private by default.** Everything lives in `localStorage` (every access wrapped in try/catch). No backend, no analytics.
 
 ## Stack and hosting
 
 - Vite + React + TypeScript.
-- Hash routing (`#/express/<group>`, `#/quiz/<group>`, `#/results`), because GitHub Pages has no SPA fallback.
+- Hash routing (`#/express`, `#/quiz`, `#/results`), because GitHub Pages has no SPA fallback.
+- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page so the mascots are the only colour.
 - GitHub Pages at `anan-min.github.io/skill-explorer`, deployed by GitHub Actions on push to `main`.
 - English only.
 - The owner merges on their own judgment; CI validation is the only gate.
@@ -33,8 +36,9 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 | 6 | Data & storage | Squirrel · Storekeeper |
 | 7 | Testing | Meerkat · Lookout |
 | 8 | Delivery & ops | Husky · Sled runner |
-| 9 | Frontend (hidden by default) | Chameleon · Signaller |
-| — | Even spread | Fox · Backpacker (Wanderer) |
+| 9 | Frontend | Chameleon · Signaller |
+| — | Strong in every group | Fox · Backpacker (Wanderer) |
+| — | Strong in no group yet | Chick · Apprentice |
 
 Skills per group:
 
@@ -46,7 +50,7 @@ Skills per group:
 6. **Data & storage:** schema design, query optimization, transactions & consistency, migrations, relational vs NoSQL, DB integration.
 7. **Testing:** test strategy, unit, integration, TDD, test maintainability, ATDD/BDD.
 8. **Delivery & ops:** CI, release & deployment, Docker, environment management, cloud, observability, incident response.
-9. **Frontend:** components, state, performance, accessibility, responsive design, frontend security. Hidden unless the person turns on "I do frontend"; off the radar while hidden.
+9. **Frontend:** components, state, performance, accessibility, responsive design, frontend security. Always shown: users are assumed full stack.
 
 ### Concepts
 
@@ -68,7 +72,7 @@ One file per group: `content/NN-<group-id>.json` (`01-language-runtime.json` …
 
 ```jsonc
 {
-  "group": { "id": "language-runtime", "title": "Language & runtime", "hidden": false },
+  "group": { "id": "language-runtime", "title": "Language & runtime" },
   "skills": [{
     "id": "async",
     "title": "Asynchronous programming",
@@ -114,7 +118,7 @@ Each concept is in one state:
 
 ## Two routes
 
-Both run one group at a time.
+Both mix all groups: each session takes **2 concepts from every group** (18 in all), shuffled together, so one session reads every group and nobody does one group in a row.
 
 ### Express (the scan)
 
@@ -125,12 +129,12 @@ Each concept card shows its title and summary, with four buttons:
 - **Used it** → `claimed`
 - **Not sure** → asks one quiz variant on the spot; correct → `confirmed`, wrong → `gap`. Not shown for scan-only concepts.
 
-About 2 seconds per concept, so one group takes a few minutes.
+Picks unexplored (`fog`) concepts first in each group. About 2 seconds per concept.
 
 ### In-depth (the quiz)
 
-- 10 questions per session (about 5 minutes).
-- Order: `claimed` first (checking overconfidence is the quiz's main job), then `fog`, then `gap`. Never `confirmed`. Scan-only concepts are skipped.
+- 18 questions per session (about 9 minutes): 2 per group.
+- Within a group, picks `claimed` first (checking overconfidence is the quiz's main job), then `fog`, then `gap`. Never `confirmed`. Scan-only concepts are skipped.
 - Choices are shuffled when shown, since LLM-drafted questions tend to put the answer in the same position.
 - After each answer, show the right answer and `explain`.
 - Each answer is saved immediately, so quitting halfway loses nothing.
@@ -141,16 +145,21 @@ About 2 seconds per concept, so one group takes a few minutes.
 
 ### Hero: persona + radar
 
-- **Radar:** coverage per visible group = explored concepts ÷ concepts in the group.
-- **Unlock:** the persona appears once at least 2 visible groups are each ≥ 50% explored. Before that, show a silhouette and "keep exploring".
-- **Persona rule:** based on *which* group leads, never on how much.
-  - If highest coverage − lowest coverage ≤ 15 points (across visible groups) → **Wanderer**.
-  - Otherwise → the top group's mascot.
-  - Tie for the lead → more `confirmed` concepts wins, then the lower group number.
+- **Strength** per group = right quiz answers ÷ quiz answers in that group (latest answer per concept; Express self-reports don't count).
+- **Radar:** strength per group, no numbers.
+- **Unlock:** the persona appears once every group with at least 2 quizzable concepts has at least 2 quiz answers (one quiz session). Before that, show a silhouette and "keep exploring".
+- **Persona rule:** a group **passes** at ≥ 60% strength.
+  - No group passes → **Apprentice**.
+  - Every group passes → **Wanderer**.
+  - Otherwise → the strongest passing group's mascot. Tie → more right answers wins, then the lower group number.
 
 ### Your gaps
 
 Every `gap` concept, grouped by group → skill, with groups sorted by gap count. Each item shows the title and summary, and expands to the question and explanation they saw if the gap came from a quiz. No links, no how-to-learn.
+
+### Your numbers
+
+Below the gaps, never on the share card: right and wrong quiz answers, "Used it" and unexplored counts, and per group "X of Y correct · X of Y explored".
 
 ### Footer
 
@@ -169,7 +178,7 @@ Every `gap` concept, grouped by group → skill, with groups sorted by gap count
 ## Mascots
 
 - The owner draws them by hand. Until then, ship placeholders.
-- Placeholders: `public/mascots/<id>.svg`, where `<id>` is the group ID or `wanderer`. Each is a coloured circle with the animal emoji and job name (e.g. 🐙 Interpreter). There is no meerkat or husky emoji, so those two use 🦦 and 🐺 until drawn.
+- Placeholders: `public/mascots/<id>.svg`, where `<id>` is the group ID, `wanderer` or `apprentice`. Each is a coloured circle with the animal emoji and job name (e.g. 🐙 Interpreter). There is no meerkat or husky emoji, so those two use 🦦 and 🐺 until drawn.
 - `src/mascots.ts` maps each ID to its file, so swapping in a drawing (PNG or SVG) is a one-line change.
 - No external placeholder services: cross-origin images break the PNG export.
 

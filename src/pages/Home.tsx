@@ -1,53 +1,41 @@
+import { Button } from "@/components/ui/button";
 import type { AppProps } from "../App.tsx";
 import { GROUPS } from "../content.ts";
-import { conceptsOf, stateOf, visibleGroups } from "../logic.ts";
-import { mascot } from "../mascots.ts";
+import { conceptsOf, stateOf } from "../logic.ts";
+import { MASCOTS, mascot } from "../mascots.ts";
 
-export function Home({ progress, settings, setSettings }: AppProps) {
+export function Home({ progress }: AppProps) {
+  const concepts = GROUPS.flatMap(conceptsOf);
+  const explored = concepts.filter((c) => stateOf(progress, c.id) !== "fog").length;
   return (
-    <>
-      <section className="intro">
-        <h1>Find the concepts you've missed</h1>
-        <p>
-          Pick a group. <strong>Express</strong> is a quick scan: say what you've heard of. <strong>In-depth</strong> is
-          a short quiz. Then look at your map.
-        </p>
-        <p className="muted">Your answers stay in this browser. Nothing is sent anywhere.</p>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={settings.frontend}
-            onChange={(e) => setSettings({ ...settings, frontend: e.target.checked })}
-          />
-          I do frontend
-        </label>
-      </section>
-      <ul className="groups">
-        {visibleGroups(GROUPS, settings.frontend).map((g) => {
-          const concepts = conceptsOf(g);
-          const explored = concepts.filter((c) => stateOf(progress, c.id) !== "fog").length;
-          const m = mascot(g.group.id);
-          return (
-            <li key={g.group.id} className="group-card">
-              <img src={m.src} alt={`${m.animal} ${m.job}`} width={56} height={56} />
-              <div className="grow">
-                <h2>{g.group.title}</h2>
-                <p className="muted">
-                  {explored} of {concepts.length} explored
-                </p>
-              </div>
-              <div className="row">
-                <a className="button" href={`#/express/${g.group.id}`}>
-                  Express
-                </a>
-                <a className="button primary" href={`#/quiz/${g.group.id}`}>
-                  In-depth
-                </a>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </>
+    <section className="space-y-8 pt-6 text-center">
+      <div className="mx-auto flex max-w-md flex-wrap justify-center">
+        {Object.keys(MASCOTS).map((id) => (
+          <img key={id} className="size-16" src={mascot(id).src} alt="" />
+        ))}
+      </div>
+      <h1 className="text-4xl font-semibold tracking-tight">Find the concepts you've missed</h1>
+      <p className="mx-auto max-w-lg text-muted-foreground">
+        A few questions from every area of software engineering, mixed together. Find out what kind of developer you
+        are, and which concepts you haven't met yet.
+      </p>
+      <div className="mx-auto grid max-w-md gap-3 sm:grid-cols-2">
+        <Button size="lg" className="h-auto flex-col gap-1 py-4" asChild>
+          <a href="#/quiz">
+            <span className="text-base">Quiz</span>
+            <span className="text-xs font-normal opacity-70">About 9 minutes</span>
+          </a>
+        </Button>
+        <Button size="lg" variant="outline" className="h-auto flex-col gap-1 py-4" asChild>
+          <a href="#/express">
+            <span className="text-base">Quick scan</span>
+            <span className="text-xs font-normal text-muted-foreground">Have you heard of it?</span>
+          </a>
+        </Button>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {explored} of {concepts.length} concepts explored · Your answers stay in this browser.
+      </p>
+    </section>
   );
 }
