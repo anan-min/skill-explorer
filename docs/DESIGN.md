@@ -17,7 +17,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 
 - Vite + React + TypeScript.
 - Hash routing (`#/scan`, `#/quiz`, `#/results`), because GitHub Pages has no SPA fallback.
-- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page. Besides the mascots, the only colour is three pastels that mark an answer: rose (New, or Missed in the quiz), butter (Heard), sage (Used). They sit behind near-black text, never as text colour.
+- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page. Besides the mascots, the only colour is two pastels in the gap list: rose (Missed) and butter (Heard). They sit behind near-black text, never as text colour. A picked option in the scan and quiz (scan answer, language toggle, the right quiz answer) is a soft grey, not solid black.
 - GitHub Pages at `anan-min.github.io/skill-explorer`, deployed by GitHub Actions on push to `main`.
 - English only.
 - The owner merges on their own judgment; CI validation is the only gate.
@@ -132,7 +132,6 @@ Home has two buttons, so people know up front what they're starting. Neither let
   - **New** (never heard of it) → `gap`
   - **Heard** (know the name) → `gap`
   - **Used** → `claimed`
-- A picked button takes its answer's pastel (New rose, Heard butter, Used sage), so a finished page reads at a glance.
 - A gap remembers which button made it (`scan: "never" | "name"`), so rows show earlier answers.
 - The next button ("See my result" in a scan, "Next: quick check" in a quiz) stays disabled until every row is answered.
 

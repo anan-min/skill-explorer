@@ -17,8 +17,8 @@ function personaMascot(p: Persona) {
   return mascot(p.kind === "group" ? p.id : p.kind);
 }
 
-// Where a gap came from, matching the scan buttons' pastels. New stays neutral so a
-// long list of unmet concepts doesn't read as an alarm.
+// Where a gap came from. New stays neutral so a long list of unmet concepts
+// doesn't read as an alarm.
 const ORIGINS = {
   missed: { label: "Missed", tag: "bg-rose", stripe: "border-l-rose-edge" },
   heard: { label: "Heard", tag: "bg-butter", stripe: "border-l-butter-edge" },
