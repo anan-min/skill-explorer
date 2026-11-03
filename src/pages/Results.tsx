@@ -116,7 +116,7 @@ export function Results({ progress, update }: AppProps) {
           <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase">Nerdscape</p>
         </div>
         <div className="flex flex-wrap justify-center gap-2">
-          <Button asChild>
+          <Button variant="soft" asChild>
             <a href="#/quiz">{checked ? "Quiz again" : "Take the quiz"}</a>
           </Button>
           <Button variant="outline" onClick={copyImage}>
