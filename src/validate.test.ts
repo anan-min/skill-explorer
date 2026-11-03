@@ -28,7 +28,7 @@ const file = (concepts: unknown[], name = "01-g.json") => ({
 
 describe("validateContent", () => {
   it("accepts a valid file", () => {
-    expect(validateContent([file([concept("a"), concept("b", { variants: [] })])])).toEqual({
+    expect(validateContent([file([concept("a", { basic: true }), concept("b", { variants: [] })])])).toEqual({
       errors: [],
       warnings: [],
     });
@@ -81,9 +81,15 @@ describe("validateContent", () => {
   });
 
   it("warns, not fails, on more than 8 concepts in a skill", () => {
-    const many = Array.from({ length: 9 }, (_, i) => concept(`c${i}`));
+    const many = Array.from({ length: 9 }, (_, i) => concept(`c${i}`, { basic: i === 0 }));
     const result = validateContent([file(many)]);
     expect(result.errors).toEqual([]);
     expect(result.warnings.join("\n")).toMatch(/9 concepts/);
+  });
+
+  it("rejects a group without a quizzable basic concept", () => {
+    expect(validateContent([file([concept("a")])]).errors.join("\n")).toMatch(/basic/);
+    // A scan-only concept can't be asked, so it doesn't count as the basic question.
+    expect(validateContent([file([concept("a", { basic: true, variants: [] })])]).errors.join("\n")).toMatch(/basic/);
   });
 });

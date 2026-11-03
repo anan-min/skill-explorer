@@ -18,9 +18,10 @@ type Props = {
   variant: number;
   onAnswer: (choice: number) => void;
   onNext: () => void;
+  nextLabel?: string;
 };
 
-export function Question({ concept, variant, onAnswer, onNext }: Props) {
+export function Question({ concept, variant, onAnswer, onNext, nextLabel = "Next" }: Props) {
   const v = concept.variants[variant];
   // Shuffled once per question: drafted questions tend to put the answer in the same slot.
   const order = useMemo(() => shuffle([0, 1, 2, 3], Math.random), [concept.id, variant]);
@@ -71,7 +72,7 @@ export function Question({ concept, variant, onAnswer, onNext }: Props) {
           <Markdown text={v.explain} />
           <div className="flex items-center justify-between gap-2">
             <Button onClick={onNext} autoFocus>
-              Next
+              {nextLabel}
             </Button>
             <a
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

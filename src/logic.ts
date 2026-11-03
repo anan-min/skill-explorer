@@ -7,6 +7,8 @@ const ConceptProgress = z.object({
   state: StateSchema,
   // The quiz question behind a gap, so the gap list can show it again.
   seen: z.object({ variant: z.number().int(), choice: z.number().int() }).optional(),
+  // Which scan button made this a gap ("Used it" is already `claimed`).
+  scan: z.enum(["never", "name"]).optional(),
   tested: z.array(Lang).optional(),
 });
 const ProgressSchema = z.object({
@@ -21,11 +23,14 @@ export type ScanButton = "never" | "name" | "used";
 export type Persona =
   { kind: "locked" } | { kind: "apprentice" } | { kind: "wanderer" } | { kind: "group"; id: string };
 
-// A session samples this many concepts from every group, so one session reads every group.
-const PER_GROUP = 2;
-// A group passes at MIN_ANSWERS quiz answers with at least PASS_RATE of them right.
-const MIN_ANSWERS = 2;
+// A run scans this many concepts per topic, then checks at least one per topic.
+const SCAN_PER_GROUP = 4;
+const EXTRA_CHECKS = 3;
+const MAX_CHECKS = 12;
+// A topic passes at this strength.
 const PASS_RATE = 0.6;
+// Unverified claims count for less than verified ones, so claiming everything doesn't pay.
+const WEIGHT = { confirmed: 1, claimed: 0.75, heard: 0.5 };
 
 export const emptyProgress = (): Progress => ({ schemaVersion: 1, concepts: {} });
 
@@ -33,8 +38,14 @@ export const stateOf = (p: Progress, id: string): State => p.concepts[id]?.state
 
 export function scan(p: Progress, concept: Concept, button: ScanButton): Progress {
   const { tested } = p.concepts[concept.id] ?? {};
-  const state = button === "used" ? "claimed" : "gap";
-  return { ...p, concepts: { ...p.concepts, [concept.id]: { state, ...(tested && { tested }) } } };
+  const next = button === "used" ? { state: "claimed" as const } : { state: "gap" as const, scan: button };
+  return { ...p, concepts: { ...p.concepts, [concept.id]: { ...next, ...(tested && { tested }) } } };
+}
+
+export function scanAnswer(p: Progress, id: string): ScanButton | null {
+  const c = p.concepts[id];
+  if (c?.state === "claimed") return "used";
+  return c?.scan ?? null;
 }
 
 export function answer(p: Progress, concept: Concept, variant: number, choice: number): Progress {
@@ -66,31 +77,40 @@ export function pickVariant(concept: Concept, p: Progress, lang: LangPref, rand:
   return pool[Math.floor(rand() * pool.length)].i;
 }
 
-const PRIORITY: State[] = ["claimed", "fog", "gap"];
-
-// Up to PER_GROUP concepts from each group, best-first by `rank`, then shuffled across groups.
-function sample(groups: GroupFile[], rank: (c: Concept) => number, rand: () => number): Concept[] {
-  const picks = groups.flatMap((g) =>
-    shuffle(
-      conceptsOf(g).filter((c) => rank(c) >= 0),
-      rand,
-    )
-      .sort((x, y) => rank(x) - rank(y))
-      .slice(0, PER_GROUP),
-  );
-  return shuffle(picks, rand);
+export function scanSample(groups: GroupFile[], p: Progress, rand: () => number) {
+  return groups.map((group) => ({
+    group,
+    concepts: shuffle(conceptsOf(group), rand)
+      .sort((x, y) => Number(stateOf(p, x.id) !== "fog") - Number(stateOf(p, y.id) !== "fog"))
+      .slice(0, SCAN_PER_GROUP),
+  }));
 }
 
-export function quizQueue(groups: GroupFile[], p: Progress, lang: LangPref, rand: () => number): Concept[] {
-  return sample(
-    groups,
-    (c) => (pickVariant(c, p, lang, rand) === null ? -1 : PRIORITY.indexOf(stateOf(p, c.id))),
-    rand,
-  );
-}
+const isHeard = (p: Progress, id: string) => stateOf(p, id) === "gap" && p.concepts[id]?.scan === "name";
 
-export function expressQueue(groups: GroupFile[], p: Progress, rand: () => number): Concept[] {
-  return sample(groups, (c) => (stateOf(p, c.id) === "fog" ? 0 : 1), rand);
+// One check per topic (a Used claim, else a Heard, else its basic question), then
+// EXTRA_CHECKS more claims, spread over the topics with the most left unchecked.
+export function checkQueue(groups: GroupFile[], p: Progress, lang: LangPref, rand: () => number): Concept[] {
+  const askable = (c: Concept) => pickVariant(c, p, lang, rand) !== null;
+  const pools = groups.map((g) => {
+    const concepts = shuffle(conceptsOf(g).filter(askable), rand);
+    return {
+      claims: concepts.filter((c) => stateOf(p, c.id) === "claimed"),
+      heard: concepts.filter((c) => isHeard(p, c.id)),
+      basic: concepts.filter((c) => c.basic && stateOf(p, c.id) !== "confirmed"),
+    };
+  });
+  const picks = pools.flatMap((pool) => pool.claims.shift() ?? pool.heard.shift() ?? pool.basic.shift() ?? []);
+  // Round-robin over the claim-heaviest topics, so extras spread instead of piling on one.
+  const heavy = pools.filter((pool) => pool.claims.length).sort((x, y) => y.claims.length - x.claims.length);
+  for (let i = 0, extra = 0; extra < EXTRA_CHECKS && heavy.some((pool) => pool.claims.length); i++) {
+    const next = heavy[i % heavy.length].claims.shift();
+    if (next) {
+      picks.push(next);
+      extra++;
+    }
+  }
+  return shuffle(picks, rand).slice(0, MAX_CHECKS);
 }
 
 export const conceptsOf = (g: GroupFile): Concept[] => g.skills.flatMap((s) => s.concepts);
@@ -98,32 +118,45 @@ export const conceptsOf = (g: GroupFile): Concept[] => g.skills.flatMap((s) => s
 // A quiz answer leaves a concept confirmed (right) or a gap with `seen` (wrong).
 const answered = (p: Progress, id: string) => stateOf(p, id) === "confirmed" || !!p.concepts[id]?.seen;
 
-// Share of a group's quiz answers that were right: what the radar plots.
+function score(p: Progress, id: string): number {
+  const state = stateOf(p, id);
+  if (state === "confirmed") return WEIGHT.confirmed;
+  if (state === "claimed") return WEIGHT.claimed;
+  return isHeard(p, id) ? WEIGHT.heard : 0;
+}
+
+// Average score of a topic's explored concepts: what the radar plots and the persona ranks.
 export function strength(g: GroupFile, p: Progress): number {
-  const done = conceptsOf(g).filter((c) => answered(p, c.id));
-  return done.length ? done.filter((c) => stateOf(p, c.id) === "confirmed").length / done.length : 0;
+  const explored = conceptsOf(g).filter((c) => stateOf(p, c.id) !== "fog");
+  return explored.length ? explored.reduce((sum, c) => sum + score(p, c.id), 0) / explored.length : 0;
+}
+
+// A topic is scanned once its scan rows are answered: enough for a (self-reported) persona.
+function scanned(g: GroupFile, p: Progress): boolean {
+  const concepts = conceptsOf(g);
+  return concepts.filter((c) => stateOf(p, c.id) !== "fog").length >= Math.min(SCAN_PER_GROUP, concepts.length);
+}
+
+// True once every topic that can be quizzed has a quiz answer, i.e. the result is checked, not just claimed.
+export function allChecked(groups: GroupFile[], p: Progress): boolean {
+  return groups.every((g) => {
+    const concepts = conceptsOf(g);
+    return !concepts.some((c) => c.variants.length) || concepts.some((c) => answered(p, c.id));
+  });
 }
 
 export function persona(groups: GroupFile[], p: Progress): Persona {
-  const rows = groups
-    .map((g, order) => {
-      const ids = conceptsOf(g)
-        .filter((c) => c.variants.length)
-        .map((c) => c.id);
-      const done = ids.filter((id) => answered(p, id));
-      const correct = done.filter((id) => stateOf(p, id) === "confirmed").length;
-      return { id: g.group.id, order, quizzable: ids.length, answered: done.length, correct };
-    })
-    // A group with too few quiz questions can never reach MIN_ANSWERS, so it can't hold the persona back.
-    .filter((r) => r.quizzable >= MIN_ANSWERS);
-  if (!rows.length || rows.some((r) => r.answered < MIN_ANSWERS)) return { kind: "locked" };
-  // Integer comparison so 3 of 5 is exactly 60%.
-  const passing = rows.filter((r) => r.correct * 100 >= r.answered * PASS_RATE * 100);
+  if (!groups.length || !groups.every((g) => scanned(g, p))) return { kind: "locked" };
+  const rows = groups.map((g, order) => ({
+    id: g.group.id,
+    order,
+    strength: strength(g, p),
+    confirmed: conceptsOf(g).filter((c) => stateOf(p, c.id) === "confirmed").length,
+  }));
+  const passing = rows.filter((r) => r.strength >= PASS_RATE);
   if (!passing.length) return { kind: "apprentice" };
   if (passing.length === rows.length) return { kind: "wanderer" };
-  const [top] = passing.sort(
-    (x, y) => y.correct * x.answered - x.correct * y.answered || y.correct - x.correct || x.order - y.order,
-  );
+  const [top] = passing.sort((x, y) => y.strength - x.strength || y.confirmed - x.confirmed || x.order - y.order);
   return { kind: "group", id: top.id };
 }
 

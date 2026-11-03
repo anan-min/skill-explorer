@@ -146,6 +146,7 @@
           "id": "language-runtime/concurrency/data-race",
           "title": "Data race",
           "summary": "Unsynchronised concurrent access to the same memory where at least one access is a write",
+          "basic": true,
           "variants": [
             {
               "lang": null,

@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import type { Progress } from "./logic.ts";
-import { Express } from "./pages/Express.tsx";
 import { Home } from "./pages/Home.tsx";
-import { Quiz } from "./pages/Quiz.tsx";
 import { Results } from "./pages/Results.tsx";
+import { Run } from "./pages/Run.tsx";
 import { loadProgress, loadSettings, saveProgress, saveSettings, type Settings } from "./store.ts";
 
 function useHash() {
@@ -50,10 +49,8 @@ export function App() {
         </a>
       </header>
       <main className="mx-auto max-w-3xl px-4 pb-16">
-        {route === "express" ? (
-          <Express {...props} />
-        ) : route === "quiz" ? (
-          <Quiz {...props} />
+        {route === "scan" || route === "quiz" ? (
+          <Run key={route} mode={route} {...props} />
         ) : route === "results" ? (
           <Results {...props} />
         ) : (
