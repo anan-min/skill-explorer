@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <circle cx="100" cy="100" r="96" fill="#c9862b"/>
+  <text x="100" y="108" font-size="80" text-anchor="middle" dominant-baseline="middle">🐿️</text>
+  <text x="100" y="165" font-size="18" font-family="system-ui, sans-serif" font-weight="600" fill="#fff" text-anchor="middle">Storekeeper</text>
+</svg>
