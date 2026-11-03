@@ -9,6 +9,8 @@ import {
   persona,
   pickVariant,
   checkQueue,
+  report,
+  hasExplored,
   scanSample,
   scan,
   scanAnswer,
@@ -289,6 +291,88 @@ describe("gapText", () => {
         "\n",
       ),
     );
+  });
+});
+
+describe("hasExplored", () => {
+  it("is false until any concept leaves fog", () => {
+    expect(hasExplored(emptyProgress())).toBe(false);
+    expect(hasExplored(scan(emptyProgress(), quizzable("c"), "never"))).toBe(true);
+  });
+});
+
+describe("report", () => {
+  const a = group("a", [quizzable("a1"), quizzable("a2"), quizzable("a3")]);
+  const b = group("b", [quizzable("b1"), quizzable("b2"), scanOnly("b3")]);
+
+  it("lists every topic and concept with its status, in content order", () => {
+    let p = scan(emptyProgress(), a.skills[0].concepts[0], "used");
+    p = scan(p, a.skills[0].concepts[1], "name");
+    p = scan(p, b.skills[0].concepts[0], "never");
+    p = answer(p, b.skills[0].concepts[1], 0, 0);
+    expect(report([a, b], p, "Ant · Porter")).toBe(
+      [
+        "# Nerdscape report",
+        "",
+        "Persona: **Ant · Porter** (self-reported; not checked by the quiz yet)",
+        "",
+        "## A",
+        "",
+        "### Skill S",
+        "",
+        "- **a1**: Used",
+        "- **a2**: Heard",
+        "- **a3**: Not explored",
+        "",
+        "## B",
+        "",
+        "### Skill S",
+        "",
+        "- **b1**: New",
+        "- **b2**: Confirmed",
+        "- **b3**: Not explored",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("shows the question, picked choice, answer and explanation for a missed concept", () => {
+    const c: Concept = {
+      ...quizzable("m"),
+      variants: [{ ...v("go"), q: "Line one\n\n```go\nx := 1\n```", choices: ["`a`", "b", "c", "d"] }, v("ts")],
+    };
+    const p = answer(emptyProgress(), c, 0, 2);
+    expect(report([group("m", [c, scanOnly("n")])], p, "Ant · Porter")).toBe(
+      [
+        "# Nerdscape report",
+        "",
+        "Persona: **Ant · Porter** (checked by the quiz)",
+        "",
+        "## M",
+        "",
+        "### Skill S",
+        "",
+        "- **m**: Missed",
+        "",
+        "  Line one",
+        "",
+        "  ```go",
+        "  x := 1",
+        "  ```",
+        "",
+        "  You picked: c",
+        "  Answer: `a`",
+        "",
+        "  e",
+        "",
+        "- **n**: Not explored",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("says when there is no persona yet", () => {
+    expect(report([a], emptyProgress(), null)).toContain("Persona: not unlocked yet (finish a quick scan or a quiz)");
   });
 });
 

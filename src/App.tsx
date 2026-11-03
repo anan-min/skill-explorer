@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import type { Progress } from "./logic.ts";
+import { hasExplored, type Progress } from "./logic.ts";
 import { Home } from "./pages/Home.tsx";
 import { Results } from "./pages/Results.tsx";
 import { Run } from "./pages/Run.tsx";
@@ -37,6 +37,7 @@ export function App() {
   };
   const props: AppProps = { progress, update: setProgress, settings, setSettings };
   const [route] = useHash();
+  const running = route === "scan" || route === "quiz";
 
   return (
     <div className="min-h-svh">
@@ -44,12 +45,15 @@ export function App() {
         <a href="#/" className="text-lg font-semibold tracking-tight">
           Nerdscape
         </a>
-        <a href="#/results" className="text-sm underline-offset-4 hover:underline">
-          Your map
-        </a>
+        {/* Hidden mid-run: leaving drops the run's queue. */}
+        {hasExplored(progress) && !running && (
+          <a href="#/results" className="text-sm underline-offset-4 hover:underline">
+            Your map
+          </a>
+        )}
       </header>
       <main className="mx-auto max-w-3xl px-4 pb-16">
-        {route === "scan" || route === "quiz" ? (
+        {running ? (
           <Run key={route} mode={route} {...props} />
         ) : route === "results" ? (
           <Results {...props} />

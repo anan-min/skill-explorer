@@ -210,3 +210,45 @@ export function gapText(groups: GroupFile[], p: Progress): string {
 }
 
 export const parseBackup = (text: string): Progress => ProgressSchema.parse(JSON.parse(text));
+
+export const hasExplored = (p: Progress) => Object.values(p.concepts).some((c) => c.state !== "fog");
+
+function statusLabel(p: Progress, id: string): string {
+  const c = p.concepts[id];
+  if (!c || c.state === "fog") return "Not explored";
+  if (c.state === "confirmed") return "Confirmed";
+  if (c.state === "claimed") return "Used";
+  return c.seen ? "Missed" : c.scan === "name" ? "Heard" : "New";
+}
+
+const indent = (text: string) =>
+  text
+    .split("\n")
+    .map((line) => (line ? `  ${line}` : ""))
+    .join("\n");
+
+// A Markdown file of every concept's status, with the question behind each Missed one.
+// `personaName` is null while the persona is locked.
+export function report(groups: GroupFile[], p: Progress, personaName: string | null): string {
+  const who = personaName
+    ? `Persona: **${personaName}** (${allChecked(groups, p) ? "checked by the quiz" : "self-reported; not checked by the quiz yet"})`
+    : "Persona: not unlocked yet (finish a quick scan or a quiz)";
+  const concept = (c: Concept) => {
+    const line = `- **${c.title}**: ${statusLabel(p, c.id)}`;
+    const seen = stateOf(p, c.id) === "gap" && p.concepts[c.id]?.seen;
+    if (!seen) return line;
+    const v = c.variants[seen.variant];
+    const detail = [v.q, `You picked: ${v.choices[seen.choice]}\nAnswer: ${v.choices[v.answer]}`, v.explain];
+    return `${line}\n\n${detail.map(indent).join("\n\n")}`;
+  };
+  const sections = groups.flatMap((g) => [
+    `## ${g.group.title}`,
+    ...g.skills.map((s) => {
+      // A blank line after a Missed item's details, so the next bullet doesn't join them.
+      const items = s.concepts.map(concept);
+      const body = items.map((item, i) => (i && items[i - 1].includes("\n") ? `\n${item}` : item)).join("\n");
+      return `### ${s.title}\n\n${body}`;
+    }),
+  ]);
+  return [`# Nerdscape report`, who, ...sections].join("\n\n") + "\n";
+}
