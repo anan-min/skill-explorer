@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { GROUPS } from "./content.ts";
-import { persona, type Progress } from "./logic.ts";
+import type { Progress } from "./logic.ts";
 import { Home } from "./pages/Home.tsx";
 import { Results } from "./pages/Results.tsx";
 import { Run } from "./pages/Run.tsx";
@@ -47,7 +46,7 @@ export function App() {
           Nerdscape
         </a>
         {/* Hidden until a scan or quiz is finished, and mid-run: leaving drops the run's queue. */}
-        {persona(GROUPS, progress).kind !== "locked" && !running && (
+        {progress.finished && !running && (
           <a href="#/results" className="text-sm underline-offset-4 hover:underline">
             Your map
           </a>

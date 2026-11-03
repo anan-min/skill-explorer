@@ -14,6 +14,8 @@ const ConceptProgress = z.object({
 const ProgressSchema = z.object({
   schemaVersion: z.literal(1),
   concepts: z.record(z.string(), ConceptProgress),
+  // Set when a Quick scan or Quiz reaches the result, so leaving a run halfway doesn't count.
+  finished: z.boolean().optional(),
 });
 
 export type State = z.infer<typeof StateSchema>;
@@ -33,6 +35,8 @@ const PASS_RATE = 0.6;
 const WEIGHT = { confirmed: 1, claimed: 0.75, heard: 0.5 };
 
 export const emptyProgress = (): Progress => ({ schemaVersion: 1, concepts: {} });
+
+export const finishRun = (p: Progress): Progress => ({ ...p, finished: true });
 
 export const stateOf = (p: Progress, id: string): State => p.concepts[id]?.state ?? "fog";
 
