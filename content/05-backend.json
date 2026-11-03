@@ -7,22 +7,18 @@
     {
       "id": "rest",
       "title": "REST",
+      "summary": "HTTP methods, status codes and REST conventions",
       "concepts": [
         {
           "id": "backend/rest/idempotent-methods",
           "title": "Idempotent HTTP methods",
           "summary": "Methods where repeating a request leaves the server in the same state as sending it once",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "A client library automatically retries timed-out requests, but only for methods the HTTP spec defines as idempotent. Which one will it **not** retry?",
-              "choices": [
-                "`POST`",
-                "`PUT`",
-                "`DELETE`",
-                "`HEAD`"
-              ],
+              "choices": ["`POST`", "`PUT`", "`DELETE`", "`HEAD`"],
               "answer": 0,
               "explain": "`PUT`, `DELETE` and the safe methods (`GET`, `HEAD`, `OPTIONS`) are idempotent by definition; `POST` isn't, so a blind retry could create a second order or charge. `PUT` is idempotent because it sets the full state rather than adding to it."
             },
@@ -44,6 +40,7 @@
           "id": "backend/rest/put-vs-patch",
           "title": "PUT vs PATCH",
           "summary": "PUT replaces the whole resource with the body; PATCH applies a partial change",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -69,13 +66,13 @@
               "answer": 3,
               "explain": "PATCH carries a partial change. A PUT with one field asks to replace the whole user with that field, which is how other fields get wiped by mistake."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "backend/rest/safe-methods",
           "title": "Safe methods",
           "summary": "GET and HEAD must not change server state, because anything may fetch them automatically",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -107,6 +104,7 @@
           "id": "backend/rest/etag-if-match",
           "title": "ETag and If-Match",
           "summary": "Conditional updates that reject a write if the resource changed since the client read it",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -138,6 +136,7 @@
           "id": "backend/rest/retry-after-429",
           "title": "429 and Retry-After",
           "summary": "Telling clients they're over a limit, and when they may try again",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -170,22 +169,18 @@
     {
       "id": "authn-authz",
       "title": "Authn & authz",
+      "summary": "Logging users in and deciding what they may do: sessions, JWT, OAuth, roles",
       "concepts": [
         {
           "id": "backend/authn-authz/401-vs-403",
           "title": "401 vs 403",
           "summary": "401: we don't know who you are. 403: we know, and you're not allowed",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "A request carries a valid login token, but the user isn't allowed to open this admin page. Which status fits?",
-              "choices": [
-                "`401 Unauthorized`",
-                "`405 Method Not Allowed`",
-                "`403 Forbidden`",
-                "`400 Bad Request`"
-              ],
+              "choices": ["`401 Unauthorized`", "`405 Method Not Allowed`", "`403 Forbidden`", "`400 Bad Request`"],
               "answer": 2,
               "explain": "The user is authenticated but not authorised, which is 403. Despite its name, 401 means authentication is missing or invalid."
             },
@@ -207,6 +202,7 @@
           "id": "backend/authn-authz/jwt-not-encrypted",
           "title": "JWTs are signed, not encrypted",
           "summary": "Anyone holding a JWT can read its claims; the signature only stops them changing it",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -250,6 +246,7 @@
           "id": "backend/authn-authz/jwt-revocation",
           "title": "Revoking JWTs",
           "summary": "Stateless tokens stay valid until they expire unless you add short lifetimes or server-side state",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -281,6 +278,7 @@
           "id": "backend/authn-authz/jwt-algorithm-pinning",
           "title": "Pinning the JWT algorithm",
           "summary": "Verifying tokens with algorithms you choose, never the one named in the token's header",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -312,6 +310,7 @@
           "id": "backend/authn-authz/oauth-pkce",
           "title": "OAuth authorization code flow with PKCE",
           "summary": "The recommended OAuth flow for apps that can't keep a client secret, like SPAs and mobile apps",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -343,6 +342,7 @@
           "id": "backend/authn-authz/idor",
           "title": "Broken object-level authorization (IDOR)",
           "summary": "Checking that a user is logged in, but not that the record they asked for is theirs",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -399,11 +399,13 @@
     {
       "id": "background-jobs-queues",
       "title": "Background jobs & queues",
+      "summary": "Async jobs, queues, retries and processing messages safely",
       "concepts": [
         {
           "id": "backend/background-jobs-queues/at-least-once",
           "title": "At-least-once delivery",
           "summary": "Queues guarantee a message isn't lost, which means it may arrive more than once",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -435,6 +437,7 @@
           "id": "backend/background-jobs-queues/idempotent-consumer",
           "title": "Idempotent consumer",
           "summary": "Making a message handler safe to run twice, e.g. by recording processed ids in the same transaction",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -478,6 +481,7 @@
           "id": "backend/background-jobs-queues/dead-letter-queue",
           "title": "Dead-letter queue",
           "summary": "Where messages go after too many failed attempts, so one bad message can't block the rest",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -509,6 +513,7 @@
           "id": "backend/background-jobs-queues/message-ordering",
           "title": "Message ordering",
           "summary": "Parallel consumers and retries reorder messages; ordering holds only per partition or by version checks",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -540,6 +545,7 @@
           "id": "backend/background-jobs-queues/visibility-timeout",
           "title": "Visibility timeout",
           "summary": "How long a received message stays hidden from other consumers before it's redelivered",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -571,6 +577,7 @@
           "id": "backend/background-jobs-queues/skip-locked",
           "title": "FOR UPDATE SKIP LOCKED",
           "summary": "Letting many workers pull jobs from a Postgres table without blocking on each other",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -603,21 +610,18 @@
     {
       "id": "caching",
       "title": "Caching",
+      "summary": "Where to cache, how to invalidate, and keeping caches consistent",
       "concepts": [
         {
           "id": "backend/caching/cache-aside",
           "title": "Cache-aside",
           "summary": "The application checks the cache, loads from the database on a miss, and fills the cache itself",
+          "level": "easy",
           "variants": [
             {
               "lang": "ts",
               "q": "Which caching pattern is this?\n\n```ts\nasync function getUser(id: string) {\n  const hit = await redis.get(`user:${id}`)\n  if (hit) return JSON.parse(hit)\n  const user = await db.users.find(id)\n  await redis.set(`user:${id}`, JSON.stringify(user), 'EX', 300)\n  return user\n}\n```",
-              "choices": [
-                "Write-through",
-                "Write-behind",
-                "Read-through",
-                "Cache-aside"
-              ],
+              "choices": ["Write-through", "Write-behind", "Read-through", "Cache-aside"],
               "answer": 3,
               "explain": "The application code handles the miss and fills the cache. In read-through, the cache itself would load from the database."
             },
@@ -645,13 +649,13 @@
               "answer": 1,
               "explain": "The cache knows nothing about the database; keeping them consistent is the application's job, usually by deleting the key after the write. If it doesn't, readers keep getting the old copy until the TTL expires."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "backend/caching/invalidate-on-write",
           "title": "Cache invalidation on write",
           "summary": "Deleting the cache key after a database write, with a TTL as a backstop for races",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -683,6 +687,7 @@
           "id": "backend/caching/cache-stampede",
           "title": "Cache stampede",
           "summary": "A hot key expires and every concurrent request misses and hits the database at once",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -738,6 +743,7 @@
           "id": "backend/caching/cache-control-no-cache",
           "title": "Cache-Control: no-cache vs no-store",
           "summary": "`no-cache` allows storing but forces revalidation; `no-store` forbids storing at all",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -769,6 +775,7 @@
           "id": "backend/caching/negative-caching",
           "title": "Negative caching",
           "summary": "Caching 'not found' results so repeated lookups of missing keys don't reach the database",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -801,12 +808,13 @@
     {
       "id": "security",
       "title": "Security",
+      "summary": "The OWASP Top 10 and defending against common attacks",
       "concepts": [
         {
           "id": "backend/security/sql-injection",
           "title": "SQL injection",
           "summary": "User input changing the structure of a query; prevented by passing values as parameters",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": "go",
@@ -862,6 +870,7 @@
           "id": "backend/security/password-hashing",
           "title": "Password hashing",
           "summary": "Storing passwords with a deliberately slow, salted algorithm like Argon2id or bcrypt",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -893,6 +902,7 @@
           "id": "backend/security/ssrf",
           "title": "Server-side request forgery (SSRF)",
           "summary": "Tricking your server into making requests to internal addresses on the attacker's behalf",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -924,6 +934,7 @@
           "id": "backend/security/mass-assignment",
           "title": "Mass assignment",
           "summary": "Copying request fields straight onto a model, letting users set fields they shouldn't",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -979,6 +990,7 @@
           "id": "backend/security/timing-safe-compare",
           "title": "Constant-time comparison",
           "summary": "Comparing secrets so the time taken doesn't reveal how many bytes matched",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1007,12 +1019,7 @@
             {
               "lang": "python",
               "q": "You verify a webhook by computing an HMAC and comparing it with the signature header. `a` is the computed digest and `b` the one from the header. Which comparison should you use?",
-              "choices": [
-                "`a == b`",
-                "`a.startswith(b)`",
-                "`hmac.compare_digest(a, b)`",
-                "`a.lower() == b.lower()`"
-              ],
+              "choices": ["`a == b`", "`a.startswith(b)`", "`hmac.compare_digest(a, b)`", "`a.lower() == b.lower()`"],
               "answer": 2,
               "explain": "`compare_digest` is designed so its time doesn't depend on where the inputs differ. `==` can return early on the first mismatch."
             },
@@ -1034,6 +1041,7 @@
           "id": "backend/security/threat-modeling",
           "title": "Threat modeling",
           "summary": "Walking through a design to list what could be attacked and how (e.g. with STRIDE) before building it",
+          "level": "medium",
           "variants": []
         }
       ]

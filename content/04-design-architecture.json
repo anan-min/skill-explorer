@@ -7,12 +7,13 @@
     {
       "id": "oo-design",
       "title": "OO design",
+      "summary": "SOLID, DRY and KISS applied to classes and modules",
       "concepts": [
         {
           "id": "design-architecture/oo-design/single-responsibility",
           "title": "Single responsibility principle",
           "summary": "A module should have one reason to change: one owner, one kind of rule",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -44,6 +45,7 @@
           "id": "design-architecture/oo-design/liskov-substitution",
           "title": "Liskov substitution principle",
           "summary": "A subtype must keep the promises of the type it replaces, not just its method signatures",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -72,12 +74,7 @@
             {
               "lang": "python",
               "q": "Code that accepts a `Rectangle` breaks when given a `Square`. Which principle does `Square` break?\n\n```python\nclass Rectangle:\n    def set_size(self, width: int, height: int) -> None:\n        self.width, self.height = width, height\n\nclass Square(Rectangle):\n    def set_size(self, width: int, height: int) -> None:\n        if width != height:\n            raise ValueError(\"a square needs equal sides\")\n        self.width = self.height = width\n```",
-              "choices": [
-                "Liskov substitution",
-                "Interface segregation",
-                "Open/closed",
-                "Single responsibility"
-              ],
+              "choices": ["Liskov substitution", "Interface segregation", "Open/closed", "Single responsibility"],
               "answer": 0,
               "explain": "`Square` narrows what `set_size` accepts, so code written against `Rectangle` fails with valid input. A subtype may accept more than its parent, never less."
             },
@@ -99,6 +96,7 @@
           "id": "design-architecture/oo-design/dependency-inversion",
           "title": "Dependency inversion principle",
           "summary": "High-level code depends on an abstraction it owns; the concrete detail is plugged in from outside",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -154,16 +152,12 @@
           "id": "design-architecture/oo-design/fragile-base-class",
           "title": "Fragile base class",
           "summary": "A subclass breaks because it depends on how its parent calls its own methods internally",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
               "q": "What does this print?\n\n```ts\nclass Bag {\n  items: string[] = []\n  add(x: string) { this.items.push(x) }\n  addAll(xs: string[]) { xs.forEach((x) => this.add(x)) }\n}\nclass CountingBag extends Bag {\n  count = 0\n  add(x: string) { this.count++; super.add(x) }\n  addAll(xs: string[]) { this.count += xs.length; super.addAll(xs) }\n}\nconst b = new CountingBag()\nb.addAll(['a', 'b'])\nconsole.log(b.count)\n```",
-              "choices": [
-                "`4`",
-                "`2`",
-                "`0`",
-                "`NaN`"
-              ],
+              "choices": ["`4`", "`2`", "`0`", "`NaN`"],
               "answer": 0,
               "explain": "`Bag.addAll` calls `this.add`, which dispatches to the override, so each item is counted twice. The subclass silently depends on the parent's internal self-calls; wrapping a `Bag` (composition) instead of extending it avoids that."
             },
@@ -209,6 +203,7 @@
           "id": "design-architecture/oo-design/go-embedding-not-inheritance",
           "title": "Struct embedding is not inheritance",
           "summary": "Go promotes an embedded type's methods, but there is no virtual dispatch back to the outer type",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -225,12 +220,7 @@
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\ntype Logger struct{}\n\nfunc (Logger) prefix() string  { return \"[base]\" }\nfunc (l Logger) Log(m string)  { fmt.Println(l.prefix(), m) }\n\ntype ReqLogger struct {\n    Logger\n    id string\n}\n\nfunc (r ReqLogger) prefix() string { return \"[\" + r.id + \"]\" }\n\nReqLogger{id: \"r1\"}.Log(\"hi\")\n```",
-              "choices": [
-                "`[r1] hi`",
-                "`[] hi`",
-                "It doesn't compile: `prefix` is defined twice",
-                "`[base] hi`"
-              ],
+              "choices": ["`[r1] hi`", "`[] hi`", "It doesn't compile: `prefix` is defined twice", "`[base] hi`"],
               "answer": 3,
               "explain": "`Log` is promoted from `Logger` and runs with a `Logger` receiver, which knows nothing about `ReqLogger.prefix`. The outer method only wins when called on the outer value directly."
             }
@@ -240,6 +230,7 @@
           "id": "design-architecture/oo-design/law-of-demeter",
           "title": "Law of Demeter",
           "summary": "Talk to your direct collaborators, not to objects reached through them",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -272,46 +263,32 @@
     {
       "id": "design-patterns",
       "title": "Design patterns",
+      "summary": "Common patterns like strategy, adapter and decorator, and when they fit",
       "concepts": [
         {
           "id": "design-architecture/design-patterns/strategy",
           "title": "Strategy pattern",
           "summary": "Swapping one algorithm for another behind a shared interface, chosen at runtime",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "A `price()` function has a `switch` on customer type (`retail`, `wholesale`, `staff`), and every new pricing rule adds a case. You want each rule in its own object, chosen at runtime, behind one interface. Which pattern is that?",
-              "choices": [
-                "Observer",
-                "Decorator",
-                "Strategy",
-                "Singleton"
-              ],
+              "choices": ["Observer", "Decorator", "Strategy", "Singleton"],
               "answer": 2,
               "explain": "Strategy puts each interchangeable algorithm behind one interface and lets the caller pick one. Decorator also shares an interface, but it wraps another object to add behaviour rather than replacing the algorithm."
             },
             {
               "lang": "go",
               "q": "Which pattern is `Upload` using?\n\n```go\ntype Compressor interface {\n    Compress(data []byte) ([]byte, error)\n}\n\nfunc Upload(data []byte, c Compressor) error {\n    out, err := c.Compress(data)\n    // ...\n}\n\n// Upload(data, GzipCompressor{}) or Upload(data, ZstdCompressor{})\n```",
-              "choices": [
-                "Adapter",
-                "Template method",
-                "Facade",
-                "Strategy"
-              ],
+              "choices": ["Adapter", "Template method", "Facade", "Strategy"],
               "answer": 3,
               "explain": "The caller passes in the algorithm, and `Upload` works with any of them through one interface. Template method would fix the steps in a base type and let subclasses fill some in, which isn't what happens here."
             },
             {
               "lang": null,
               "q": "`items.sort(byPrice)` and `items.sort(byDate)`: `sort` is written once, and the caller passes in the comparison rule. Which pattern fits best?",
-              "choices": [
-                "Decorator",
-                "Strategy",
-                "Observer",
-                "Adapter"
-              ],
+              "choices": ["Decorator", "Strategy", "Observer", "Adapter"],
               "answer": 1,
               "explain": "The comparison is one interchangeable algorithm the caller selects, with the rest of the routine unchanged. A decorator would wrap `sort` to add behaviour around it rather than swap a step inside."
             }
@@ -321,6 +298,7 @@
           "id": "design-architecture/design-patterns/decorator-order",
           "title": "Decorator (wrapper) order",
           "summary": "Wrapping something in a layer with the same interface to add behaviour; the outer layer runs first",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -376,28 +354,19 @@
           "id": "design-architecture/design-patterns/adapter",
           "title": "Adapter pattern",
           "summary": "A thin wrapper that makes an existing interface look like the one your code expects",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "Your code depends on a `Notifier` interface with `send(userId, text)`. A vendor SDK you're adopting exposes `postMessage({ recipient, body, channel })`. You write a small class that implements `Notifier` by calling the SDK. Which pattern is that?",
-              "choices": [
-                "Facade",
-                "Bridge",
-                "Observer",
-                "Adapter"
-              ],
+              "choices": ["Facade", "Bridge", "Observer", "Adapter"],
               "answer": 3,
               "explain": "An adapter converts one interface into another that callers already expect. A facade offers a new, simpler interface over a complex subsystem; here the target interface already existed."
             },
             {
               "lang": "go",
               "q": "The standard library's `http.HandlerFunc` type lets an ordinary `func(w http.ResponseWriter, r *http.Request)` be used anywhere an `http.Handler` is required. Which pattern is that?",
-              "choices": [
-                "Adapter",
-                "Decorator",
-                "Strategy",
-                "Factory method"
-              ],
+              "choices": ["Adapter", "Decorator", "Strategy", "Factory method"],
               "answer": 0,
               "explain": "`HandlerFunc` gives a plain function the `ServeHTTP` method the `Handler` interface needs, converting one shape into another; Go's own docs call it an adapter. It adds no behaviour, so it isn't a decorator."
             },
@@ -419,6 +388,7 @@
           "id": "design-architecture/design-patterns/functional-options",
           "title": "Functional options",
           "summary": "Go pattern: configure a constructor with variadic `func(*T)` options over defaults",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -450,16 +420,12 @@
           "id": "design-architecture/design-patterns/eventemitter-sync",
           "title": "EventEmitter is synchronous",
           "summary": "Node's `emit` calls every listener immediately, in order, before it returns",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
               "q": "What's logged?\n\n```ts\nimport { EventEmitter } from 'node:events'\n\nconst e = new EventEmitter()\ne.on('order', () => console.log('A'))\ne.emit('order')\nconsole.log('B')\n```",
-              "choices": [
-                "`B` then `A`",
-                "Only `B`",
-                "The order varies between runs",
-                "`A` then `B`"
-              ],
+              "choices": ["`B` then `A`", "Only `B`", "The order varies between runs", "`A` then `B`"],
               "answer": 3,
               "explain": "`emit` runs listeners synchronously, so `A` is logged before `emit` returns. It isn't queued like a promise callback or `setTimeout`."
             },
@@ -482,11 +448,13 @@
     {
       "id": "api-design",
       "title": "API design",
+      "summary": "Clear, consistent APIs: naming, errors, pagination and versioning",
       "concepts": [
         {
           "id": "design-architecture/api-design/idempotency-keys",
           "title": "Idempotency keys",
           "summary": "A client-chosen key that lets the server recognise a retried request and replay its first result",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -518,6 +486,7 @@
           "id": "design-architecture/api-design/cursor-pagination",
           "title": "Cursor (keyset) pagination",
           "summary": "Paging by 'rows after this one' instead of by offset, so inserts don't shift pages",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -549,6 +518,7 @@
           "id": "design-architecture/api-design/backward-compatible-changes",
           "title": "Backward-compatible API changes",
           "summary": "Which changes existing clients survive, and which ones break them",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -574,13 +544,13 @@
               "answer": 2,
               "explain": "Old clients still put data under number 7. If a later field reuses it with a different meaning, they'll be misread; reserving the number (and name) prevents that. Deleting alone is safe today but leaves that trap."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "design-architecture/api-design/long-running-operations",
           "title": "202 Accepted for long-running work",
           "summary": "Accepting a slow job right away and giving the client a status resource to check",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -612,6 +582,7 @@
           "id": "design-architecture/api-design/spec-first-openapi",
           "title": "Spec-first API design (OpenAPI)",
           "summary": "Writing and reviewing the OpenAPI spec before the code, then generating clients or validators from it",
+          "level": "medium",
           "variants": []
         }
       ]
@@ -619,22 +590,18 @@
     {
       "id": "system-design",
       "title": "System design",
+      "summary": "Designing whole systems for scale and failure, and weighing trade-offs",
       "concepts": [
         {
           "id": "design-architecture/system-design/cascading-failure",
           "title": "Cascading failure",
           "summary": "One slow or failing service exhausts its callers' resources, and the failure spreads upstream",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "Service A calls B with no timeout. B's database slows down, B's answers take over a minute, and soon A runs out of threads and connections and fails health checks, even for requests that don't need B. What is this called?",
-              "choices": [
-                "Thundering herd",
-                "Cascading failure",
-                "Split brain",
-                "Head-of-line blocking"
-              ],
+              "choices": ["Thundering herd", "Cascading failure", "Split brain", "Head-of-line blocking"],
               "answer": 1,
               "explain": "B's slowness consumed A's resources until A failed too, and A's callers are next. A thundering herd is many clients waking at once for one resource, which is a different trigger."
             },
@@ -656,16 +623,12 @@
           "id": "design-architecture/system-design/retry-storm",
           "title": "Retry storm",
           "summary": "Retries at many layers multiply load on a struggling dependency and keep it down",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "A request goes A → B → C → database. Each service makes up to 4 attempts at its downstream call. The database is down. How many database calls can one user request cause?",
-              "choices": [
-                "16",
-                "4",
-                "12",
-                "64"
-              ],
+              "choices": ["16", "4", "12", "64"],
               "answer": 3,
               "explain": "A makes 4 calls to B; each makes 4 to C (16); each of those makes 4 to the database (64). Retries multiply per layer, so retry at a single layer, or give each layer a retry budget."
             },
@@ -687,6 +650,7 @@
           "id": "design-architecture/system-design/backoff-jitter",
           "title": "Exponential backoff with jitter",
           "summary": "Waiting longer after each failure, with randomness, so clients don't retry in lockstep",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -742,6 +706,7 @@
           "id": "design-architecture/system-design/backpressure",
           "title": "Backpressure",
           "summary": "A slow consumer pushing back so the producer slows down, instead of a buffer growing without limit",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -797,6 +762,7 @@
           "id": "design-architecture/system-design/blast-radius",
           "title": "Blast radius",
           "summary": "How much of the system, or how many users, one failure or bad change can affect",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -828,6 +794,7 @@
           "id": "design-architecture/system-design/circuit-breaker",
           "title": "Circuit breaker",
           "summary": "Stops calling a failing dependency for a while, then lets a few trial calls through",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -853,13 +820,13 @@
               "answer": 2,
               "explain": "Half-open is a probe: a small number of calls test whether the dependency has recovered before full traffic returns."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "design-architecture/system-design/upstream-downstream-contracts",
           "title": "Upstream/downstream contracts",
           "summary": "What a service promises the services that depend on it, and how to change it without breaking them",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -891,6 +858,7 @@
           "id": "design-architecture/system-design/deadline-propagation",
           "title": "Deadline propagation",
           "summary": "Passing the caller's remaining time budget down the call chain so nobody works past it",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -935,17 +903,20 @@
     {
       "id": "architecture-decisions",
       "title": "Architecture decisions",
+      "summary": "Choosing between options, recording why (ADRs) and the trade-offs",
       "concepts": [
         {
           "id": "design-architecture/architecture-decisions/adr",
           "title": "Architecture decision record (ADR)",
           "summary": "Writing down a significant decision with its context, options and consequences, kept with the code",
+          "level": "medium",
           "variants": []
         },
         {
           "id": "design-architecture/architecture-decisions/distributed-monolith",
           "title": "Distributed monolith",
           "summary": "Services that are separate on the network but still have to change and deploy together",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -977,16 +948,12 @@
           "id": "design-architecture/architecture-decisions/conways-law",
           "title": "Conway's law",
           "summary": "Systems end up mirroring the communication structure of the teams that build them",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "A company has a web team, a mobile team and a backend team. Without anyone planning it, the system grows a separate API layer owned by each client team. Which law predicts this?",
-              "choices": [
-                "Hyrum's law",
-                "Conway's law",
-                "Gall's law",
-                "Brooks's law"
-              ],
+              "choices": ["Hyrum's law", "Conway's law", "Gall's law", "Brooks's law"],
               "answer": 1,
               "explain": "The boundaries in the software followed the boundaries between teams. Hyrum's law is about users depending on any observable behaviour of an API."
             },
@@ -1008,6 +975,7 @@
           "id": "design-architecture/architecture-decisions/saga",
           "title": "Saga",
           "summary": "Splitting a cross-service operation into local steps, and undoing finished steps with compensating actions if a later one fails",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -1039,16 +1007,12 @@
           "id": "design-architecture/architecture-decisions/strangler-fig",
           "title": "Strangler fig pattern",
           "summary": "Replacing a legacy system piece by piece behind a router, instead of a big-bang rewrite",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "You're replacing a legacy billing system. A proxy sends `/invoices` to the new service while everything else still goes to the old one, and more routes move over time. Which pattern is this?",
-              "choices": [
-                "Blue-green deployment",
-                "Strangler fig",
-                "Branch by abstraction",
-                "Big-bang rewrite"
-              ],
+              "choices": ["Blue-green deployment", "Strangler fig", "Branch by abstraction", "Big-bang rewrite"],
               "answer": 1,
               "explain": "The new system grows around the old one, route by route, until nothing is left to send to the legacy side. Branch by abstraction is the in-code cousin: an interface inside the codebase instead of a router in front."
             },

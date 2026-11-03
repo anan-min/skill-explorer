@@ -7,11 +7,13 @@
     {
       "id": "components",
       "title": "Components",
+      "summary": "Reusable, composable UI components and their lifecycle",
       "concepts": [
         {
           "id": "frontend/components/controlled-inputs",
           "title": "Controlled vs uncontrolled inputs",
           "summary": "Whether React state (`value` + `onChange`) or the DOM itself owns an input's current value",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -43,6 +45,7 @@
           "id": "frontend/components/list-keys",
           "title": "Keys in lists",
           "summary": "Giving list items stable, unique `key`s so React matches each item's state to the right row",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -74,6 +77,7 @@
           "id": "frontend/components/key-reset",
           "title": "Resetting state with a key",
           "summary": "Changing a component's `key` to make React throw away its state and mount a fresh one",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -105,6 +109,7 @@
           "id": "frontend/components/effect-cleanup",
           "title": "Effect cleanup",
           "summary": "Returning a cleanup function from `useEffect` to undo subscriptions, timers and listeners",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -136,6 +141,7 @@
           "id": "frontend/components/derived-state",
           "title": "Derived state instead of copied props",
           "summary": "Computing values from props and state during render instead of copying them into extra state",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -168,11 +174,13 @@
     {
       "id": "state",
       "title": "State",
+      "summary": "Where UI state lives and choosing a state management approach",
       "concepts": [
         {
           "id": "frontend/state/immutable-updates",
           "title": "Immutable state updates",
           "summary": "Creating new arrays and objects for state changes, because React compares by reference",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -204,28 +212,19 @@
           "id": "frontend/state/functional-updates",
           "title": "Functional state updates",
           "summary": "Passing an updater like `setCount(c => c + 1)` so each update builds on the latest value",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
               "q": "`count` starts at 0. What is it after one click?\n\n```tsx\nconst onClick = () => {\n  setCount(count + 1)\n  setCount(count + 1)\n  setCount(count + 1)\n}\n```",
-              "choices": [
-                "1",
-                "3",
-                "0",
-                "It depends on whether React batches"
-              ],
+              "choices": ["1", "3", "0", "It depends on whether React batches"],
               "answer": 0,
               "explain": "All three calls read the same `count` from this render, so each sets it to 1. `setCount(c => c + 1)` three times would give 3, because each updater gets the latest pending value."
             },
             {
               "lang": "ts",
               "q": "`count` starts at 0. What is it after one click?\n\n```tsx\nconst onClick = () => {\n  setCount(c => c + 1)\n  setCount(c => c + 1)\n}\n```",
-              "choices": [
-                "1",
-                "0",
-                "2",
-                "It throws, because updaters can't be chained"
-              ],
+              "choices": ["1", "0", "2", "It throws, because updaters can't be chained"],
               "answer": 2,
               "explain": "React queues updater functions and runs them in order, each receiving the result of the previous one, so the count goes 0, 1, 2."
             }
@@ -235,6 +234,7 @@
           "id": "frontend/state/stale-closures",
           "title": "Stale closures in hooks",
           "summary": "Callbacks created in one render keep seeing that render's state unless they are recreated",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -266,6 +266,7 @@
           "id": "frontend/state/context-rerenders",
           "title": "Context re-renders",
           "summary": "Every consumer re-renders when a context value changes, including when it's a new object each render",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -297,6 +298,7 @@
           "id": "frontend/state/server-state-cache",
           "title": "Server state caching",
           "summary": "Treating fetched data as a cache keyed by query (TanStack Query, SWR), separate from UI state",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -329,11 +331,13 @@
     {
       "id": "performance",
       "title": "Performance",
+      "summary": "Measuring and improving page speed and Core Web Vitals (LCP, CLS, INP)",
       "concepts": [
         {
           "id": "frontend/performance/core-web-vitals",
           "title": "Core Web Vitals",
           "summary": "LCP (loading), INP (responsiveness) and CLS (visual stability), Google's user-experience metrics",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -371,13 +375,13 @@
               "answer": 3,
               "explain": "LCP times how long the largest visible element, often a hero image or headline, takes to render. Total Blocking Time is a lab metric related to main-thread work, not one of the three Core Web Vitals."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "frontend/performance/code-splitting",
           "title": "Code splitting",
           "summary": "Loading parts of the app on demand with dynamic `import()` instead of in one big bundle",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -409,6 +413,7 @@
           "id": "frontend/performance/memo-referential-equality",
           "title": "Memoization and referential equality",
           "summary": "`React.memo` only skips a render when every prop is the same reference, so new objects and functions defeat it",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -440,6 +445,7 @@
           "id": "frontend/performance/list-virtualization",
           "title": "List virtualization",
           "summary": "Rendering only the rows in view for very long lists (react-window, TanStack Virtual)",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -471,6 +477,7 @@
           "id": "frontend/performance/layout-thrashing",
           "title": "Layout thrashing",
           "summary": "Interleaving DOM reads and writes so the browser recalculates layout over and over",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -502,6 +509,7 @@
           "id": "frontend/performance/react-profiler",
           "title": "Profiling renders with React DevTools",
           "summary": "Recording interactions in the React DevTools Profiler to see which components render and why",
+          "level": "medium",
           "variants": []
         }
       ]
@@ -509,12 +517,13 @@
     {
       "id": "accessibility",
       "title": "Accessibility",
+      "summary": "UIs everyone can use, following WCAG",
       "concepts": [
         {
           "id": "frontend/accessibility/semantic-buttons",
           "title": "Native buttons over clickable divs",
           "summary": "Using `<button>` for actions so keyboard, focus and screen-reader support come built in",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -558,28 +567,19 @@
           "id": "frontend/accessibility/alt-text",
           "title": "Alt text",
           "summary": "Describing an image's purpose in `alt`, or using `alt=\"\"` when it's purely decorative",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "A decorative divider image adds nothing to the content. What should its `alt` attribute be?",
-              "choices": [
-                "Leave `alt` off entirely",
-                "`alt=\"divider image\"`",
-                "`alt=\"\"`",
-                "`alt=\"decorative\"`"
-              ],
+              "choices": ["Leave `alt` off entirely", "`alt=\"divider image\"`", "`alt=\"\"`", "`alt=\"decorative\"`"],
               "answer": 2,
               "explain": "An empty `alt` marks the image as decorative and screen readers skip it. Leaving `alt` off is worse: many screen readers then read the file name."
             },
             {
               "lang": null,
               "q": "A link contains only a magnifying-glass icon image and goes to the search page. What is the best `alt` for the image?",
-              "choices": [
-                "`alt=\"Search\"`",
-                "`alt=\"magnifying glass icon\"`",
-                "`alt=\"\"`",
-                "`alt=\"click here\"`"
-              ],
+              "choices": ["`alt=\"Search\"`", "`alt=\"magnifying glass icon\"`", "`alt=\"\"`", "`alt=\"click here\"`"],
               "answer": 0,
               "explain": "When an image is a link's only content, its `alt` becomes the link's name, so it should say where the link goes or what it does. Describing the picture tells users nothing useful, and an empty `alt` leaves the link unnamed."
             },
@@ -595,13 +595,13 @@
               "answer": 2,
               "explain": "A meaningful image needs alt text that carries its message when nothing nearby does. A file name or only the image type gives no information, and an empty alt tells assistive tech to skip content that matters."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "frontend/accessibility/form-labels",
           "title": "Labelling form fields",
           "summary": "Associating every input with a `<label>`; a placeholder is not a label",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -633,6 +633,7 @@
           "id": "frontend/accessibility/modal-focus",
           "title": "Focus management in dialogs",
           "summary": "Moving focus into a modal when it opens, keeping it there, and returning it when it closes",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -664,16 +665,12 @@
           "id": "frontend/accessibility/color-contrast",
           "title": "Colour contrast",
           "summary": "WCAG AA needs 4.5:1 for normal text and 3:1 for large text against its background",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
               "q": "Under WCAG 2 level AA, what is the minimum contrast ratio for normal-size body text?",
-              "choices": [
-                "3:1",
-                "7:1",
-                "2:1",
-                "4.5:1"
-              ],
+              "choices": ["3:1", "7:1", "2:1", "4.5:1"],
               "answer": 3,
               "explain": "AA requires 4.5:1 for normal text and 3:1 for large text. 7:1 is the stricter AAA level."
             },
@@ -695,6 +692,7 @@
           "id": "frontend/accessibility/screen-reader-testing",
           "title": "Testing with a screen reader",
           "summary": "Using VoiceOver, NVDA or TalkBack yourself to check that a page can be used without seeing it",
+          "level": "medium",
           "variants": []
         }
       ]
@@ -702,11 +700,13 @@
     {
       "id": "responsive-design",
       "title": "Responsive design",
+      "summary": "Layouts that work on every screen size",
       "concepts": [
         {
           "id": "frontend/responsive-design/viewport-meta",
           "title": "Viewport meta tag",
           "summary": "`<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">` so phones use the real screen width",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -744,13 +744,13 @@
               "answer": 3,
               "explain": "Disabling scaling removes a basic way to enlarge content, which conflicts with WCAG's resize requirements. The width and initial-scale parts are the normal, recommended settings."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "frontend/responsive-design/mobile-first",
           "title": "Mobile-first media queries",
           "summary": "Writing base styles for small screens and adding `min-width` queries as space grows",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -782,6 +782,7 @@
           "id": "frontend/responsive-design/responsive-images",
           "title": "Responsive images with srcset and sizes",
           "summary": "Offering several image widths so the browser downloads the one that fits the layout and screen",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -813,6 +814,7 @@
           "id": "frontend/responsive-design/container-queries",
           "title": "Container queries",
           "summary": "Styling a component based on its container's size (`@container`) instead of the viewport's",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -844,6 +846,7 @@
           "id": "frontend/responsive-design/flex-min-width",
           "title": "Flex and grid items' automatic minimum size",
           "summary": "Flex and grid items won't shrink below their content by default; `min-width: 0` lets them",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -876,11 +879,13 @@
     {
       "id": "frontend-security",
       "title": "Frontend security",
+      "summary": "Preventing XSS and CSRF and handling sensitive data in the browser",
       "concepts": [
         {
           "id": "frontend/frontend-security/xss-inner-html",
           "title": "XSS and dangerouslySetInnerHTML",
           "summary": "React escapes text it renders, but raw HTML you insert can run attacker scripts",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -912,6 +917,7 @@
           "id": "frontend/frontend-security/javascript-urls",
           "title": "`javascript:` URLs",
           "summary": "User-supplied links can carry `javascript:` URLs that run code when clicked; validate the scheme",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -943,6 +949,7 @@
           "id": "frontend/frontend-security/content-security-policy",
           "title": "Content Security Policy",
           "summary": "A response header that limits where scripts and other resources may load from, as a second line against XSS",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -974,6 +981,7 @@
           "id": "frontend/frontend-security/token-storage",
           "title": "Where to store auth tokens",
           "summary": "Tokens in `localStorage` are readable by any script on the page; `HttpOnly` cookies are not",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -1011,13 +1019,13 @@
               "answer": 1,
               "explain": "HttpOnly stops scripts from reading the token, so it can't be stolen and reused elsewhere, but the browser still attaches it to requests the injected script makes from the victim's page. XSS stays serious."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "frontend/frontend-security/samesite-cookies",
           "title": "SameSite cookies and CSRF",
           "summary": "The `SameSite` cookie attribute controls whether cookies go on cross-site requests, limiting CSRF",
+          "level": "medium",
           "variants": [
             {
               "lang": null,

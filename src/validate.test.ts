@@ -14,6 +14,7 @@ const concept = (slug: string, over = {}) => ({
   id: `g/s/${slug}`,
   title: slug,
   summary: "One line",
+  level: "medium",
   variants: [variant(), variant({ lang: "ts" })],
   ...over,
 });
@@ -22,13 +23,13 @@ const file = (concepts: unknown[], name = "01-g.json") => ({
   name,
   data: {
     group: { id: "g", title: "G" },
-    skills: [{ id: "s", title: "S", concepts }],
+    skills: [{ id: "s", title: "S", summary: "What S covers", concepts }],
   },
 });
 
 describe("validateContent", () => {
   it("accepts a valid file", () => {
-    expect(validateContent([file([concept("a", { basic: true }), concept("b", { variants: [] })])])).toEqual({
+    expect(validateContent([file([concept("a", { level: "easy" }), concept("b", { variants: [] })])])).toEqual({
       errors: [],
       warnings: [],
     });
@@ -81,15 +82,24 @@ describe("validateContent", () => {
   });
 
   it("warns, not fails, on more than 8 concepts in a skill", () => {
-    const many = Array.from({ length: 9 }, (_, i) => concept(`c${i}`, { basic: i === 0 }));
+    const many = Array.from({ length: 9 }, (_, i) => concept(`c${i}`, { level: i === 0 ? "easy" : "medium" }));
     const result = validateContent([file(many)]);
     expect(result.errors).toEqual([]);
     expect(result.warnings.join("\n")).toMatch(/9 concepts/);
   });
 
-  it("rejects a group without a quizzable basic concept", () => {
-    expect(validateContent([file([concept("a")])]).errors.join("\n")).toMatch(/basic/);
-    // A scan-only concept can't be asked, so it doesn't count as the basic question.
-    expect(validateContent([file([concept("a", { basic: true, variants: [] })])]).errors.join("\n")).toMatch(/basic/);
+  it("rejects a group without a quizzable easy concept", () => {
+    expect(validateContent([file([concept("a")])]).errors.join("\n")).toMatch(/easy/);
+    // A scan-only concept can't be asked, so it doesn't count as the easy question.
+    expect(validateContent([file([concept("a", { level: "easy", variants: [] })])]).errors.join("\n")).toMatch(/easy/);
+  });
+
+  it("warns, not fails, on a skill with no quizzable easy concept", () => {
+    const data = file([concept("a", { level: "easy" })]).data;
+    data.skills.push({ id: "t", title: "T", summary: "What T covers", concepts: [concept("b").valueOf()] });
+    (data.skills[1].concepts[0] as { id: string }).id = "g/t/b";
+    const result = validateContent([{ name: "01-g.json", data }]);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings.join("\n")).toMatch(/skill t has no quizzable easy concept/);
   });
 });

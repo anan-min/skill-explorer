@@ -7,12 +7,13 @@
     {
       "id": "test-strategy",
       "title": "Test strategy",
+      "summary": "Which kinds of tests a feature needs and how many of each",
       "concepts": [
         {
           "id": "testing/test-strategy/test-pyramid",
           "title": "Test pyramid",
           "summary": "Many fast unit tests, fewer integration tests, a handful of end-to-end tests",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -29,12 +30,7 @@
             {
               "lang": null,
               "q": "A suite has 400 browser-driven end-to-end tests and 30 unit tests. CI takes 50 minutes and a failure rarely says what broke. What is this shape usually called?",
-              "choices": [
-                "A test trophy",
-                "An ice cream cone",
-                "A test diamond",
-                "A healthy pyramid"
-              ],
+              "choices": ["A test trophy", "An ice cream cone", "A test diamond", "A healthy pyramid"],
               "answer": 1,
               "explain": "The inverted pyramid, heavy on slow UI tests and light on unit tests, is known as the ice cream cone anti-pattern. The trophy is a different, deliberate shape that favours integration tests, not end-to-end ones."
             }
@@ -44,6 +40,7 @@
           "id": "testing/test-strategy/flaky-tests",
           "title": "Flaky tests",
           "summary": "Tests that pass or fail on the same code, usually from timing, shared state or ordering",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -69,13 +66,13 @@
               "answer": 0,
               "explain": "Order-dependent failures almost always come from shared mutable state between tests. Each test should set up and clean up what it needs so it can run alone or in any order."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "testing/test-strategy/coverage-limits",
           "title": "Limits of code coverage",
           "summary": "Coverage shows which lines ran, not whether any test checked the result",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -107,6 +104,7 @@
           "id": "testing/test-strategy/mutation-testing",
           "title": "Mutation testing",
           "summary": "Making small changes to the code to check whether the tests notice",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -138,6 +136,7 @@
           "id": "testing/test-strategy/contract-testing",
           "title": "Consumer-driven contract testing",
           "summary": "Consumers record what they expect from an API, and the provider verifies it in its own build (Pact)",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -170,34 +169,25 @@
     {
       "id": "unit",
       "title": "Unit",
+      "summary": "Fast, isolated, meaningful unit tests and test doubles",
       "concepts": [
         {
           "id": "testing/unit/test-doubles",
           "title": "Test doubles: stub, mock, fake, spy",
           "summary": "The different kinds of stand-ins for real dependencies and what each one is for",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "A test replaces the real database repository with a class that stores records in an in-memory map and supports the same queries. What kind of test double is this?",
-              "choices": [
-                "A stub",
-                "A mock",
-                "A fake",
-                "A spy"
-              ],
+              "choices": ["A stub", "A mock", "A fake", "A spy"],
               "answer": 2,
               "explain": "A fake is a working, simplified implementation. A stub only returns canned answers and has no real logic behind them."
             },
             {
               "lang": null,
               "q": "A test replaces the email sender with an object that is set up to expect `send` to be called once with a given address, and the test fails if that doesn't happen. What kind of test double is this?",
-              "choices": [
-                "A mock",
-                "A stub",
-                "A fake",
-                "A dummy"
-              ],
+              "choices": ["A mock", "A stub", "A fake", "A dummy"],
               "answer": 0,
               "explain": "A mock carries expectations about how it is called and verifies them. A stub just supplies return values and doesn't care whether or how it was called."
             }
@@ -207,6 +197,7 @@
           "id": "testing/unit/table-driven-tests",
           "title": "Table-driven tests",
           "summary": "One test body run over a list of input/expected cases, each reported separately",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -262,6 +253,7 @@
           "id": "testing/unit/controlling-time",
           "title": "Controlling time in tests",
           "summary": "Injecting a clock or using fake timers so time-based code is tested without real waiting",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -317,6 +309,7 @@
           "id": "testing/unit/go-test-cache",
           "title": "Go test caching",
           "summary": "`go test` reuses passing results when nothing it tracks has changed; `-count=1` forces a rerun",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -333,12 +326,7 @@
             {
               "lang": "go",
               "q": "Which flag is the usual way to make `go test ./...` actually rerun tests instead of printing cached results?",
-              "choices": [
-                "`-v`",
-                "`-short`",
-                "`-failfast`",
-                "`-count=1`"
-              ],
+              "choices": ["`-v`", "`-short`", "`-failfast`", "`-count=1`"],
               "answer": 3,
               "explain": "`-count=1` disables the test result cache. `-v` only changes output, and cached results can still be shown with it."
             }
@@ -348,6 +336,7 @@
           "id": "testing/unit/vi-mock-hoisting",
           "title": "Module mock hoisting",
           "summary": "`vi.mock` and `jest.mock` calls are moved above the imports, which changes what their factory can use",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -379,6 +368,7 @@
           "id": "testing/unit/patch-where-looked-up",
           "title": "Patching where a name is looked up",
           "summary": "`mock.patch` must target the module that uses a name, not the module that defines it",
+          "level": "medium",
           "variants": [
             {
               "lang": "python",
@@ -411,11 +401,13 @@
     {
       "id": "integration",
       "title": "Integration",
+      "summary": "Testing real components together, happy and unhappy paths",
       "concepts": [
         {
           "id": "testing/integration/real-database",
           "title": "Testing against the real database engine",
           "summary": "Running repository tests on the same database as production (Testcontainers), not a stand-in",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -447,6 +439,7 @@
           "id": "testing/integration/transaction-rollback-isolation",
           "title": "Rollback-per-test isolation",
           "summary": "Wrapping each test in a transaction that is rolled back, and the cases where that breaks",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -478,6 +471,7 @@
           "id": "testing/integration/http-handler-tests",
           "title": "In-process HTTP tests",
           "summary": "Testing HTTP handlers through the real router without deploying (`httptest`, supertest)",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -533,6 +527,7 @@
           "id": "testing/integration/dont-mock-what-you-dont-own",
           "title": "Don't mock what you don't own",
           "summary": "Wrap third-party APIs in your own adapter, mock the adapter, and integration-test the adapter for real",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -565,11 +560,13 @@
     {
       "id": "tdd",
       "title": "TDD",
+      "summary": "Writing the failing test first, then the code, then refactoring",
       "concepts": [
         {
           "id": "testing/tdd/red-green-refactor",
           "title": "Red, green, refactor",
           "summary": "The TDD cycle: a failing test, the least code to pass it, then clean up with tests green",
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -595,13 +592,13 @@
               "answer": 3,
               "explain": "Refactoring means changing structure without changing behaviour, and you can only confirm that with a green suite. Mixing it with a red test makes it unclear which change broke or fixed what."
             }
-          ],
-          "basic": true
+          ]
         },
         {
           "id": "testing/tdd/see-it-fail",
           "title": "Watching the test fail first",
           "summary": "Running a new test before the code exists, to prove it can fail",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -633,6 +630,7 @@
           "id": "testing/tdd/triangulation",
           "title": "Fake it, then triangulate",
           "summary": "Passing the first test with a hard-coded value, then adding examples that force the real logic",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -664,6 +662,7 @@
           "id": "testing/tdd/outside-in-vs-classicist",
           "title": "Outside-in vs classicist TDD",
           "summary": "London-style TDD starts at the edge and mocks collaborators; classicist TDD builds up from real objects",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -695,6 +694,7 @@
           "id": "testing/tdd/test-list",
           "title": "Keeping a test list",
           "summary": "Writing down the cases you plan to test before starting, then working through them one at a time",
+          "level": "medium",
           "variants": []
         }
       ]
@@ -702,11 +702,13 @@
     {
       "id": "test-maintainability",
       "title": "Test maintainability",
+      "summary": "Tests that stay readable and don't break on every refactor",
       "concepts": [
         {
           "id": "testing/test-maintainability/test-behaviour-not-implementation",
           "title": "Testing behaviour, not implementation",
           "summary": "Asserting on outcomes instead of internal calls, so refactors don't break tests",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -738,6 +740,7 @@
           "id": "testing/test-maintainability/test-data-builders",
           "title": "Test data builders",
           "summary": "Helpers like `aUser().withRole('admin').build()` that fill defaults so tests set only what matters",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -769,6 +772,7 @@
           "id": "testing/test-maintainability/snapshot-test-pitfalls",
           "title": "Snapshot test pitfalls",
           "summary": "Large snapshots get updated without being read, so they stop catching anything",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -800,6 +804,7 @@
           "id": "testing/test-maintainability/damp-over-dry",
           "title": "DAMP over DRY in tests",
           "summary": "Preferring readable, slightly repetitive tests to heavily shared setup that hides what's being tested",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -832,12 +837,13 @@
     {
       "id": "atdd-bdd",
       "title": "ATDD/BDD",
+      "summary": "Acceptance tests and Given/When/Then scenarios written with the team",
       "concepts": [
         {
           "id": "testing/atdd-bdd/given-when-then",
           "title": "Given / When / Then",
           "summary": "Describing a scenario as starting state, action, and expected outcome",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -869,6 +875,7 @@
           "id": "testing/atdd-bdd/scenario-outline",
           "title": "Scenario Outline",
           "summary": "A Gherkin scenario template run once per row of an `Examples` table",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -900,6 +907,7 @@
           "id": "testing/atdd-bdd/declarative-scenarios",
           "title": "Declarative vs imperative scenarios",
           "summary": "Writing scenarios in business terms instead of UI steps like clicks and field IDs",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -931,6 +939,7 @@
           "id": "testing/atdd-bdd/three-amigos",
           "title": "Three amigos",
           "summary": "A short conversation between business, development and testing to agree on examples before building a story",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -962,6 +971,7 @@
           "id": "testing/atdd-bdd/example-mapping",
           "title": "Example mapping",
           "summary": "Breaking a story into rules, examples and open questions on cards before building it",
+          "level": "medium",
           "variants": []
         }
       ]

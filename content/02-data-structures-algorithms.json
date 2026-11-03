@@ -7,12 +7,13 @@
     {
       "id": "data-structures",
       "title": "Data structures",
+      "summary": "Arrays, linked lists, stacks, queues, hash maps and trees, and when each fits",
       "concepts": [
         {
           "id": "data-structures-algorithms/data-structures/hash-map",
           "title": "Hash map",
           "summary": "Key-value lookup in constant time on average, by hashing the key to a bucket",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -39,7 +40,7 @@
           "id": "data-structures-algorithms/data-structures/stack-vs-queue",
           "title": "Stack vs queue",
           "summary": "Last-in-first-out vs first-in-first-out, and which problems need which",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -66,17 +67,12 @@
           "id": "data-structures-algorithms/data-structures/array-vs-linked-list",
           "title": "Array vs linked list",
           "summary": "Contiguous storage with fast indexing vs linked nodes with cheap inserts at a known spot",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
               "q": "You need to insert at the front of a sequence of `n` items. What does it cost in an array vs a singly linked list?",
-              "choices": [
-                "Array O(1), linked list O(n)",
-                "Both O(1)",
-                "Array O(n), linked list O(1)",
-                "Both O(n)"
-              ],
+              "choices": ["Array O(1), linked list O(n)", "Both O(1)", "Array O(n), linked list O(1)", "Both O(n)"],
               "answer": 2,
               "explain": "An array has to shift every element one slot to make room. A linked list just points a new node at the old head."
             },
@@ -98,6 +94,7 @@
           "id": "data-structures-algorithms/data-structures/cache-locality",
           "title": "Cache locality",
           "summary": "Data laid out next to each other in memory is much faster to walk, even at the same Big O",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -141,6 +138,7 @@
           "id": "data-structures-algorithms/data-structures/binary-heap",
           "title": "Binary heap (priority queue)",
           "summary": "A tree kept in an array that always gives the smallest (or largest) item cheaply",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -172,6 +170,7 @@
           "id": "data-structures-algorithms/data-structures/ring-buffer",
           "title": "Ring buffer",
           "summary": "A fixed-size array that wraps around, overwriting the oldest item when full",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -198,6 +197,7 @@
           "id": "data-structures-algorithms/data-structures/bloom-filter",
           "title": "Bloom filter",
           "summary": "A compact set that can say \"definitely not present\" or \"maybe present\"",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -230,12 +230,13 @@
     {
       "id": "big-o",
       "title": "Big O",
+      "summary": "Reading the time and space cost of code and picking an algorithm for the data size",
       "concepts": [
         {
           "id": "data-structures-algorithms/big-o/nested-loops",
           "title": "Quadratic time, O(n²)",
           "summary": "Work that grows with the square of the input, typically from comparing every pair",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": "go",
@@ -271,6 +272,7 @@
           "id": "data-structures-algorithms/big-o/hidden-linear-scan",
           "title": "Hidden O(n) inside a loop",
           "summary": "A built-in like `includes` or `in list` that scans on every call turns a loop quadratic",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -321,7 +323,7 @@
           "id": "data-structures-algorithms/big-o/logarithmic",
           "title": "Logarithmic time, O(log n)",
           "summary": "Work that grows by one step each time the input doubles, as in binary search",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -343,6 +345,7 @@
           "id": "data-structures-algorithms/big-o/amortized",
           "title": "Amortized O(1)",
           "summary": "An operation that's occasionally expensive but cheap on average over many calls, like appending to a dynamic array",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -393,6 +396,7 @@
           "id": "data-structures-algorithms/big-o/sorting-lower-bound",
           "title": "Comparison sort lower bound",
           "summary": "No sort that only compares elements can beat O(n log n) in the worst case",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -419,6 +423,7 @@
           "id": "data-structures-algorithms/big-o/average-vs-worst-case",
           "title": "Average vs worst case",
           "summary": "An algorithm can be fast on typical input and much slower on particular input",
+          "level": "medium",
           "variants": [
             {
               "lang": null,
@@ -450,6 +455,7 @@
           "id": "data-structures-algorithms/big-o/space-complexity",
           "title": "Space complexity",
           "summary": "How much extra memory an algorithm needs as the input grows, call stack included",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -490,6 +496,7 @@
           "id": "data-structures-algorithms/big-o/constants-and-small-n",
           "title": "Big O drops constants",
           "summary": "Big O describes growth for large inputs; it ignores constant factors and small sizes",
+          "level": "medium",
           "variants": [
             {
               "lang": null,

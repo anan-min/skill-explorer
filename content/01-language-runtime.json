@@ -7,46 +7,32 @@
     {
       "id": "types-memory",
       "title": "Types & memory",
+      "summary": "Data types, type coercion, stack vs heap, value vs reference",
       "concepts": [
         {
           "id": "language-runtime/types-memory/value-vs-reference",
           "title": "Value vs reference semantics",
           "summary": "Whether passing something to a function copies it or shares it",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\ntype User struct{ Name string }\n\nfunc rename(u User) { u.Name = \"Bo\" }\n\nu := User{Name: \"Al\"}\nrename(u)\nfmt.Println(u.Name)\n```",
-              "choices": [
-                "`Bo`",
-                "`Al`",
-                "An empty string",
-                "It doesn't compile"
-              ],
+              "choices": ["`Bo`", "`Al`", "An empty string", "It doesn't compile"],
               "answer": 1,
               "explain": "Go passes structs by value, so `rename` changes its own copy. To change the caller's `u`, take a `*User` and pass `&u`."
             },
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nfunction rename(u: { name: string }) {\n  u.name = 'Bo'\n  u = { name: 'Cy' }\n}\nconst user = { name: 'Al' }\nrename(user)\nconsole.log(user.name)\n```",
-              "choices": [
-                "`Al`",
-                "`Cy`",
-                "`Bo`",
-                "`undefined`"
-              ],
+              "choices": ["`Al`", "`Cy`", "`Bo`", "`undefined`"],
               "answer": 2,
               "explain": "The function gets a reference to the same object, so mutating `u.name` is visible to the caller. Reassigning `u` only rebinds the local parameter, so `Cy` never reaches `user`."
             },
             {
               "lang": "python",
               "q": "What does this print?\n\n```python\ndef rename(u: dict) -> None:\n    u[\"name\"] = \"Bo\"\n    u = {\"name\": \"Cy\"}\n\nuser = {\"name\": \"Al\"}\nrename(user)\nprint(user[\"name\"])\n```",
-              "choices": [
-                "`Bo`",
-                "`Al`",
-                "`Cy`",
-                "A `KeyError`"
-              ],
+              "choices": ["`Bo`", "`Al`", "`Cy`", "A `KeyError`"],
               "answer": 0,
               "explain": "The function receives a reference to the same dict, so `u[\"name\"] = \"Bo\"` changes the caller's object. Rebinding `u` to a new dict only changes the local name."
             },
@@ -68,28 +54,19 @@
           "id": "language-runtime/types-memory/nil-interface",
           "title": "Nil pointer in an interface",
           "summary": "A Go interface holding a typed nil pointer is not itself `nil`",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\ntype MyErr struct{}\n\nfunc (*MyErr) Error() string { return \"boom\" }\n\nfunc run() error {\n    var e *MyErr\n    return e\n}\n\nfmt.Println(run() == nil)\n```",
-              "choices": [
-                "`true`",
-                "It panics with a nil dereference",
-                "It doesn't compile",
-                "`false`"
-              ],
+              "choices": ["`true`", "It panics with a nil dereference", "It doesn't compile", "`false`"],
               "answer": 3,
               "explain": "The returned `error` holds a type (`*MyErr`) and a nil value, and an interface is only `nil` when both are unset. Return a literal `nil` on the success path instead of a typed nil pointer."
             },
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\nvar p *int\nvar x any = p\nfmt.Println(p == nil, x == nil)\n```",
-              "choices": [
-                "`true true`",
-                "`true false`",
-                "`false false`",
-                "`false true`"
-              ],
+              "choices": ["`true true`", "`true false`", "`false false`", "`false true`"],
               "answer": 1,
               "explain": "`p` is a nil pointer, but `x` is an interface that now carries the type `*int`, so it doesn't compare equal to `nil`."
             }
@@ -99,28 +76,19 @@
           "id": "language-runtime/types-memory/slice-aliasing",
           "title": "Slice aliasing on append",
           "summary": "Go slices can share one backing array, so `append` may overwrite another slice's elements",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\na := []int{1, 2, 3, 4}\nb := a[:2]\nb = append(b, 99)\nfmt.Println(a)\n```",
-              "choices": [
-                "`[1 2 3 4]`",
-                "`[1 2 3 4 99]`",
-                "`[1 2 99 4]`",
-                "`[1 2 99]`"
-              ],
+              "choices": ["`[1 2 3 4]`", "`[1 2 3 4 99]`", "`[1 2 99 4]`", "`[1 2 99]`"],
               "answer": 2,
               "explain": "`b` has length 2 but capacity 4, so `append` writes into the shared backing array at index 2. It only copies to a new array when capacity runs out."
             },
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\ns := make([]int, 3, 10)\nt := append(s, 1)\nu := append(s, 2)\nfmt.Println(t[3], u[3])\n```",
-              "choices": [
-                "`2 2`",
-                "`1 2`",
-                "`1 1`",
-                "It panics: index out of range"
-              ],
+              "choices": ["`2 2`", "`1 2`", "`1 1`", "It panics: index out of range"],
               "answer": 0,
               "explain": "`s` has spare capacity, so both appends write to the same slot of the same backing array; the second overwrites the first. Copy the slice first (or cap it with `s[:3:3]`) if the results must be independent."
             }
@@ -130,6 +98,7 @@
           "id": "language-runtime/types-memory/escape-analysis",
           "title": "Escape analysis",
           "summary": "How the Go compiler decides whether a variable lives on the stack or the heap",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -161,6 +130,7 @@
           "id": "language-runtime/types-memory/structural-typing",
           "title": "Structural typing",
           "summary": "A type fits an interface by having the right shape, not by declaring that it implements it",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -177,12 +147,7 @@
             {
               "lang": "ts",
               "q": "Which of the two calls compiles?\n\n```ts\ntype Point = { x: number }\nfunction show(p: Point) {}\n\nconst a = { x: 1, y: 2 }\nshow(a)              // (1)\nshow({ x: 1, y: 2 }) // (2)\n```",
-              "choices": [
-                "Both",
-                "Only (1)",
-                "Only (2)",
-                "Neither"
-              ],
+              "choices": ["Both", "Only (1)", "Only (2)", "Neither"],
               "answer": 1,
               "explain": "Types are compared by shape, so an object with extra properties still fits `Point` and (1) compiles. (2) fails only because TypeScript runs an extra excess-property check on fresh object literals."
             },
@@ -216,6 +181,7 @@
           "id": "language-runtime/types-memory/heap-profile",
           "title": "Heap profiling",
           "summary": "Finding what allocates memory with a heap profile (pprof, Chrome DevTools)",
+          "level": "medium",
           "variants": []
         }
       ]
@@ -223,81 +189,53 @@
     {
       "id": "control-flow",
       "title": "Control flow",
+      "summary": "Conditions, loops and recursion, and when to use which",
       "concepts": [
         {
           "id": "language-runtime/control-flow/switch-fallthrough",
           "title": "Switch fallthrough",
           "summary": "Whether a `switch` case runs into the next one when it has no `break`",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\nswitch x := 1; x {\ncase 1:\n    fmt.Print(\"a\")\ncase 2:\n    fmt.Print(\"b\")\ndefault:\n    fmt.Print(\"c\")\n}\n```",
-              "choices": [
-                "`a`",
-                "`ab`",
-                "`abc`",
-                "`ac`"
-              ],
+              "choices": ["`a`", "`ab`", "`abc`", "`ac`"],
               "answer": 0,
               "explain": "Go cases don't fall through: each case ends on its own unless it says `fallthrough`. In JavaScript the same shape would print all three."
             },
             {
               "lang": "ts",
               "q": "With default compiler options, what does `f(1)` log?\n\n```ts\nfunction f(x: number) {\n  switch (x) {\n    case 1: console.log('a')\n    case 2: console.log('b')\n    default: console.log('c')\n  }\n}\n```",
-              "choices": [
-                "`a`",
-                "`a`, then `b`, then `c`",
-                "`a`, then `c`",
-                "`c`"
-              ],
+              "choices": ["`a`", "`a`, then `b`, then `c`", "`a`, then `c`", "`c`"],
               "answer": 1,
               "explain": "JavaScript cases fall through until a `break` or `return`, so case 1 runs on into case 2 and `default`. The `noFallthroughCasesInSwitch` compiler option flags this."
             },
             {
               "lang": "python",
               "q": "Python 3.10+. What does this print?\n\n```python\nx = 1\nmatch x:\n    case 1:\n        print(\"a\")\n    case 2:\n        print(\"b\")\n    case _:\n        print(\"c\")\n```",
-              "choices": [
-                "`a`, `b` and `c`",
-                "`a` and `c`",
-                "`a`",
-                "`c`"
-              ],
+              "choices": ["`a`, `b` and `c`", "`a` and `c`", "`a`", "`c`"],
               "answer": 2,
               "explain": "`match` runs only the first case that matches; there is no fallthrough and no `break` needed. `case _` runs only when nothing above matched."
             },
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\nswitch x := 1; x {\ncase 1:\n    fmt.Print(\"a\")\n    fallthrough\ncase 2:\n    fmt.Print(\"b\")\ncase 3:\n    fmt.Print(\"c\")\n}\n```",
-              "choices": [
-                "`a`",
-                "`ab`",
-                "`abc`",
-                "`ac`"
-              ],
+              "choices": ["`a`", "`ab`", "`abc`", "`ac`"],
               "answer": 1,
               "explain": "`fallthrough` runs the next case's body without testing its condition, but only that one: control stops after `b`. Without the keyword, only `a` would print."
             },
             {
               "lang": "ts",
               "q": "With default compiler options, what does `f(1)` log?\n\n```ts\nfunction f(x: number) {\n  switch (x) {\n    case 1: console.log('a')\n    case 2: console.log('b'); break\n    case 3: console.log('c')\n  }\n}\n```",
-              "choices": [
-                "`a`",
-                "`a`, `b`, then `c`",
-                "`b`",
-                "`a`, then `b`"
-              ],
+              "choices": ["`a`", "`a`, `b`, then `c`", "`b`", "`a`, then `b`"],
               "answer": 3,
               "explain": "Case 1 has no `break`, so it runs on into case 2, which does `break`. The `break` there is what stops the run before case 3."
             },
             {
               "lang": "python",
               "q": "Python 3.10+. What does this print?\n\n```python\nx = 2\nmatch x:\n    case 1 | 2:\n        print(\"low\")\n    case 2:\n        print(\"two\")\n```",
-              "choices": [
-                "`low`",
-                "`low`, then `two`",
-                "`two`",
-                "A `SyntaxError`: or-patterns need parentheses"
-              ],
+              "choices": ["`low`", "`low`, then `two`", "`two`", "A `SyntaxError`: or-patterns need parentheses"],
               "answer": 0,
               "explain": "`match` runs only the first case that matches and never falls through, so the second `case 2` is unreachable here. `1 | 2` is a valid or-pattern."
             }
@@ -307,28 +245,19 @@
           "id": "language-runtime/control-flow/defer-arguments",
           "title": "Deferred call arguments",
           "summary": "A Go `defer` evaluates its arguments right away but runs the call when the function returns",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\nx := 1\ndefer fmt.Println(x)\nx = 2\n```",
-              "choices": [
-                "`1`",
-                "`0`",
-                "`2`",
-                "Nothing: deferred calls only run on panic"
-              ],
+              "choices": ["`1`", "`0`", "`2`", "Nothing: deferred calls only run on panic"],
               "answer": 0,
               "explain": "The arguments of a deferred call are evaluated when the `defer` statement runs, so `x` is captured as `1`. Only the call itself waits until the function returns."
             },
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\nx := 1\ndefer func() { fmt.Println(x) }()\nx = 2\n```",
-              "choices": [
-                "`1`",
-                "`2`",
-                "`0`",
-                "It doesn't compile"
-              ],
+              "choices": ["`1`", "`2`", "`0`", "It doesn't compile"],
               "answer": 1,
               "explain": "The deferred closure takes no arguments, so nothing is captured early; it reads the variable `x` when it runs at return time. Passing `x` as an argument would print `1`."
             }
@@ -338,64 +267,40 @@
           "id": "language-runtime/control-flow/finally-overrides-return",
           "title": "`finally` and `defer` changing the result",
           "summary": "Cleanup code that runs after `return` can replace the value the caller gets",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
               "q": "What does `f()` return?\n\n```ts\nfunction f() {\n  try {\n    return 'try'\n  } finally {\n    return 'finally'\n  }\n}\n```",
-              "choices": [
-                "`'try'`",
-                "`undefined`",
-                "It throws a `SyntaxError`",
-                "`'finally'`"
-              ],
+              "choices": ["`'try'`", "`undefined`", "It throws a `SyntaxError`", "`'finally'`"],
               "answer": 3,
               "explain": "`finally` runs after the `return 'try'` has been decided, and its own `return` replaces it. A `return` in `finally` also swallows any exception thrown in `try`."
             },
             {
               "lang": "go",
               "q": "What does `f()` return?\n\n```go\nfunc f() (n int) {\n    defer func() { n *= 10 }()\n    return 2\n}\n```",
-              "choices": [
-                "`20`",
-                "`2`",
-                "`0`",
-                "It doesn't compile"
-              ],
+              "choices": ["`20`", "`2`", "`0`", "It doesn't compile"],
               "answer": 0,
               "explain": "`return 2` assigns `2` to the named result `n`, then deferred functions run and can modify it. Without a named result, the defer couldn't touch the returned value."
             },
             {
               "lang": "python",
               "q": "What does `f()` return?\n\n```python\ndef f():\n    try:\n        return \"try\"\n    finally:\n        return \"finally\"\n```",
-              "choices": [
-                "`\"try\"`",
-                "`\"finally\"`",
-                "`None`",
-                "It raises a `SyntaxError`"
-              ],
+              "choices": ["`\"try\"`", "`\"finally\"`", "`None`", "It raises a `SyntaxError`"],
               "answer": 1,
               "explain": "The `finally` block runs after `return \"try\"` is decided, and its own `return` replaces the value (and would swallow any exception from `try`). Python 3.14 adds a `SyntaxWarning` for this (PEP 765), but it still runs and returns `\"finally\"`."
             },
             {
               "lang": "go",
               "q": "What does `f()` return?\n\n```go\nfunc f() int {\n    n := 2\n    defer func() { n *= 10 }()\n    return n\n}\n```",
-              "choices": [
-                "`20`",
-                "`0`",
-                "`2`",
-                "It doesn't compile"
-              ],
+              "choices": ["`20`", "`0`", "`2`", "It doesn't compile"],
               "answer": 2,
               "explain": "`return n` copies the value into the unnamed result before the deferred function runs, so changing `n` afterwards has no effect. With a named result (`func f() (n int)`) the deferred change would be visible, as in the other example."
             },
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nfunction f() {\n  try {\n    throw new Error('A')\n  } finally {\n    return 'done'\n  }\n}\nconsole.log(f())\n```",
-              "choices": [
-                "It throws `Error: A`",
-                "`'done'`",
-                "`undefined`",
-                "`'done'`, then it throws `Error: A`"
-              ],
+              "choices": ["It throws `Error: A`", "`'done'`", "`undefined`", "`'done'`, then it throws `Error: A`"],
               "answer": 1,
               "explain": "A `return` in `finally` replaces the pending exception, which is silently discarded. That's why most linters forbid it."
             },
@@ -417,6 +322,7 @@
           "id": "language-runtime/control-flow/labeled-break",
           "title": "Labeled break",
           "summary": "A `break` inside a `switch` or `select` leaves only that statement, not the loop around it",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -445,24 +351,14 @@
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\nfor _, n := range []int{1, 2, 3} {\n    switch n {\n    case 2:\n        break\n    }\n    fmt.Print(n)\n}\n```",
-              "choices": [
-                "`13`",
-                "`1`",
-                "`123`",
-                "`12`"
-              ],
+              "choices": ["`13`", "`1`", "`123`", "`12`"],
               "answer": 2,
               "explain": "`break` leaves only the `switch`, so the `Print` after it still runs for 2. It's not `continue`, which would skip it (giving `13`)."
             },
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nloop: for (const n of [1, 2, 3]) {\n  switch (n) {\n    case 2:\n      break loop\n  }\n  console.log(n)\n}\n```",
-              "choices": [
-                "`1`",
-                "`1 2`",
-                "`1 3`",
-                "`1 2 3`"
-              ],
+              "choices": ["`1`", "`1 2`", "`1 3`", "`1 2 3`"],
               "answer": 0,
               "explain": "`break loop` names the `for` statement, so it exits the whole loop at 2, after only 1 was logged. A plain `break` would leave just the `switch`."
             }
@@ -472,6 +368,7 @@
           "id": "language-runtime/control-flow/map-iteration-order",
           "title": "Map iteration order",
           "summary": "Which order you get when looping over a map or an object's keys",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -524,12 +421,7 @@
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nconst m = new Map<string | number, number>([['b', 1], [2, 1], ['a', 1], [1, 1]])\nconsole.log([...m.keys()])\n```",
-              "choices": [
-                "`[1, 2, 'a', 'b']`",
-                "`[1, 2, 'b', 'a']`",
-                "`['a', 'b', 1, 2]`",
-                "`['b', 2, 'a', 1]`"
-              ],
+              "choices": ["`[1, 2, 'a', 'b']`", "`[1, 2, 'b', 'a']`", "`['a', 'b', 1, 2]`", "`['b', 2, 'a', 1]`"],
               "answer": 3,
               "explain": "A `Map` always iterates in insertion order, whatever the key types. Plain objects are the ones that move integer-like keys to the front."
             },
@@ -552,58 +444,39 @@
     {
       "id": "functions-scope",
       "title": "Functions & scope",
+      "summary": "Functions, parameters, scope and closures",
       "concepts": [
         {
           "id": "language-runtime/functions-scope/closures",
           "title": "Closures",
           "summary": "A function that keeps access to the variables of the scope it was created in",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nfunction makeCounter() {\n  let n = 0\n  return () => ++n\n}\nconst a = makeCounter()\na(); a()\nconst b = makeCounter()\nconsole.log(a(), b())\n```",
-              "choices": [
-                "`3 1`",
-                "`3 4`",
-                "`1 1`",
-                "`2 1`"
-              ],
+              "choices": ["`3 1`", "`3 4`", "`1 1`", "`2 1`"],
               "answer": 0,
               "explain": "Each call to `makeCounter` creates a new `n`, and the returned function keeps its own one alive. `a` has been called three times; `b` has its own counter at 1."
             },
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\nfunc makeCounter() func() int {\n    n := 0\n    return func() int { n++; return n }\n}\n\na := makeCounter()\na(); a()\nb := makeCounter()\nfmt.Println(a(), b())\n```",
-              "choices": [
-                "`3 1`",
-                "`3 4`",
-                "`1 1`",
-                "`2 1`"
-              ],
+              "choices": ["`3 1`", "`3 4`", "`1 1`", "`2 1`"],
               "answer": 0,
               "explain": "The closure captures the variable `n` itself, not a copy, and each `makeCounter` call makes a fresh `n`. So `a` reaches 3 while `b` starts again at 1."
             },
             {
               "lang": "python",
               "q": "What does this print?\n\n```python\ndef make_counter():\n    n = 0\n    def inc():\n        nonlocal n\n        n += 1\n        return n\n    return inc\n\na = make_counter()\na(); a()\nb = make_counter()\nprint(a(), b())\n```",
-              "choices": [
-                "`1 1`",
-                "`3 4`",
-                "`2 1`",
-                "`3 1`"
-              ],
+              "choices": ["`1 1`", "`3 4`", "`2 1`", "`3 1`"],
               "answer": 3,
               "explain": "Each `make_counter` call creates a new `n` that its `inc` keeps alive. `nonlocal` lets `inc` rebind it; without it, `n += 1` would raise `UnboundLocalError`."
             },
             {
               "lang": null,
               "q": "Pseudo-code:\n\n```text\nfunction make():\n    n = 0\n    inc = () -> { n = n + 1 }\n    get = () -> n\n    return inc, get\n\ninc, get = make()\ninc()\ninc()\nprint(get())\n```\n\nWhat is printed?",
-              "choices": [
-                "`2`",
-                "`0`",
-                "`1`",
-                "Nothing: `n` is out of scope inside `get`"
-              ],
+              "choices": ["`2`", "`0`", "`1`", "Nothing: `n` is out of scope inside `get`"],
               "answer": 0,
               "explain": "Both closures capture the variable `n` itself, not a copy of its value, so `get` sees the changes `inc` made. Capturing a snapshot at creation would print `0`."
             }
@@ -613,76 +486,47 @@
           "id": "language-runtime/functions-scope/loop-variable-capture",
           "title": "Loop variable capture in closures",
           "summary": "Whether a closure created in a loop sees one shared variable or a fresh one per iteration",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
               "q": "With Go 1.22 or later, what does this print?\n\n```go\nvar fns []func()\nfor i := 0; i < 3; i++ {\n    fns = append(fns, func() { fmt.Print(i) })\n}\nfor _, f := range fns {\n    f()\n}\n```",
-              "choices": [
-                "`012`",
-                "`333`",
-                "`222`",
-                "It doesn't compile"
-              ],
+              "choices": ["`012`", "`333`", "`222`", "It doesn't compile"],
               "answer": 0,
               "explain": "Since Go 1.22 each loop iteration gets its own `i`, so every closure captures a different variable. Before 1.22 the loop shared one `i` and this printed `333`."
             },
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nfor (var i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i))\n}\n```",
-              "choices": [
-                "`0 1 2`",
-                "`3 3 3`",
-                "`2 2 2`",
-                "`undefined` three times"
-              ],
+              "choices": ["`0 1 2`", "`3 3 3`", "`2 2 2`", "`undefined` three times"],
               "answer": 1,
               "explain": "`var` is function-scoped, so all three callbacks close over the same `i`, which is `3` by the time they run. With `let`, each iteration gets its own binding and it logs `0 1 2`."
             },
             {
               "lang": "python",
               "q": "What does this print?\n\n```python\nfns = [lambda: i for i in range(3)]\nprint([f() for f in fns])\n```",
-              "choices": [
-                "`[0, 1, 2]`",
-                "`[2, 2, 2]`",
-                "`[3, 3, 3]`",
-                "A `NameError`"
-              ],
+              "choices": ["`[0, 1, 2]`", "`[2, 2, 2]`", "`[3, 3, 3]`", "A `NameError`"],
               "answer": 1,
               "explain": "The lambdas look up `i` when they're called, and by then the comprehension's single `i` ended at `2`. Bind it at creation with a default: `lambda i=i: i`."
             },
             {
               "lang": "go",
               "q": "The module's `go.mod` says `go 1.21`. What does this print?\n\n```go\nfor _, v := range []string{\"a\", \"b\"} {\n    defer func() { fmt.Print(v) }()\n}\n```",
-              "choices": [
-                "`ab`",
-                "`ba`",
-                "`bb`",
-                "`aa`"
-              ],
+              "choices": ["`ab`", "`ba`", "`bb`", "`aa`"],
               "answer": 2,
               "explain": "Before Go 1.22 (as selected by the `go` line in `go.mod`), the loop reuses one `v`, so both deferred closures see the final value. With Go 1.22 semantics it would print `ba`."
             },
             {
               "lang": "ts",
               "q": "What does this log? (It's the earlier loop with `var` changed to `let`.)\n\n```ts\nfor (let i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i))\n}\n```",
-              "choices": [
-                "`0 1 2`",
-                "`3 3 3`",
-                "`2 2 2`",
-                "`undefined` three times"
-              ],
+              "choices": ["`0 1 2`", "`3 3 3`", "`2 2 2`", "`undefined` three times"],
               "answer": 0,
               "explain": "`let` in a `for` header creates a fresh binding for each iteration, and each closure keeps its own. `var` has one function-wide binding."
             },
             {
               "lang": "python",
               "q": "What does this print?\n\n```python\nfns = [lambda i=i: i for i in range(3)]\nprint([f() for f in fns])\n```",
-              "choices": [
-                "`[2, 2, 2]`",
-                "`[3, 3, 3]`",
-                "`[0, 1, 2]`",
-                "A `TypeError` for the missing argument"
-              ],
+              "choices": ["`[2, 2, 2]`", "`[3, 3, 3]`", "`[0, 1, 2]`", "A `TypeError` for the missing argument"],
               "answer": 2,
               "explain": "The default value `i=i` is evaluated when each lambda is created, so each one stores its own copy. Without it, every lambda reads the shared `i`."
             }
@@ -692,6 +536,7 @@
           "id": "language-runtime/functions-scope/this-binding",
           "title": "Lost `this` binding",
           "summary": "A method pulled off its object and called on its own no longer has `this`",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -723,28 +568,19 @@
           "id": "language-runtime/functions-scope/method-values",
           "title": "Go method values",
           "summary": "Taking `t.Method` as a value binds the receiver at that moment",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\ntype T struct{ n int }\n\nfunc (t T) Show() { fmt.Println(t.n) }\n\nt := T{n: 1}\nf := t.Show\nt.n = 2\nf()\n```",
-              "choices": [
-                "`2`",
-                "`0`",
-                "It doesn't compile",
-                "`1`"
-              ],
+              "choices": ["`2`", "`0`", "It doesn't compile", "`1`"],
               "answer": 3,
               "explain": "With a value receiver, `t.Show` copies `t` when the method value is created, so later changes to `t` aren't seen. With a pointer receiver it would print `2`."
             },
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\ntype T struct{ n int }\n\nfunc (t *T) Show() { fmt.Println(t.n) }\n\nt := T{n: 1}\nf := t.Show\nt.n = 2\nf()\n```",
-              "choices": [
-                "`1`",
-                "`2`",
-                "`0`",
-                "It doesn't compile: `t` isn't a pointer"
-              ],
+              "choices": ["`1`", "`2`", "`0`", "It doesn't compile: `t` isn't a pointer"],
               "answer": 1,
               "explain": "With a pointer receiver, `t.Show` binds `&t`, so the call reads the current `t.n`. Go takes the address of addressable values automatically, so it compiles."
             }
@@ -754,16 +590,12 @@
           "id": "language-runtime/functions-scope/temporal-dead-zone",
           "title": "Temporal dead zone",
           "summary": "`let` and `const` exist from the start of their block but throw if used before their line runs",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
               "q": "What happens at runtime?\n\n```ts\nfunction show() { console.log(x) }\nshow()\nlet x = 1\n```",
-              "choices": [
-                "Throws a `ReferenceError`",
-                "Logs `1`",
-                "Logs `undefined`",
-                "Throws a `TypeError`"
-              ],
+              "choices": ["Throws a `ReferenceError`", "Logs `1`", "Logs `undefined`", "Throws a `TypeError`"],
               "answer": 0,
               "explain": "`x` is hoisted but stays uninitialised until `let x = 1` runs, and reading it before then throws. With `var x = 1` it would log `undefined`."
             },
@@ -785,6 +617,7 @@
           "id": "language-runtime/functions-scope/shadowing",
           "title": "Variable shadowing with `:=`",
           "summary": "`:=` in an inner block declares a new variable instead of assigning the outer one",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -801,12 +634,7 @@
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\nx := 1\nif x > 0 {\n    x := x + 1\n    fmt.Print(x, \" \")\n}\nfmt.Print(x)\n```",
-              "choices": [
-                "`2 2`",
-                "`2 1`",
-                "`1 1`",
-                "It doesn't compile"
-              ],
+              "choices": ["`2 2`", "`2 1`", "`1 1`", "It doesn't compile"],
               "answer": 1,
               "explain": "The inner `x := x + 1` creates a new `x` (initialised from the outer one) that only lives inside the block. The outer `x` is untouched."
             }
@@ -817,45 +645,32 @@
     {
       "id": "oop",
       "title": "OOP",
+      "summary": "Encapsulation, inheritance, polymorphism and abstraction",
       "concepts": [
         {
           "id": "language-runtime/oop/embedding-vs-inheritance",
           "title": "Embedding vs inheritance",
           "summary": "Go struct embedding promotes methods but has no virtual dispatch, unlike class inheritance",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\ntype Base struct{}\n\nfunc (Base) Name() string    { return \"base\" }\nfunc (b Base) Hello() string { return \"hi \" + b.Name() }\n\ntype Derived struct{ Base }\n\nfunc (Derived) Name() string { return \"derived\" }\n\nfmt.Println(Derived{}.Hello())\n```",
-              "choices": [
-                "`hi base`",
-                "`hi derived`",
-                "It doesn't compile: `Name` is ambiguous",
-                "`hi `"
-              ],
+              "choices": ["`hi base`", "`hi derived`", "It doesn't compile: `Name` is ambiguous", "`hi `"],
               "answer": 0,
               "explain": "`Hello` is promoted from `Base` and runs with a `Base` receiver, so it calls `Base.Name`. Embedding is delegation, not overriding; use an interface if behaviour must vary."
             },
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nclass Base {\n  name() { return 'base' }\n  hello() { return 'hi ' + this.name() }\n}\nclass Derived extends Base {\n  name() { return 'derived' }\n}\nconsole.log(new Derived().hello())\n```",
-              "choices": [
-                "`hi base`",
-                "`hi undefined`",
-                "`hi derived`",
-                "A `TypeError`"
-              ],
+              "choices": ["`hi base`", "`hi undefined`", "`hi derived`", "A `TypeError`"],
               "answer": 2,
               "explain": "Class methods dispatch on the runtime object, so `this.name()` inside `Base.hello` finds `Derived`'s override. Go's struct embedding is the case where this does not happen."
             },
             {
               "lang": "python",
               "q": "What does this print?\n\n```python\nclass Base:\n    def name(self): return \"base\"\n    def hello(self): return \"hi \" + self.name()\n\nclass Derived(Base):\n    def name(self): return \"derived\"\n\nprint(Derived().hello())\n```",
-              "choices": [
-                "`hi derived`",
-                "`hi base`",
-                "`hi None`",
-                "An `AttributeError`"
-              ],
+              "choices": ["`hi derived`", "`hi base`", "`hi None`", "An `AttributeError`"],
               "answer": 0,
               "explain": "Method lookup on `self` starts at the runtime class, so `Base.hello` finds `Derived.name`. Go's struct embedding is the case where this does not happen."
             },
@@ -874,24 +689,14 @@
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nclass Base {\n  constructor() { this.init() }\n  init() {}\n}\nclass D extends Base {\n  x = 5\n  init() { console.log(this.x) }\n}\nnew D()\n```",
-              "choices": [
-                "`undefined`",
-                "`5`",
-                "`null`",
-                "It throws a `ReferenceError`"
-              ],
+              "choices": ["`undefined`", "`5`", "`null`", "It throws a `ReferenceError`"],
               "answer": 0,
               "explain": "The `Base` constructor calls the overridden `init`, but `D`'s field initialisers run only after `super()` returns. So the override runs on a half-built object."
             },
             {
               "lang": "python",
               "q": "What does this print?\n\n```python\nclass Base:\n    def __init__(self):\n        self.setup()\n    def setup(self):\n        print(\"base\")\n\nclass D(Base):\n    def setup(self):\n        print(\"derived\")\n\nD()\n```",
-              "choices": [
-                "`base`",
-                "`derived`",
-                "`base`, then `derived`",
-                "An `AttributeError`"
-              ],
+              "choices": ["`base`", "`derived`", "`base`, then `derived`", "An `AttributeError`"],
               "answer": 1,
               "explain": "Method calls on `self` are dispatched on the object's real class, even inside the base constructor. That virtual dispatch is what Go's embedding lacks."
             }
@@ -901,6 +706,7 @@
           "id": "language-runtime/oop/method-sets",
           "title": "Method sets",
           "summary": "Whether a value or only a pointer satisfies an interface depends on the method receivers",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -932,28 +738,19 @@
           "id": "language-runtime/oop/ts-private-fields",
           "title": "`#private` vs `private`",
           "summary": "TypeScript's `private` is checked only at compile time; `#field` is private at runtime too",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nclass Account {\n  private balance = 100\n}\nconst a = new Account()\nconsole.log((a as any).balance)\n```",
-              "choices": [
-                "`100`",
-                "`undefined`",
-                "It throws a `TypeError`",
-                "It doesn't compile"
-              ],
+              "choices": ["`100`", "`undefined`", "It throws a `TypeError`", "It doesn't compile"],
               "answer": 0,
               "explain": "`private` is erased when compiling; at runtime `balance` is an ordinary property. The `as any` cast sidesteps the compile-time check, so the value is readable."
             },
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nclass Account {\n  #balance = 100\n}\nconst a = new Account()\nconsole.log((a as any).balance, Object.keys(a))\n```",
-              "choices": [
-                "`100 ['#balance']`",
-                "`undefined ['balance']`",
-                "`100 []`",
-                "`undefined []`"
-              ],
+              "choices": ["`100 ['#balance']`", "`undefined ['balance']`", "`100 []`", "`undefined []`"],
               "answer": 3,
               "explain": "`#balance` is a true private field: it isn't a normal property, so no cast or `Object.keys` can see it from outside the class body."
             }
@@ -963,6 +760,7 @@
           "id": "language-runtime/oop/exported-identifiers",
           "title": "Exported identifiers",
           "summary": "In Go, a lowercase name is private to its package, including to reflection-based encoders",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -995,11 +793,13 @@
     {
       "id": "functional-programming",
       "title": "Functional programming",
+      "summary": "map, filter, reduce, immutability and higher-order functions",
       "concepts": [
         {
           "id": "language-runtime/functional-programming/pure-functions",
           "title": "Pure functions",
           "summary": "Functions whose result depends only on their inputs and that change nothing outside themselves",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -1055,16 +855,12 @@
           "id": "language-runtime/functional-programming/shallow-immutability",
           "title": "Shallow immutability",
           "summary": "`Object.freeze` or a tuple stops changes to the outer object, not to objects nested inside",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nconst cfg = Object.freeze({ db: { host: 'a' } })\ncfg.db.host = 'b'\nconsole.log(cfg.db.host)\n```",
-              "choices": [
-                "`'a'`",
-                "It throws a `TypeError`",
-                "`'b'`",
-                "`undefined`"
-              ],
+              "choices": ["`'a'`", "It throws a `TypeError`", "`'b'`", "`undefined`"],
               "answer": 2,
               "explain": "`freeze` only locks `cfg`'s own properties; `cfg.db` is a separate, unfrozen object. TypeScript's `Readonly` result type is shallow in the same way, so it compiles."
             },
@@ -1110,40 +906,26 @@
           "id": "language-runtime/functional-programming/reduce-initial-value",
           "title": "`reduce` without an initial value",
           "summary": "Leaving out `reduce`'s initial value makes the first element the accumulator, and throws on an empty array",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
               "q": "What happens?\n\n```ts\nconst prices: number[] = []\nconst total = prices.reduce((sum, p) => sum + p)\n```",
-              "choices": [
-                "`total` is `0`",
-                "`total` is `undefined`",
-                "`total` is `NaN`",
-                "It throws a `TypeError`"
-              ],
+              "choices": ["`total` is `0`", "`total` is `undefined`", "`total` is `NaN`", "It throws a `TypeError`"],
               "answer": 3,
               "explain": "With no initial value, `reduce` uses the first element as the starting accumulator, and an empty array has none, so it throws. Pass `0` as the second argument."
             },
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\nconst xs = [7]\nconst r = xs.reduce((a, b) => {\n  console.log('called')\n  return a + b\n})\nconsole.log(r)\n```",
-              "choices": [
-                "`called`, then `7`",
-                "Just `7`",
-                "`called`, then `NaN`",
-                "It throws a `TypeError`"
-              ],
+              "choices": ["`called`, then `7`", "Just `7`", "`called`, then `NaN`", "It throws a `TypeError`"],
               "answer": 1,
               "explain": "With one element and no initial value, that element becomes the result and the callback is never called. With an initial value of `0`, the callback would run once."
             },
             {
               "lang": "python",
               "q": "What happens?\n\n```python\nfrom functools import reduce\n\ntotal = reduce(lambda a, b: a + b, [])\n```",
-              "choices": [
-                "`total` is `0`",
-                "`total` is `None`",
-                "It raises a `TypeError`",
-                "`total` is `[]`"
-              ],
+              "choices": ["`total` is `0`", "`total` is `None`", "It raises a `TypeError`", "`total` is `[]`"],
               "answer": 2,
               "explain": "Without an initial value, `reduce` starts from the first item, and an empty list has none. Pass `0` as the third argument, or use `sum`."
             },
@@ -1165,6 +947,7 @@
           "id": "language-runtime/functional-programming/range-over-func",
           "title": "Range-over-func iterators",
           "summary": "Go 1.23's `iter.Seq`: a function that calls `yield` for each value can be used in a `for range` loop",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1196,6 +979,7 @@
           "id": "language-runtime/functional-programming/lazy-generators",
           "title": "Generators are lazy",
           "summary": "A generator function's body doesn't run until someone asks for the next value",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -1252,34 +1036,25 @@
     {
       "id": "error-handling",
       "title": "Error handling",
+      "summary": "Throwing, catching and returning errors; expected vs unexpected errors",
       "concepts": [
         {
           "id": "language-runtime/error-handling/error-wrapping",
           "title": "Error wrapping",
           "summary": "Adding context to an error while keeping the original inspectable",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": "go",
               "q": "What does this print?\n\n```go\nerr := fmt.Errorf(\"load config: %w\", fs.ErrNotExist)\nfmt.Println(errors.Is(err, fs.ErrNotExist))\n```",
-              "choices": [
-                "`false`",
-                "`true`",
-                "It doesn't compile",
-                "`load config: file does not exist`"
-              ],
+              "choices": ["`false`", "`true`", "It doesn't compile", "`load config: file does not exist`"],
               "answer": 1,
               "explain": "`%w` wraps the original error, and `errors.Is` walks the wrap chain. With `%v` the original would be flattened into the message and this would print `false`."
             },
             {
               "lang": "ts",
               "q": "Given `const err = new Error('load config', { cause: original })`, how do you get `original` back?",
-              "choices": [
-                "`err.inner`",
-                "`err.stack[0]`",
-                "`err.cause`",
-                "You can't: only the message is kept"
-              ],
+              "choices": ["`err.inner`", "`err.stack[0]`", "`err.cause`", "You can't: only the message is kept"],
               "answer": 2,
               "explain": "The `cause` option (ES2022) stores the wrapped error on `err.cause`, so callers can inspect what went wrong underneath."
             },
@@ -1313,6 +1088,7 @@
           "id": "language-runtime/error-handling/errors-as",
           "title": "`errors.As`",
           "summary": "Finding an error of a specific type anywhere in a Go wrap chain and getting it as that type",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1344,6 +1120,7 @@
           "id": "language-runtime/error-handling/errors-join",
           "title": "`errors.Join`",
           "summary": "Go 1.20's way to combine several errors into one that still matches each of them",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1375,6 +1152,7 @@
           "id": "language-runtime/error-handling/recover-scope",
           "title": "`recover` only covers its own goroutine",
           "summary": "A panic in a goroutine can't be recovered by another goroutine and crashes the whole program",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1406,6 +1184,7 @@
           "id": "language-runtime/error-handling/unhandled-rejection",
           "title": "Unhandled promise rejection",
           "summary": "A rejected promise nobody awaits or catches; since Node 15 it crashes the process by default",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -1437,28 +1216,19 @@
           "id": "language-runtime/error-handling/catch-unknown",
           "title": "Caught values are `unknown`",
           "summary": "JavaScript can throw any value, so TypeScript types the `catch` variable as `unknown`",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
               "q": "TypeScript 4.4+ with `strict: true`. What is the type of `e` in `try { ... } catch (e) { ... }`?",
-              "choices": [
-                "`any`",
-                "`Error`",
-                "`unknown`",
-                "`Error | undefined`"
-              ],
+              "choices": ["`any`", "`Error`", "`unknown`", "`Error | undefined`"],
               "answer": 2,
               "explain": "`strict` turns on `useUnknownInCatchVariables`, so `e` is `unknown` and you have to narrow it (for example `e instanceof Error`) before using `.message`. Without it, `e` is `any`."
             },
             {
               "lang": "ts",
               "q": "What does this log?\n\n```ts\ntry {\n  throw 'quota exceeded'\n} catch (e) {\n  console.log((e as Error).message)\n}\n```",
-              "choices": [
-                "`quota exceeded`",
-                "`undefined`",
-                "`Error: quota exceeded`",
-                "It throws a `TypeError`"
-              ],
+              "choices": ["`quota exceeded`", "`undefined`", "`Error: quota exceeded`", "It throws a `TypeError`"],
               "answer": 1,
               "explain": "A plain string was thrown, and strings have no `message` property. The cast only silences the compiler; that's why `e` is `unknown` and should be checked with `instanceof Error`."
             }
@@ -1469,11 +1239,13 @@
     {
       "id": "async",
       "title": "Async",
+      "summary": "Sync vs async, callbacks, promises, async/await and the event loop",
       "concepts": [
         {
           "id": "language-runtime/async/microtasks",
           "title": "Microtasks vs macrotasks",
           "summary": "Promise callbacks run before timers, once the current synchronous code finishes",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -1490,12 +1262,7 @@
             {
               "lang": "ts",
               "q": "What order are these logged in?\n\n```ts\nasync function f() {\n  console.log('a')\n  await null\n  console.log('b')\n}\nf()\nconsole.log('c')\n```",
-              "choices": [
-                "`a`, `b`, `c`",
-                "`a`, `c`, `b`",
-                "`c`, `a`, `b`",
-                "`a`, `c` (never `b`)"
-              ],
+              "choices": ["`a`, `b`, `c`", "`a`, `c`, `b`", "`c`, `a`, `b`", "`a`, `c` (never `b`)"],
               "answer": 1,
               "explain": "An `async` function runs synchronously up to its first `await`; the rest is queued as a microtask. So `a` logs, `f` returns, `c` logs, then `b`."
             }
@@ -1505,6 +1272,7 @@
           "id": "language-runtime/async/sequential-await",
           "title": "`await` in a loop",
           "summary": "Awaiting each call in turn runs them one after another; starting them all first runs them together",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -1545,12 +1313,7 @@
             {
               "lang": null,
               "q": "Call A takes 100 ms. Call B needs A's result and takes 100 ms. Call C needs nothing and takes 150 ms. All three must finish. What's the shortest total time possible?",
-              "choices": [
-                "About 350 ms",
-                "About 200 ms",
-                "About 150 ms",
-                "About 100 ms"
-              ],
+              "choices": ["About 350 ms", "About 200 ms", "About 150 ms", "About 100 ms"],
               "answer": 1,
               "explain": "A then B must be sequential (200 ms), but C can run alongside them, so the total is the longest chain. 150 ms would ignore that B waits for A."
             }
@@ -1560,6 +1323,7 @@
           "id": "language-runtime/async/async-callback-not-awaited",
           "title": "Async callbacks in `forEach` and `map`",
           "summary": "Passing an `async` function to `forEach` or `map` gives back promises nobody waits for",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -1576,12 +1340,7 @@
             {
               "lang": "ts",
               "q": "`load` returns `Promise<User>`. What is the type of `users`?\n\n```ts\nconst users = ids.map(async (id) => load(id))\n```",
-              "choices": [
-                "`User[]`",
-                "`Promise<User[]>`",
-                "`Promise<User>[]`",
-                "`(User | undefined)[]`"
-              ],
+              "choices": ["`User[]`", "`Promise<User[]>`", "`Promise<User>[]`", "`(User | undefined)[]`"],
               "answer": 2,
               "explain": "`map` returns whatever the callback returns, and an `async` callback always returns a promise. Wrap it in `await Promise.all(...)` to get a `User[]`."
             },
@@ -1615,6 +1374,7 @@
           "id": "language-runtime/async/cooperative-cancellation",
           "title": "Cooperative cancellation",
           "summary": "Cancelling a `context` or an `AbortSignal` only sends a signal; work stops only if it checks",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1670,6 +1430,7 @@
           "id": "language-runtime/async/errgroup",
           "title": "errgroup",
           "summary": "Running goroutines together and collecting the first error, optionally cancelling the rest",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1701,6 +1462,7 @@
           "id": "language-runtime/async/promise-allsettled",
           "title": "Promise.allSettled",
           "summary": "Waiting for every promise to finish and getting each outcome, even when some reject",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
@@ -1733,12 +1495,13 @@
     {
       "id": "concurrency",
       "title": "Concurrency",
+      "summary": "Race conditions, deadlocks, thread safety and locks",
       "concepts": [
         {
           "id": "language-runtime/concurrency/data-race",
           "title": "Data race",
           "summary": "Unsynchronised concurrent access to the same memory where at least one access is a write",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": null,
@@ -1770,7 +1533,7 @@
           "id": "language-runtime/concurrency/deadlock",
           "title": "Deadlock",
           "summary": "Two or more parties each waiting for the other, so none can proceed",
-          "basic": true,
+          "level": "easy",
           "variants": [
             {
               "lang": "go",
@@ -1814,6 +1577,7 @@
           "id": "language-runtime/concurrency/goroutine-leak",
           "title": "Goroutine leak",
           "summary": "A goroutine blocked forever on a channel nobody will use again, never freed",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1845,16 +1609,12 @@
           "id": "language-runtime/concurrency/copied-mutex",
           "title": "Copying a mutex",
           "summary": "A copied `sync.Mutex` is a separate lock, so it protects nothing",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
               "q": "1,000 goroutines call `c.Inc()` on the same `c`, and all finish. What is `c.n`?\n\n```go\ntype Counter struct {\n    mu sync.Mutex\n    n  int\n}\n\nfunc (c Counter) Inc() {\n    c.mu.Lock()\n    defer c.mu.Unlock()\n    c.n++\n}\n```",
-              "choices": [
-                "`1000`",
-                "Somewhere between 1 and 1000",
-                "It deadlocks",
-                "`0`"
-              ],
+              "choices": ["`1000`", "Somewhere between 1 and 1000", "It deadlocks", "`0`"],
               "answer": 3,
               "explain": "The value receiver copies the whole struct, lock and counter included, on every call, so each call increments its own copy. Use `func (c *Counter) Inc()`."
             },
@@ -1876,6 +1636,7 @@
           "id": "language-runtime/concurrency/bounded-concurrency",
           "title": "Bounded concurrency",
           "summary": "Limiting how many tasks run at once, with a semaphore channel or `errgroup.SetLimit`",
+          "level": "medium",
           "variants": [
             {
               "lang": "go",
@@ -1931,6 +1692,7 @@
           "id": "language-runtime/concurrency/blocking-event-loop",
           "title": "Blocking the event loop",
           "summary": "CPU-heavy synchronous code in Node stops every other request until it finishes",
+          "level": "medium",
           "variants": [
             {
               "lang": "ts",
