@@ -69,7 +69,8 @@
               "answer": 3,
               "explain": "PATCH carries a partial change. A PUT with one field asks to replace the whole user with that field, which is how other fields get wiped by mistake."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "backend/rest/safe-methods",
@@ -82,8 +83,8 @@
               "choices": [
                 "Mail scanners and link previews fetch GET links on their own",
                 "Browsers cache GET responses and replay them on later visits",
-                "The token expired, and expired tokens default to unsubscribe",
-                "TCP retransmits GET requests whenever a packet is dropped"
+                "The unsubscribe token is guessable, so strangers trigger it",
+                "Users double-click the link, so it fires twice"
               ],
               "answer": 0,
               "explain": "Because GET is defined as safe, security scanners, prefetchers and previewers load links freely. An action needs a confirmation page that submits a POST (or the one-click POST from RFC 8058)."
@@ -230,6 +231,18 @@
               ],
               "answer": 1,
               "explain": "The middle segment is the claims, base64url-encoded. Decoding needs no key; only verifying the signature does."
+            },
+            {
+              "lang": null,
+              "q": "Which value is appropriate as a claim in a signed-only (not encrypted) JWT that the browser holds?",
+              "choices": [
+                "The user's password hash, for offline checks",
+                "An API key the service uses with a third party",
+                "The user's id and the token's expiry",
+                "The user's full home address, to save a lookup"
+              ],
+              "answer": 2,
+              "explain": "Anyone holding the token can decode its claims, so only data the holder may already see belongs there. A user id and an expiry are fine; secrets and personal data need server-side storage or encryption."
             }
           ]
         },
@@ -255,7 +268,7 @@
               "q": "Which design cuts off a user's access within minutes while still checking access tokens without a database lookup?",
               "choices": [
                 "Long-lived access tokens that are signed with a larger key size",
-                "Storing the user's password hash inside the token",
+                "Rotating the signing key once a year",
                 "Encrypting the token so it can't be copied elsewhere",
                 "Short-lived access tokens plus revocable refresh tokens"
               ],
@@ -366,6 +379,18 @@
               ],
               "answer": 2,
               "explain": "`user` is resolved but never compared with the invoice's owner. Unguessable ids only hide the hole; the query or a check must scope the invoice to `user`."
+            },
+            {
+              "lang": null,
+              "q": "A support tool serves tickets at `GET /tickets/{id}`. Agents may only see their own team's tickets. Which test would reveal broken object-level authorization?",
+              "choices": [
+                "Log in as a team A agent and request a team B ticket's id",
+                "Request an id that doesn't exist and check for a `404`",
+                "Send the request with no token and expect a `401`",
+                "Put SQL metacharacters in the id and check the response"
+              ],
+              "answer": 0,
+              "explain": "IDOR only shows up when a valid user asks for someone else's record. The other checks cover missing records, missing authentication and injection, which are different bugs."
             }
           ]
         }
@@ -434,6 +459,18 @@
               ],
               "answer": 2,
               "explain": "Setting a column to a value from the event gives the same row however often it runs. Incrementing, inserting a row without a unique key, or sending a notification repeats the effect."
+            },
+            {
+              "lang": null,
+              "q": "A payment consumer de-duplicates by storing a key for each processed event. Which key works?",
+              "choices": [
+                "The event's own id, assigned once by the producer",
+                "A random id the consumer generates on receipt",
+                "The time the consumer received it",
+                "The consumer's host name plus a local counter"
+              ],
+              "answer": 0,
+              "explain": "A redelivery must map to the same key as the first delivery. An id the consumer makes up, a receive time or a local counter differs per delivery, so duplicates would slip through."
             }
           ]
         },
@@ -595,8 +632,21 @@
               ],
               "answer": 0,
               "explain": "Cache-aside keeps the cache dumb: the app reads it, and on a miss reads the database and writes the cache."
+            },
+            {
+              "lang": null,
+              "q": "In cache-aside, a user updates their profile and the application writes the new row to the database. What happens to the cached copy of that profile?",
+              "choices": [
+                "The cache notices the database change and refreshes itself",
+                "Nothing, unless the application deletes or overwrites it",
+                "The database tells the cache to drop the key",
+                "It stays correct because reads always check the database first"
+              ],
+              "answer": 1,
+              "explain": "The cache knows nothing about the database; keeping them consistent is the application's job, usually by deleting the key after the write. If it doesn't, readers keep getting the old copy until the TTL expires."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "backend/caching/invalidate-on-write",
@@ -669,6 +719,18 @@
               ],
               "answer": 1,
               "explain": "Every concurrent caller awaits the same task, so one database load serves them all. It's request coalescing against a cache stampede."
+            },
+            {
+              "lang": null,
+              "q": "Ten thousand product pages are cached at deploy time, all with a TTL of exactly 300 seconds. Five minutes later the database falls over. Which change helps most?",
+              "choices": [
+                "Raise every TTL to a full hour",
+                "Lower every TTL to 60 seconds",
+                "Add random jitter to each TTL so expiries spread out",
+                "Store the pages in a second cache as well"
+              ],
+              "answer": 2,
+              "explain": "Identical TTLs make every entry expire in the same moment, so all the misses reach the database together. Randomised TTLs spread the reloads over time; a longer TTL only delays the same cliff."
             }
           ]
         },
@@ -781,6 +843,18 @@
               ],
               "answer": 0,
               "explain": "Passing the value as the second argument lets the driver bind it as data. The `%` operator looks similar but formats the string before psycopg ever sees it."
+            },
+            {
+              "lang": null,
+              "q": "Which part of a SQL statement can a placeholder like `$1` or `?` bind?",
+              "choices": [
+                "A table name, such as in `FROM $1`",
+                "A column name, such as in `ORDER BY $1`",
+                "A whole condition, such as `$1` after `WHERE`",
+                "A value, such as the id in `WHERE id = $1`"
+              ],
+              "answer": 3,
+              "explain": "Placeholders carry values that are sent separately from the SQL text. Names and clauses are part of the statement's structure, so if they come from user input they must be checked against a fixed allow-list."
             }
           ]
         },
@@ -886,6 +960,18 @@
               ],
               "answer": 3,
               "explain": "Every key in the body becomes an attribute on the model. Declare a request model with only the editable fields and copy those."
+            },
+            {
+              "lang": null,
+              "q": "`POST /orders` creates an order straight from the JSON body, including `total` and `status`. A client sends `{\"items\": [...], \"total\": 0, \"status\": \"paid\"}` and gets a free paid order. What's the root cause?",
+              "choices": [
+                "`POST` requests aren't idempotent",
+                "The endpoint lacks CSRF protection",
+                "The server copies every body field onto the model instead of picking allowed ones",
+                "The JSON body has no size limit"
+              ],
+              "answer": 2,
+              "explain": "Fields the client shouldn't control were bound from the request. The fix is an explicit allow-list of input fields, with `total` and `status` computed on the server."
             }
           ]
         },
@@ -929,6 +1015,18 @@
               ],
               "answer": 2,
               "explain": "`compare_digest` is designed so its time doesn't depend on where the inputs differ. `==` can return early on the first mismatch."
+            },
+            {
+              "lang": null,
+              "q": "An API compares a client's key with the stored key using `==`, which stops at the first differing byte. Why is that exploitable?",
+              "choices": [
+                "`==` ignores letter case, so many keys are equal",
+                "Response time grows with the matching prefix, so guesses can be refined byte by byte",
+                "`==` only compares the first 8 bytes of each value",
+                "`==` writes the compared values to the process log"
+              ],
+              "answer": 1,
+              "explain": "An early exit makes timing depend on how much of the guess was right. Network noise hides a single measurement, but averaged over many requests the difference can be recovered; constant-time comparison removes it."
             }
           ]
         },

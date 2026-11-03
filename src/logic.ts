@@ -8,7 +8,6 @@ const ConceptProgress = z.object({
   seen: z.object({ variant: z.number().int(), choice: z.number().int() }).optional(),
   // Which scan button made this a gap ("Used it" is already `claimed`).
   scan: z.enum(["never", "name"]).optional(),
-  tested: z.array(Lang).optional(),
 });
 const ProgressSchema = z.object({
   schemaVersion: z.literal(1),
@@ -19,7 +18,7 @@ const ProgressSchema = z.object({
 
 export type State = z.infer<typeof StateSchema>;
 export type Progress = z.infer<typeof ProgressSchema>;
-export type LangPref = z.infer<typeof Lang> | "both";
+export type LangPref = z.infer<typeof Lang>;
 export type ScanButton = "never" | "name" | "used";
 export type Persona =
   { kind: "locked" } | { kind: "apprentice" } | { kind: "wanderer" } | { kind: "group"; id: string };
@@ -40,9 +39,8 @@ export const finishRun = (p: Progress): Progress => ({ ...p, finished: true });
 export const stateOf = (p: Progress, id: string): State => p.concepts[id]?.state ?? "fog";
 
 export function scan(p: Progress, concept: Concept, button: ScanButton): Progress {
-  const { tested } = p.concepts[concept.id] ?? {};
   const next = button === "used" ? { state: "claimed" as const } : { state: "gap" as const, scan: button };
-  return { ...p, concepts: { ...p.concepts, [concept.id]: { ...next, ...(tested && { tested }) } } };
+  return { ...p, concepts: { ...p.concepts, [concept.id]: next } };
 }
 
 export function scanAnswer(p: Progress, id: string): ScanButton | null {
@@ -53,11 +51,9 @@ export function scanAnswer(p: Progress, id: string): ScanButton | null {
 
 export function answer(p: Progress, concept: Concept, variant: number, choice: number): Progress {
   const v = concept.variants[variant];
-  const prev = p.concepts[concept.id]?.tested ?? [];
-  const tested = v.lang && !prev.includes(v.lang) ? [...prev, v.lang] : prev;
   const next =
     choice === v.answer ? { state: "confirmed" as const } : { state: "gap" as const, seen: { variant, choice } };
-  return { ...p, concepts: { ...p.concepts, [concept.id]: { ...next, ...(tested.length && { tested }) } } };
+  return { ...p, concepts: { ...p.concepts, [concept.id]: next } };
 }
 
 export function shuffle<T>(items: T[], rand: () => number): T[] {
@@ -69,15 +65,10 @@ export function shuffle<T>(items: T[], rand: () => number): T[] {
   return out;
 }
 
-export function pickVariant(concept: Concept, p: Progress, lang: LangPref, rand: () => number): number | null {
-  const eligible = concept.variants
-    .map((v, i) => ({ v, i }))
-    .filter(({ v }) => lang === "both" || v.lang === null || v.lang === lang);
+export function pickVariant(concept: Concept, lang: LangPref, rand: () => number): number | null {
+  const eligible = concept.variants.map((v, i) => ({ v, i })).filter(({ v }) => v.lang === null || v.lang === lang);
   if (!eligible.length) return null;
-  const tested = p.concepts[concept.id]?.tested ?? [];
-  const untested = lang === "both" ? eligible.filter(({ v }) => v.lang && !tested.includes(v.lang)) : [];
-  const pool = untested.length ? untested : eligible;
-  return pool[Math.floor(rand() * pool.length)].i;
+  return eligible[Math.floor(rand() * eligible.length)].i;
 }
 
 export function scanSample(groups: GroupFile[], p: Progress, rand: () => number) {
@@ -94,7 +85,7 @@ const isHeard = (p: Progress, id: string) => stateOf(p, id) === "gap" && p.conce
 // One check per topic (a Used claim, else a Heard, else its basic question), then
 // EXTRA_CHECKS more claims, spread over the topics with the most left unchecked.
 export function checkQueue(groups: GroupFile[], p: Progress, lang: LangPref, rand: () => number): Concept[] {
-  const askable = (c: Concept) => pickVariant(c, p, lang, rand) !== null;
+  const askable = (c: Concept) => pickVariant(c, lang, rand) !== null;
   const pools = groups.map((g) => {
     const concepts = shuffle(conceptsOf(g).filter(askable), rand);
     return {

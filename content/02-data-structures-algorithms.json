@@ -66,6 +66,7 @@
           "id": "data-structures-algorithms/data-structures/array-vs-linked-list",
           "title": "Array vs linked list",
           "summary": "Contiguous storage with fast indexing vs linked nodes with cheap inserts at a known spot",
+          "basic": true,
           "variants": [
             {
               "lang": null,
@@ -102,10 +103,10 @@
               "lang": null,
               "q": "Summing 10 million integers takes O(n) whether they're in an array or a linked list, yet the array is several times faster. Why?",
               "choices": [
-                "Arrays are always allocated on the stack",
-                "It's contiguous, so each cache line fetched holds the next values",
-                "Linked lists check bounds on every step",
-                "The compiler turns the array loop into O(log n)"
+                "Arrays are always allocated on the stack, where access is faster",
+                "Neighbouring values share a cache line, so reads mostly hit the cache",
+                "Linked lists check bounds on every step they take",
+                "The compiler turns the array loop into an O(log n) one"
               ],
               "answer": 1,
               "explain": "Walking contiguous memory uses every byte of each cache line and lets the prefetcher run ahead. A linked list's nodes are scattered, so many steps wait on a cache miss."
@@ -121,6 +122,18 @@
               ],
               "answer": 2,
               "explain": "Each `grid[r]` is its own contiguous slice. Going down a column jumps to a different row on every step and misses the cache; going along a row reads neighbouring values."
+            },
+            {
+              "lang": null,
+              "q": "A program sums the `id` field of 10 million records, each a 200-byte struct. Keeping the ids in their own array makes the sum several times faster, though both versions are O(n). Why?",
+              "choices": [
+                "The CPU skips the comparisons for the other fields",
+                "The smaller array is compiled into an O(log n) loop",
+                "The ids can be kept in registers instead of memory",
+                "Each cache line then holds many ids instead of one id plus unused bytes"
+              ],
+              "answer": 3,
+              "explain": "The work is the same, but a cache line fetched from memory is now full of useful ids rather than mostly bytes of other fields. Big O ignores this constant factor, which is where the speed-up comes from."
             }
           ]
         },
@@ -237,6 +250,20 @@
               "choices": ["About the same", "About 2× longer", "About 4× longer", "About 8× longer"],
               "answer": 2,
               "explain": "Comparing all pairs is O(n²), so doubling n multiplies the work by about four."
+            },
+            {
+              "lang": "ts",
+              "q": "Roughly how many times does the comparison run when `xs.length` is 1,000?\n\n```ts\nfor (let i = 0; i < xs.length; i++) {\n  for (let j = i + 1; j < xs.length; j++) {\n    if (dist(xs[i], xs[j]) < min) min = dist(xs[i], xs[j])\n  }\n}\n```",
+              "choices": ["About 1,000", "About 10,000", "About 500,000", "About 1,000,000"],
+              "answer": 2,
+              "explain": "Starting `j` at `i + 1` visits each pair once: n(n-1)/2, about 500,000 for n = 1,000. It's still O(n²); the 1,000,000 figure would be a loop that compares every item with every item."
+            },
+            {
+              "lang": "python",
+              "q": "The three lists each have 100 items. How many times does the innermost line run?\n\n```python\nfor a in xs:\n    for b in ys:\n        for c in zs:\n            check(a, b, c)\n```",
+              "choices": ["300", "1,000,000", "10,000", "1,000,000,000"],
+              "answer": 1,
+              "explain": "Nested loops multiply: 100 × 100 × 100. Adding the sizes (300) is what sequential, not nested, loops would cost."
             }
           ]
         },
@@ -275,6 +302,18 @@
               ],
               "answer": 0,
               "explain": "`in` on a list scans it element by element, once per user. On a `set` it's a hash lookup, O(1) on average."
+            },
+            {
+              "lang": null,
+              "q": "`items` has n entries. What is the time complexity of this deduplication, and what's the usual fix?\n\n```text\nresult = []\nfor x in items:\n    if not result.contains(x):\n        result.append(x)\n```",
+              "choices": [
+                "O(n); `contains` on a list is a constant-time check",
+                "O(n²) in the worst case; track seen items in a hash set",
+                "O(n log n); `contains` binary-searches the list",
+                "O(n); appending to the list is the slow part"
+              ],
+              "answer": 1,
+              "explain": "`contains` on a list scans it, and the list grows to n entries, so n calls cost O(n²) overall. A hash set makes each check O(1) on average."
             }
           ]
         },
@@ -282,6 +321,7 @@
           "id": "data-structures-algorithms/big-o/logarithmic",
           "title": "Logarithmic time, O(log n)",
           "summary": "Work that grows by one step each time the input doubles, as in binary search",
+          "basic": true,
           "variants": [
             {
               "lang": null,
@@ -339,6 +379,13 @@
               ],
               "answer": 0,
               "explain": "CPython over-allocates by a fraction of the list's current size, so reallocations get rarer as it grows and average out to O(1) per append. Inserting at the front with `insert(0, x)` is O(n) every time."
+            },
+            {
+              "lang": null,
+              "q": "A dynamic array grows by a fixed 10 slots each time it's full, instead of doubling. Appending n items one at a time, what is the amortized cost per append?",
+              "choices": ["O(1)", "O(log n)", "O(n)", "O(√n)"],
+              "answer": 2,
+              "explain": "Each growth copies everything so far, and growths happen only every 10 appends, so total copying is about n²/20 and the per-append average is O(n). Amortized O(1) needs capacity to grow by a multiple, like doubling."
             }
           ]
         },
@@ -417,6 +464,25 @@
               "choices": ["O(1)", "O(n)", "O(log n)", "O(n²)"],
               "answer": 1,
               "explain": "In the worst case (no duplicates) `seen` ends up holding all n values. That's the trade: O(n) time for O(n) extra space, versus a pairwise check using O(1) space and O(n²) time."
+            },
+            {
+              "lang": "go",
+              "q": "How much extra memory does this use for a slice of length n?\n\n```go\nfunc reverse(xs []int) {\n    for i, j := 0, len(xs)-1; i < j; i, j = i+1, j-1 {\n        xs[i], xs[j] = xs[j], xs[i]\n    }\n}\n```",
+              "choices": ["O(1)", "O(n)", "O(log n)", "O(n²)"],
+              "answer": 0,
+              "explain": "It swaps in place and only keeps two indexes. A version that allocates a second slice would use O(n)."
+            },
+            {
+              "lang": null,
+              "q": "A balanced binary tree has n nodes. Which traversal needs more extra memory?",
+              "choices": [
+                "Both need O(n), since each visits every node",
+                "Depth-first: the recursion keeps every node on the stack",
+                "Breadth-first: its queue can hold a whole level, about n/2 nodes",
+                "Neither: both run in O(1) extra space"
+              ],
+              "answer": 2,
+              "explain": "Depth-first only holds the current path, O(log n) deep for a balanced tree, while breadth-first's queue holds a full level, O(n). Time is O(n) for both, but space is a separate question."
             }
           ]
         },

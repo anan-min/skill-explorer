@@ -44,6 +44,7 @@
           "id": "code-craft/readability-standards/guard-clauses",
           "title": "Guard clauses",
           "summary": "Returning early when a precondition fails, so the main path isn't buried in nested `if`s",
+          "basic": true,
           "variants": [
             {
               "lang": null,
@@ -99,6 +100,18 @@
               ],
               "answer": 1,
               "explain": "`time.Duration` carries the unit in the type, so the call site has to say `time.Second` or `time.Millisecond`. A name or comment helps, but the compiler can't check it."
+            },
+            {
+              "lang": null,
+              "q": "`charge(user, amount)` is called with dollars from one service and with cents from another. Which change most directly prevents the mix-up?",
+              "choices": [
+                "Add a comment saying which unit callers should use",
+                "Check that `amount` is greater than zero",
+                "Rename the parameter to `amountCents` (and use that unit everywhere)",
+                "Rename the function to `chargeAmount`"
+              ],
+              "answer": 2,
+              "explain": "Putting the unit in the name makes a wrong call look wrong at the call site. A comment is easy to miss, and a positivity check says nothing about units."
             }
           ]
         },
@@ -142,6 +155,18 @@
               ],
               "answer": 3,
               "explain": "Parameters after a bare `*` are keyword-only, so `export(data, True, False)` raises a `TypeError`. Defaults alone still allow positional calls, and `/` only makes the parameters before it positional-only."
+            },
+            {
+              "lang": null,
+              "q": "`save(doc, true)` uses the flag to choose between two quite different behaviours: publishing the document or keeping it as a draft. What is the cleanest fix?",
+              "choices": [
+                "Add a trailing comment at every call: `save(doc, true) // publish`",
+                "Make the flag a global setting that callers set before calling",
+                "Split it into two functions, `publish(doc)` and `saveDraft(doc)`",
+                "Replace the boolean with `0` or `1`"
+              ],
+              "answer": 2,
+              "explain": "When a flag selects different behaviour, two named functions say what happens at each call site. A comment or a number leaves the call just as opaque, and a global makes it worse."
             }
           ]
         },
@@ -153,7 +178,12 @@
             {
               "lang": "go",
               "q": "What is the cyclomatic complexity of this function?\n\n```go\nfunc grade(score int) string {\n    if score >= 90 {\n        return \"A\"\n    }\n    if score >= 80 {\n        return \"B\"\n    }\n    if score >= 70 {\n        return \"C\"\n    }\n    return \"F\"\n}\n```",
-              "choices": ["1", "3", "4", "8"],
+              "choices": [
+                "1",
+                "3",
+                "4",
+                "8"
+              ],
               "answer": 2,
               "explain": "Cyclomatic complexity is the number of decision points plus one: three `if`s give 4, matching the four ways out of the function. It isn't 2³ = 8, because each `if` returns instead of letting every combination run."
             },
@@ -168,6 +198,18 @@
               ],
               "answer": 1,
               "explain": "It counts independent paths (decision points plus one), which is also the minimum number of test cases needed to cover each of them. It says nothing direct about calls, coverage or outside state."
+            },
+            {
+              "lang": null,
+              "q": "A function is one `switch` with five `case` branches and a `default`, and nothing else branches. Counting each `case` as one decision (and not the `default`), what is its cyclomatic complexity?",
+              "choices": [
+                "1",
+                "5",
+                "6",
+                "7"
+              ],
+              "answer": 2,
+              "explain": "Complexity is one for the straight path plus one per decision point: 1 + 5 = 6. 5 forgets the base path, and 7 would count the `default` too."
             }
           ]
         }
@@ -329,6 +371,18 @@
               ],
               "answer": 1,
               "explain": "The shell does the I/O and passes plain data to a core that only decides. The pricing rules can then be tested with plain values, no mocks."
+            },
+            {
+              "lang": null,
+              "q": "A handler reads an account row, checks business rules (balance, daily limit), then writes the new balance. Which part should be the pure function in a functional core?",
+              "choices": [
+                "The reading and writing of the row",
+                "The rule checks: take the account and the amount, return the new balance or an error",
+                "The whole handler, wrapped in a transaction",
+                "Nothing: rules that need account data can't be pure"
+              ],
+              "answer": 1,
+              "explain": "The rules are decisions on data, so they can be a pure function of the account and amount, and the handler does the I/O around them. Rules that use data are still pure as long as the data is passed in."
             }
           ]
         }
@@ -440,7 +494,12 @@
             {
               "lang": null,
               "q": "Adding a currency means editing 12 files across formatting, validation, pricing and reporting. Which smell is this?",
-              "choices": ["Feature envy", "Divergent change", "Shotgun surgery", "Primitive obsession"],
+              "choices": [
+                "Feature envy",
+                "Divergent change",
+                "Shotgun surgery",
+                "Primitive obsession"
+              ],
               "answer": 2,
               "explain": "One change spread over many places is shotgun surgery. Divergent change is the opposite: one module that changes for many unrelated reasons."
             },
@@ -466,7 +525,12 @@
             {
               "lang": "ts",
               "q": "Which smell does this method show?\n\n```ts\nclass InvoicePrinter {\n  shippingCost(o: Order) {\n    const weight = o.items.reduce((s, i) => s + i.weight, 0)\n    return o.address.country === 'US' ? weight * 2 : weight * 5\n  }\n}\n```",
-              "choices": ["Shotgun surgery", "Feature envy", "Data clumps", "Speculative generality"],
+              "choices": [
+                "Shotgun surgery",
+                "Feature envy",
+                "Data clumps",
+                "Speculative generality"
+              ],
               "answer": 1,
               "explain": "The method uses nothing of `InvoicePrinter` and everything of `Order`. It most likely belongs on `Order` (or near it)."
             },
@@ -481,6 +545,18 @@
               ],
               "answer": 0,
               "explain": "Feature envy is fixed by moving the behaviour to the data it uses. Copying the fields duplicates state and makes the coupling worse."
+            },
+            {
+              "lang": null,
+              "q": "`Cart.formatForEmail(customer)` calls `customer.name()`, `customer.address()` and `customer.tier()` and barely touches `Cart`'s own fields. What does that suggest?",
+              "choices": [
+                "`Customer` needs more public fields",
+                "`Cart` should keep its own copy of the customer fields",
+                "The logic probably belongs with the customer data it uses",
+                "Nothing: methods commonly take parameters"
+              ],
+              "answer": 2,
+              "explain": "A method that mostly works on another object's data is a sign it's in the wrong place, which is exactly feature envy. Taking a parameter is fine; the smell is where most of the logic's data comes from."
             }
           ]
         }
@@ -545,7 +621,7 @@
                 "Run a formatter and linter in CI before review",
                 "Write a longer, more detailed style guide",
                 "Assign one reviewer whose job is style only",
-                "Allow small PRs to merge without review"
+                "Ask authors to run the linter locally before they push"
               ],
               "answer": 0,
               "explain": "Tools enforce style consistently and instantly, freeing reviewers to look at correctness and design. A style guide still relies on people to apply it."
@@ -564,7 +640,7 @@
                 "Check that coverage went up",
                 "Undo the fix, keep the test, and confirm it fails",
                 "Run the test 10 times in a row",
-                "Check that the test's name mentions the bug"
+                "Check that the test has at least one assertion"
               ],
               "answer": 1,
               "explain": "A regression test must fail on the buggy code and pass on the fixed code. Coverage only shows the lines ran, not that the test checks the right thing."
@@ -666,7 +742,12 @@
             {
               "lang": null,
               "q": "A bug appeared somewhere in the last 1,000 commits. With `git bisect`, about how many commits do you need to test?",
-              "choices": ["About 10", "About 100", "About 500", "All 1,000"],
+              "choices": [
+                "About 10",
+                "About 100",
+                "About 500",
+                "All 1,000"
+              ],
               "answer": 0,
               "explain": "Each test halves the range, and 2¹⁰ is 1,024. With `git bisect run <script>` git can do all of them automatically."
             },
@@ -884,7 +965,12 @@
             {
               "lang": "go",
               "q": "Which line does the out-of-range indexing?\n\n```text\npanic: runtime error: index out of range [5] with length 3\n\ngoroutine 1 [running]:\nmain.lookup(...)\n        /app/main.go:12\nmain.handle(0x5)\n        /app/main.go:20 +0x1d\nmain.main()\n        /app/main.go:25 +0x25\n```",
-              "choices": ["`main.go:25`", "`main.go:20`", "`main.go:12`", "The trace doesn't say"],
+              "choices": [
+                "`main.go:25`",
+                "`main.go:20`",
+                "`main.go:12`",
+                "The trace doesn't say"
+              ],
               "answer": 2,
               "explain": "Go lists the panicking goroutine's frames with the most recent call first, so the top frame, `lookup` at line 12, is where it happened. The lines below show who called it."
             },
@@ -903,9 +989,26 @@
             {
               "lang": "python",
               "q": "Which line raised the error?\n\n```text\nTraceback (most recent call last):\n  File \"/app/main.py\", line 25, in <module>\n    handle(5)\n  File \"/app/main.py\", line 20, in handle\n    return lookup(items, i)\n  File \"/app/main.py\", line 12, in lookup\n    return items[i]\nIndexError: list index out of range\n```",
-              "choices": ["`main.py` line 25", "`main.py` line 20", "The trace doesn't say", "`main.py` line 12"],
+              "choices": [
+                "`main.py` line 25",
+                "`main.py` line 20",
+                "The trace doesn't say",
+                "`main.py` line 12"
+              ],
               "answer": 3,
               "explain": "Python prints the most recent call last, the opposite of Go and Node, so the bottom frame, line 12, is where `IndexError` was raised."
+            },
+            {
+              "lang": null,
+              "q": "Where should you start looking for the root cause?\n\n```text\nOrderError: could not place order\n    at placeOrder (orders:42)\n    at handle (api:17)\nCaused by: ConnectionError: refused 10.0.0.5:5432\n    at connect (db:88)\n    at query (db:61)\n    at placeOrder (orders:40)\n```",
+              "choices": [
+                "`connect` at `db:88`, where the innermost error was raised",
+                "`placeOrder` at `orders:42`, where the outer error was created",
+                "`handle` at `api:17`, the entry point",
+                "`query` at `db:61`, the caller of `connect`"
+              ],
+              "answer": 0,
+              "explain": "The `Caused by:` section holds the original failure, and its top frame is where it was raised. The outer trace only shows where the wrapping error was created."
             }
           ]
         },
@@ -925,6 +1028,7 @@
           "id": "code-craft/documentation/why-comments",
           "title": "Comments explain why",
           "summary": "Code says what it does; comments are for the reasons and constraints the code can't show",
+          "basic": true,
           "variants": [
             {
               "lang": null,
@@ -992,6 +1096,18 @@
               ],
               "answer": 3,
               "explain": "Python stores the first string literal in the body as `__doc__`, which `help()` and doc tools read. A `#` comment isn't stored on the function; `pydoc` only falls back to reading comments from the source when there's no docstring."
+            },
+            {
+              "lang": null,
+              "q": "Which doc comment best serves callers of `Retry(fn, attempts)`?",
+              "choices": [
+                "Loops `attempts` times, calls `fn` each pass and sleeps between passes in a helper.",
+                "Retries a function. See the wiki page for the full details.",
+                "Uses a counter and a `for` loop, then returns whatever the final call gave back.",
+                "Calls `fn` up to `attempts` times, stops at the first success, and returns the last error if all fail."
+              ],
+              "answer": 3,
+              "explain": "A doc comment states the contract callers rely on: what it does, when it stops and what it returns. A description of the loop is implementation detail that can change without anyone noticing."
             }
           ]
         },
@@ -1034,14 +1150,24 @@
             {
               "lang": null,
               "q": "In the Diátaxis framework, a page listing every configuration option with its type and default is which kind of doc?",
-              "choices": ["Tutorial", "How-to guide", "Reference", "Explanation"],
+              "choices": [
+                "Tutorial",
+                "How-to guide",
+                "Reference",
+                "Explanation"
+              ],
               "answer": 2,
               "explain": "Reference is dry, complete information you look up. A how-to guide walks through achieving one specific goal instead."
             },
             {
               "lang": null,
               "q": "In the Diátaxis framework, a page discussing why the system uses event sourcing and which alternatives were rejected is which kind of doc?",
-              "choices": ["Explanation", "Reference", "Tutorial", "How-to guide"],
+              "choices": [
+                "Explanation",
+                "Reference",
+                "Tutorial",
+                "How-to guide"
+              ],
               "answer": 0,
               "explain": "Explanation gives background and reasoning, to be read away from the task at hand. It doesn't tell you what to do, which is what tutorials and how-to guides are for."
             }

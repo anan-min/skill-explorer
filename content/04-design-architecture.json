@@ -80,6 +80,18 @@
               ],
               "answer": 0,
               "explain": "`Square` narrows what `set_size` accepts, so code written against `Rectangle` fails with valid input. A subtype may accept more than its parent, never less."
+            },
+            {
+              "lang": null,
+              "q": "A base class method `parse(input)` accepts any string and returns a result, or an empty result for garbage. Which override in a subclass is safe for code written against the base class?",
+              "choices": [
+                "Rejecting inputs longer than 1000 characters with an exception",
+                "Returning `null` instead of an empty result for garbage",
+                "Also accepting `null` and returning an empty result for it",
+                "Requiring callers to run `init()` before the first `parse`"
+              ],
+              "answer": 2,
+              "explain": "A subtype may accept more than its parent and promise at least as much, never the reverse. Rejecting inputs, returning `null` or adding a setup step all break callers that were correct against the base class."
             }
           ]
         },
@@ -123,6 +135,18 @@
               ],
               "answer": 3,
               "explain": "With the mailer passed in, the service depends only on the `Mailer` shape, and tests hand it a fake. An empty URL still builds the real client; a class attribute is still a hard-coded concrete dependency."
+            },
+            {
+              "lang": null,
+              "q": "Arrows mean 'imports'. Which dependency graph shows dependency inversion at work?",
+              "choices": [
+                "`OrderService → PaymentPort ← StripePayment`",
+                "`OrderService → StripePayment → PaymentPort`",
+                "`OrderService → StripePayment → Stripe SDK`",
+                "`OrderService → PaymentPort → StripePayment`"
+              ],
+              "answer": 0,
+              "explain": "The business code owns the abstraction and the detail points at it, so the source dependency runs against the call direction. In the other graphs the high-level code still reaches the concrete detail, directly or through an interface that depends on it."
             }
           ]
         },
@@ -154,6 +178,30 @@
               ],
               "answer": 1,
               "explain": "The subclass depended on an implementation detail of its parent. A harmless-looking optimisation in the base class broke it with no error, which is why composition is usually safer than inheriting from classes you don't control."
+            },
+            {
+              "lang": null,
+              "q": "You subclass a library's `HttpClient` and override `get()` to add logging. A later release changes `getJson()` to call an internal `fetch()` instead of `get()`, and your logs for JSON calls vanish. No signature changed. What's the underlying problem, and the usual fix?",
+              "choices": [
+                "You should also have overridden `getJson()`; always override every method",
+                "The library broke its versioning contract; only its maintainers can fix it",
+                "Logging belongs in a subclass of `fetch()`, not of `get()`",
+                "The subclass relied on the parent's internals; wrap the client instead"
+              ],
+              "answer": 3,
+              "explain": "Inheriting from a class you don't control ties you to how it calls itself, and that can change without any visible API change. Composition (a wrapper that holds the client) only depends on the public methods."
+            },
+            {
+              "lang": null,
+              "q": "You want a vendor's `Cache` class's behaviour plus hit/miss metrics, and the vendor ships new versions often. Which approach is least likely to break on an upgrade?",
+              "choices": [
+                "Subclass it and override only the method you care about",
+                "Subclass it and override every public method",
+                "Patch its methods at startup so existing callers pick up the metrics",
+                "Hold a `Cache` inside your own class and delegate to its public methods"
+              ],
+              "answer": 3,
+              "explain": "Delegation depends only on the public contract, while a subclass also depends on which methods the parent calls on itself, and that can change between releases. Overriding every method still inherits those internal call paths."
             }
           ]
         },
@@ -254,6 +302,18 @@
               ],
               "answer": 3,
               "explain": "The caller passes in the algorithm, and `Upload` works with any of them through one interface. Template method would fix the steps in a base type and let subclasses fill some in, which isn't what happens here."
+            },
+            {
+              "lang": null,
+              "q": "`items.sort(byPrice)` and `items.sort(byDate)`: `sort` is written once, and the caller passes in the comparison rule. Which pattern fits best?",
+              "choices": [
+                "Decorator",
+                "Strategy",
+                "Observer",
+                "Adapter"
+              ],
+              "answer": 1,
+              "explain": "The comparison is one interchangeable algorithm the caller selects, with the rest of the routine unchanged. A decorator would wrap `sort` to add behaviour around it rather than swap a step inside."
             }
           ]
         },
@@ -297,6 +357,18 @@
               ],
               "answer": 2,
               "explain": "Decorators apply bottom-up, so this is `with_retry(with_timeout(fetch_user))`: each attempt is timed separately. Put `with_timeout` on top to bound the whole call."
+            },
+            {
+              "lang": null,
+              "q": "`const store = cached(audited(rawStore))`. Each wrapper implements the same `Store` interface; `audited` logs every read it sees, and `cached` answers a hit without calling the store it wraps. A read hits the cache. Is it audited?",
+              "choices": [
+                "Yes: `audited` was applied first, so it runs first",
+                "No: `cached` answers before the call reaches `audited`",
+                "Yes: every wrapper in the chain runs on every call",
+                "No: wrappers audit writes only, never reads"
+              ],
+              "answer": 1,
+              "explain": "The outermost wrapper sees the call first and can stop it, so an inner layer is skipped on a cache hit. To audit every read, put `audited` on the outside: `audited(cached(rawStore))`."
             }
           ]
         },
@@ -328,6 +400,18 @@
               ],
               "answer": 0,
               "explain": "`HandlerFunc` gives a plain function the `ServeHTTP` method the `Handler` interface needs, converting one shape into another; Go's own docs call it an adapter. It adds no behaviour, so it isn't a decorator."
+            },
+            {
+              "lang": null,
+              "q": "Your code defines a `Storage` interface. Which of these is an adapter?",
+              "choices": [
+                "A class implementing `Storage` that adds retries around another `Storage`",
+                "A `Checkout` class calling payments, shipping and email in one method",
+                "A class implementing `Storage` by calling a vendor's S3 SDK",
+                "A function that picks a `Storage` implementation from an env variable"
+              ],
+              "answer": 2,
+              "explain": "An adapter translates an existing interface into the one your code expects. The retry wrapper is a decorator, the checkout class is a facade, and the picker is a factory."
             }
           ]
         },
@@ -454,7 +538,7 @@
                 "Rows sharing a timestamp get skipped or repeated",
                 "Ids sort faster than timestamps in every database engine",
                 "Clients need the id to fetch the full row afterwards",
-                "Timestamps can't be encoded inside an opaque cursor"
+                "A cursor without the `id` can't be signed against tampering"
               ],
               "answer": 0,
               "explain": "If several rows share the boundary timestamp, `<` skips the unseen ones and `<=` repeats the seen ones. A unique tie-breaker makes the position exact."
@@ -490,7 +574,8 @@
               "answer": 2,
               "explain": "Old clients still put data under number 7. If a later field reuses it with a different meaning, they'll be misread; reserving the number (and name) prevents that. Deleting alone is safe today but leaves that trap."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "design-architecture/api-design/long-running-operations",
@@ -515,7 +600,7 @@
               "choices": [
                 "It was accepted but isn't done, and may still fail",
                 "The transcode is finished and the result is at `/operations/7f3a`",
-                "It was invalid and must be resent to `/operations/7f3a`",
+                "The server guarantees the work will finish successfully",
                 "The server was too busy to validate it and will retry"
               ],
               "answer": 0,
@@ -638,6 +723,18 @@
               ],
               "answer": 3,
               "explain": "A random delay up to an exponential bound ('full jitter') spreads clients that failed together over a window that doubles each attempt. Plain or capped exponential keeps them in step; linear growth with 50 ms of noise keeps them bunched."
+            },
+            {
+              "lang": null,
+              "q": "5,000 clients lose their connection at the same instant and all retry with exponential backoff (1 s, 2 s, 4 s...). Why add random jitter to each delay?",
+              "choices": [
+                "Otherwise they retry at the same instants and hit the server in synchronised waves",
+                "Random delays make each individual retry more likely to succeed",
+                "It lets the server tell which client is retrying",
+                "It keeps the delays from growing past the cap"
+              ],
+              "answer": 0,
+              "explain": "Identical schedules keep clients in lockstep, so every wave lands at once. Jitter spreads the same retries over time; it doesn't make any single retry more likely to succeed."
             }
           ]
         },
@@ -681,6 +778,18 @@
               ],
               "answer": 2,
               "explain": "On a bounded `asyncio.Queue`, `put` waits for space, so the producer slows to the consumers' pace. `put_nowait` is the one that raises `QueueFull`."
+            },
+            {
+              "lang": null,
+              "q": "A service accepts jobs into an unbounded in-memory queue. A downstream system is slower than the arrival rate, and hours later the process dies with out-of-memory. Which change adds backpressure?",
+              "choices": [
+                "Bound the queue, and make producers wait or return 'try later' when it's full",
+                "Raise the memory limit so the queue can hold more",
+                "Write the queued jobs to a log file so they survive a restart",
+                "Retry each failed job immediately in a tight loop"
+              ],
+              "answer": 0,
+              "explain": "The queue grew because nothing pushed back on producers; a bound turns overload into waiting or an explicit rejection. More memory or a durable log only delays the same problem."
             }
           ]
         },
@@ -695,7 +804,7 @@
               "choices": [
                 "More workers in the shared pool",
                 "Strict first-in, first-out order across all tenants",
-                "A bigger machine for the worker pool",
+                "An alert that fires when the queue gets long",
                 "A cap on how many workers one tenant can hold"
               ],
               "answer": 3,
@@ -737,14 +846,15 @@
               "q": "After its open period ends, a breaker goes **half-open**. What does it do in that state?",
               "choices": [
                 "Sends half of all calls through and fails the other half",
-                "Allows every call but counts each failure twice",
+                "Retries the last failed call in a loop until it works",
                 "Lets a few trial calls through to test recovery",
                 "Waits for an operator to reset it by hand"
               ],
               "answer": 2,
               "explain": "Half-open is a probe: a small number of calls test whether the dependency has recovered before full traffic returns."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "design-architecture/system-design/upstream-downstream-contracts",
@@ -805,6 +915,18 @@
               ],
               "answer": 2,
               "explain": "Without a propagated deadline, each hop only knows its own timeout, so A and B burn capacity on answers nobody will receive. Under load that wasted work is what turns slowness into an outage."
+            },
+            {
+              "lang": null,
+              "q": "A request arrives at service A with 2 seconds left before the caller gives up. A spends 800 ms on its own work, then calls service B. Which timeout should it use for the call to B?",
+              "choices": [
+                "A fresh 2 s, the original budget",
+                "About 1.2 s, or a little less",
+                "B's own default timeout, say 30 s",
+                "None: the caller already has a timeout"
+              ],
+              "answer": 1,
+              "explain": "Only the remaining budget is still useful: an answer after the caller has left is wasted work. Passing it down (and leaving a margin for the way back) stops each hop from burning capacity on abandoned requests."
             }
           ]
         }

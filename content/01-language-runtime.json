@@ -49,6 +49,18 @@
               ],
               "answer": 0,
               "explain": "The function receives a reference to the same dict, so `u[\"name\"] = \"Bo\"` changes the caller's object. Rebinding `u` to a new dict only changes the local name."
+            },
+            {
+              "lang": null,
+              "q": "Pseudo-code, in a language where objects are shared by reference:\n\n```text\na = { name: \"x\", tags: [\"a\"] }\nb = shallow_copy(a)\nb.name = \"y\"\nb.tags.add(\"z\")\n```\n\nWhat does `a` hold afterwards?",
+              "choices": [
+                "`name: \"x\"` and `tags: [\"a\"]`",
+                "`name: \"y\"` and `tags: [\"a\", \"z\"]`",
+                "`name: \"x\"` and `tags: [\"a\", \"z\"]`",
+                "`name: \"y\"` and `tags: [\"a\"]`"
+              ],
+              "answer": 2,
+              "explain": "A shallow copy duplicates only the top-level fields, so reassigning `b.name` doesn't touch `a`. `tags` is the same list in both objects, so the added element shows up through `a`."
             }
           ]
         },
@@ -185,6 +197,18 @@
               ],
               "answer": 3,
               "explain": "A `Protocol` is matched by shape, so any class with a compatible `close` method fits. `@runtime_checkable` is only needed for `isinstance` checks at runtime."
+            },
+            {
+              "lang": null,
+              "q": "A type checker compares types by their members, not by their declared names:\n\n```text\ntype Meters = { value: number }\ntype Feet   = { value: number }\n\nfunction run(distance: Meters) { ... }\nrun(feetValue)   // feetValue has type Feet\n```\n\nWhat does it do with the call?",
+              "choices": [
+                "Rejects it: `Feet` was never declared to be a `Meters`",
+                "Accepts it: both types have the same shape",
+                "Accepts it only after an explicit cast",
+                "Rejects it: `value` is ambiguous between the two types"
+              ],
+              "answer": 1,
+              "explain": "With structural typing, compatibility depends on shape alone, so the unit mix-up goes unnoticed. A nominal system would reject it, which is the usual reason to wrap such values in distinct types."
             }
           ]
         },
@@ -240,6 +264,42 @@
               ],
               "answer": 2,
               "explain": "`match` runs only the first case that matches; there is no fallthrough and no `break` needed. `case _` runs only when nothing above matched."
+            },
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\nswitch x := 1; x {\ncase 1:\n    fmt.Print(\"a\")\n    fallthrough\ncase 2:\n    fmt.Print(\"b\")\ncase 3:\n    fmt.Print(\"c\")\n}\n```",
+              "choices": [
+                "`a`",
+                "`ab`",
+                "`abc`",
+                "`ac`"
+              ],
+              "answer": 1,
+              "explain": "`fallthrough` runs the next case's body without testing its condition, but only that one: control stops after `b`. Without the keyword, only `a` would print."
+            },
+            {
+              "lang": "ts",
+              "q": "With default compiler options, what does `f(1)` log?\n\n```ts\nfunction f(x: number) {\n  switch (x) {\n    case 1: console.log('a')\n    case 2: console.log('b'); break\n    case 3: console.log('c')\n  }\n}\n```",
+              "choices": [
+                "`a`",
+                "`a`, `b`, then `c`",
+                "`b`",
+                "`a`, then `b`"
+              ],
+              "answer": 3,
+              "explain": "Case 1 has no `break`, so it runs on into case 2, which does `break`. The `break` there is what stops the run before case 3."
+            },
+            {
+              "lang": "python",
+              "q": "Python 3.10+. What does this print?\n\n```python\nx = 2\nmatch x:\n    case 1 | 2:\n        print(\"low\")\n    case 2:\n        print(\"two\")\n```",
+              "choices": [
+                "`low`",
+                "`low`, then `two`",
+                "`two`",
+                "A `SyntaxError`: or-patterns need parentheses"
+              ],
+              "answer": 0,
+              "explain": "`match` runs only the first case that matches and never falls through, so the second `case 2` is unreachable here. `1 | 2` is a valid or-pattern."
             }
           ]
         },
@@ -314,6 +374,42 @@
               ],
               "answer": 1,
               "explain": "The `finally` block runs after `return \"try\"` is decided, and its own `return` replaces the value (and would swallow any exception from `try`). Python 3.14 adds a `SyntaxWarning` for this (PEP 765), but it still runs and returns `\"finally\"`."
+            },
+            {
+              "lang": "go",
+              "q": "What does `f()` return?\n\n```go\nfunc f() int {\n    n := 2\n    defer func() { n *= 10 }()\n    return n\n}\n```",
+              "choices": [
+                "`20`",
+                "`0`",
+                "`2`",
+                "It doesn't compile"
+              ],
+              "answer": 2,
+              "explain": "`return n` copies the value into the unnamed result before the deferred function runs, so changing `n` afterwards has no effect. With a named result (`func f() (n int)`) the deferred change would be visible, as in the other example."
+            },
+            {
+              "lang": "ts",
+              "q": "What does this log?\n\n```ts\nfunction f() {\n  try {\n    throw new Error('A')\n  } finally {\n    return 'done'\n  }\n}\nconsole.log(f())\n```",
+              "choices": [
+                "It throws `Error: A`",
+                "`'done'`",
+                "`undefined`",
+                "`'done'`, then it throws `Error: A`"
+              ],
+              "answer": 1,
+              "explain": "A `return` in `finally` replaces the pending exception, which is silently discarded. That's why most linters forbid it."
+            },
+            {
+              "lang": "python",
+              "q": "What happens?\n\n```python\ndef f():\n    try:\n        raise ValueError(\"boom\")\n    finally:\n        return \"done\"\n\nprint(f())\n```",
+              "choices": [
+                "It raises `ValueError: boom`",
+                "It prints `None`",
+                "It prints `done`, then raises `ValueError: boom`",
+                "It prints `done`"
+              ],
+              "answer": 3,
+              "explain": "A `return` in `finally` cancels the exception that was in flight, so the error vanishes. Cleanup is fine in `finally`, but returning from it hides failures."
             }
           ]
         },
@@ -345,6 +441,30 @@
               ],
               "answer": 2,
               "explain": "`break` binds to the nearest `switch`, so the loop carries on. To stop the loop, label it (`outer: for ...`) and use `break outer`."
+            },
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\nfor _, n := range []int{1, 2, 3} {\n    switch n {\n    case 2:\n        break\n    }\n    fmt.Print(n)\n}\n```",
+              "choices": [
+                "`13`",
+                "`1`",
+                "`123`",
+                "`12`"
+              ],
+              "answer": 2,
+              "explain": "`break` leaves only the `switch`, so the `Print` after it still runs for 2. It's not `continue`, which would skip it (giving `13`)."
+            },
+            {
+              "lang": "ts",
+              "q": "What does this log?\n\n```ts\nloop: for (const n of [1, 2, 3]) {\n  switch (n) {\n    case 2:\n      break loop\n  }\n  console.log(n)\n}\n```",
+              "choices": [
+                "`1`",
+                "`1 2`",
+                "`1 3`",
+                "`1 2 3`"
+              ],
+              "answer": 0,
+              "explain": "`break loop` names the `for` statement, so it exits the whole loop at 2, after only 1 was logged. A plain `break` would leave just the `switch`."
             }
           ]
         },
@@ -388,6 +508,42 @@
               ],
               "answer": 3,
               "explain": "Since Python 3.7, dicts keep insertion order for every key, integers included. JavaScript objects differ: they list integer-like keys first. Sets don't keep insertion order."
+            },
+            {
+              "lang": "go",
+              "q": "What does this print (Go 1.12 or later)?\n\n```go\nm := map[string]int{\"b\": 1, \"a\": 2, \"c\": 3}\nfmt.Println(m)\n```",
+              "choices": [
+                "`map[a:2 b:1 c:3]`",
+                "`map[b:1 a:2 c:3]`",
+                "`map[c:3 b:1 a:2]`",
+                "An order that changes between runs"
+              ],
+              "answer": 0,
+              "explain": "`fmt` sorts map keys when printing, so the output is stable. `range` over a map has no such guarantee, which is easy to forget once you've only seen printed maps."
+            },
+            {
+              "lang": "ts",
+              "q": "What does this log?\n\n```ts\nconst m = new Map<string | number, number>([['b', 1], [2, 1], ['a', 1], [1, 1]])\nconsole.log([...m.keys()])\n```",
+              "choices": [
+                "`[1, 2, 'a', 'b']`",
+                "`[1, 2, 'b', 'a']`",
+                "`['a', 'b', 1, 2]`",
+                "`['b', 2, 'a', 1]`"
+              ],
+              "answer": 3,
+              "explain": "A `Map` always iterates in insertion order, whatever the key types. Plain objects are the ones that move integer-like keys to the front."
+            },
+            {
+              "lang": "python",
+              "q": "What does this print?\n\n```python\nd = {\"a\": 1, \"b\": 2}\ndel d[\"a\"]\nd[\"a\"] = 3\nprint(list(d))\n```",
+              "choices": [
+                "`['b', 'a']`",
+                "`['a', 'b']`",
+                "An order that can change between runs",
+                "A `RuntimeError`: dictionary changed size"
+              ],
+              "answer": 0,
+              "explain": "Dicts keep insertion order, and re-adding a deleted key puts it at the end. Updating an existing key would keep its position."
             }
           ]
         }
@@ -438,6 +594,18 @@
               ],
               "answer": 3,
               "explain": "Each `make_counter` call creates a new `n` that its `inc` keeps alive. `nonlocal` lets `inc` rebind it; without it, `n += 1` would raise `UnboundLocalError`."
+            },
+            {
+              "lang": null,
+              "q": "Pseudo-code:\n\n```text\nfunction make():\n    n = 0\n    inc = () -> { n = n + 1 }\n    get = () -> n\n    return inc, get\n\ninc, get = make()\ninc()\ninc()\nprint(get())\n```\n\nWhat is printed?",
+              "choices": [
+                "`2`",
+                "`0`",
+                "`1`",
+                "Nothing: `n` is out of scope inside `get`"
+              ],
+              "answer": 0,
+              "explain": "Both closures capture the variable `n` itself, not a copy of its value, so `get` sees the changes `inc` made. Capturing a snapshot at creation would print `0`."
             }
           ]
         },
@@ -481,6 +649,42 @@
               ],
               "answer": 1,
               "explain": "The lambdas look up `i` when they're called, and by then the comprehension's single `i` ended at `2`. Bind it at creation with a default: `lambda i=i: i`."
+            },
+            {
+              "lang": "go",
+              "q": "The module's `go.mod` says `go 1.21`. What does this print?\n\n```go\nfor _, v := range []string{\"a\", \"b\"} {\n    defer func() { fmt.Print(v) }()\n}\n```",
+              "choices": [
+                "`ab`",
+                "`ba`",
+                "`bb`",
+                "`aa`"
+              ],
+              "answer": 2,
+              "explain": "Before Go 1.22 (as selected by the `go` line in `go.mod`), the loop reuses one `v`, so both deferred closures see the final value. With Go 1.22 semantics it would print `ba`."
+            },
+            {
+              "lang": "ts",
+              "q": "What does this log? (It's the earlier loop with `var` changed to `let`.)\n\n```ts\nfor (let i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i))\n}\n```",
+              "choices": [
+                "`0 1 2`",
+                "`3 3 3`",
+                "`2 2 2`",
+                "`undefined` three times"
+              ],
+              "answer": 0,
+              "explain": "`let` in a `for` header creates a fresh binding for each iteration, and each closure keeps its own. `var` has one function-wide binding."
+            },
+            {
+              "lang": "python",
+              "q": "What does this print?\n\n```python\nfns = [lambda i=i: i for i in range(3)]\nprint([f() for f in fns])\n```",
+              "choices": [
+                "`[2, 2, 2]`",
+                "`[3, 3, 3]`",
+                "`[0, 1, 2]`",
+                "A `TypeError` for the missing argument"
+              ],
+              "answer": 2,
+              "explain": "The default value `i=i` is evaluated when each lambda is created, so each one stores its own copy. Without it, every lambda reads the shared `i`."
             }
           ]
         },
@@ -505,10 +709,10 @@
               "lang": "ts",
               "q": "Passing `c.inc` as a callback loses `this`. Which change to `Counter` makes `const inc = c.inc; inc()` increment `c.n`?",
               "choices": [
-                "Mark the method `public inc()`",
-                "Declare it as a field: `inc = () => { this.n++ }`",
+                "Mark the method `public` explicitly",
+                "Make it an arrow-function field",
                 "Make `n` a `readonly` field",
-                "Call it as `inc.call()`"
+                "Call it as `inc.call()` with no argument"
               ],
               "answer": 1,
               "explain": "An arrow function takes `this` from where it's created, which for a class field is the instance. `public` changes nothing at runtime, and `inc.call()` with no argument still passes `undefined`."
@@ -654,6 +858,42 @@
               ],
               "answer": 0,
               "explain": "Method lookup on `self` starts at the runtime class, so `Base.hello` finds `Derived.name`. Go's struct embedding is the case where this does not happen."
+            },
+            {
+              "lang": "go",
+              "q": "What does this print?\n\n```go\ntype Base struct{}\n\nfunc (Base) Hello() string { return \"hi\" }\n\ntype Dog struct{ Base }\n\nfunc greet(b Base) string { return b.Hello() }\n\nfmt.Println(greet(Dog{}))\n```",
+              "choices": [
+                "It doesn't compile: a `Dog` isn't a `Base`",
+                "`hi`: `Dog` is a subtype of `Base`",
+                "`hi`, but only if `Dog` embeds `*Base`",
+                "It compiles but panics on the type mismatch"
+              ],
+              "answer": 0,
+              "explain": "Embedding promotes `Base`'s methods but doesn't make `Dog` a subtype; you'd pass `Dog{}.Base` or use an interface. That's the main difference from class inheritance."
+            },
+            {
+              "lang": "ts",
+              "q": "What does this log?\n\n```ts\nclass Base {\n  constructor() { this.init() }\n  init() {}\n}\nclass D extends Base {\n  x = 5\n  init() { console.log(this.x) }\n}\nnew D()\n```",
+              "choices": [
+                "`undefined`",
+                "`5`",
+                "`null`",
+                "It throws a `ReferenceError`"
+              ],
+              "answer": 0,
+              "explain": "The `Base` constructor calls the overridden `init`, but `D`'s field initialisers run only after `super()` returns. So the override runs on a half-built object."
+            },
+            {
+              "lang": "python",
+              "q": "What does this print?\n\n```python\nclass Base:\n    def __init__(self):\n        self.setup()\n    def setup(self):\n        print(\"base\")\n\nclass D(Base):\n    def setup(self):\n        print(\"derived\")\n\nD()\n```",
+              "choices": [
+                "`base`",
+                "`derived`",
+                "`base`, then `derived`",
+                "An `AttributeError`"
+              ],
+              "answer": 1,
+              "explain": "Method calls on `self` are dispatched on the object's real class, even inside the base constructor. That virtual dispatch is what Go's embedding lacks."
             }
           ]
         },
@@ -740,10 +980,10 @@
               "lang": "go",
               "q": "Package `user` defines `type User struct { Name string; email string }`. In package `main`, what does `u.email` give you?",
               "choices": [
-                "The value, read-only",
+                "The value, but read-only",
                 "A compile error: `email` is unexported",
-                "The zero value `\"\"`",
-                "A runtime panic"
+                "The zero value `\"\"`, not the real one",
+                "A runtime panic on first access"
               ],
               "answer": 1,
               "explain": "Identifiers starting with a lowercase letter are only visible inside their own package. There's no read-only access; you'd add an exported method like `Email()`."
@@ -796,6 +1036,18 @@
               ],
               "answer": 0,
               "explain": "`sorted` returns a new list and leaves its input alone. `xs.sort()` mutates the caller's list, and the others read or change state outside the function."
+            },
+            {
+              "lang": null,
+              "q": "This function changes its argument instead of returning a result:\n\n```text\nfunction applyDiscount(cart, pct):\n    cart.total = cart.total * (1 - pct)\n```\n\nWhich rewrite makes it pure?",
+              "choices": [
+                "Return a new cart with the reduced total and leave `cart` untouched",
+                "Return `cart.total` after changing it",
+                "Copy `cart.total` into a local variable first",
+                "Lock `cart` while it is being updated"
+              ],
+              "answer": 0,
+              "explain": "A pure function must not modify anything it was given, so it returns a fresh value. Returning the total after mutating still changes the caller's cart, and a lock only makes the mutation thread-safe."
             }
           ]
         },
@@ -820,10 +1072,10 @@
               "lang": "ts",
               "q": "Running as an ES module (strict mode), what happens?\n\n```ts\nconst list: any = Object.freeze([{ n: 1 }])\nlist[0].n = 2       // line A\nlist.push({ n: 3 }) // line B\n```",
               "choices": [
-                "Both lines throw a `TypeError`",
+                "Both lines throw a `TypeError` in strict mode",
                 "Line A succeeds; line B throws a `TypeError`",
-                "Line A throws; line B succeeds",
-                "Both succeed silently"
+                "Line A throws a `TypeError`; line B succeeds",
+                "Both succeed, and the array now has two elements"
               ],
               "answer": 1,
               "explain": "The array itself is frozen, so `push` throws, but the object inside it isn't, so changing `n` works. Deep immutability needs a recursive freeze or immutable data structures."
@@ -839,6 +1091,18 @@
               ],
               "answer": 2,
               "explain": "A tuple only stops you replacing its items; the list inside is still a mutable object, so `append` works without error. (`t[1] += [3]` is the case that both mutates the list and raises `TypeError`.)"
+            },
+            {
+              "lang": "python",
+              "q": "What does this print?\n\n```python\nfrom dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass Cfg:\n    tags: list[str]\n\nc = Cfg([\"a\"])\nc.tags.append(\"b\")\nprint(c.tags)\n```",
+              "choices": [
+                "`['a', 'b']`",
+                "`['a']`",
+                "A `FrozenInstanceError`",
+                "A `TypeError`: unhashable type `list`"
+              ],
+              "answer": 0,
+              "explain": "`frozen=True` blocks reassigning attributes such as `c.tags = ...`, not changing the list they refer to. Immutability here is one level deep."
             }
           ]
         },
@@ -882,6 +1146,18 @@
               ],
               "answer": 2,
               "explain": "Without an initial value, `reduce` starts from the first item, and an empty list has none. Pass `0` as the third argument, or use `sum`."
+            },
+            {
+              "lang": "python",
+              "q": "What happens?\n\n```python\nfrom functools import reduce\n\nresult = reduce(lambda acc, x: acc + [x * 2], [1, 2, 3])\n```",
+              "choices": [
+                "A `TypeError`: the first item `1` is used as `acc`",
+                "`result` is `[2, 4, 6]`",
+                "`result` is `[1, 4, 6]`",
+                "`result` is `[4, 6]`"
+              ],
+              "answer": 0,
+              "explain": "Without an initial value, `reduce` starts with the first element as the accumulator, so the first step tries `1 + [4]`. Passing `[]` as the third argument fixes it."
             }
           ]
         },
@@ -956,6 +1232,18 @@
               ],
               "answer": 2,
               "explain": "Calling `gen()` only creates the generator object; its body first runs on `next(it)`."
+            },
+            {
+              "lang": "python",
+              "q": "What happens?\n\n```python\nsquares = (n * n for n in range(10**12))\nprint(next(squares))\n```",
+              "choices": [
+                "It runs for minutes while building all the squares",
+                "It raises a `MemoryError`",
+                "It prints `0` straight away",
+                "It prints a generator object"
+              ],
+              "answer": 2,
+              "explain": "A generator expression computes values only when asked, so `next` evaluates one. A list comprehension over the same range would try to build a trillion items first."
             }
           ]
         }
@@ -969,6 +1257,7 @@
           "id": "language-runtime/error-handling/error-wrapping",
           "title": "Error wrapping",
           "summary": "Adding context to an error while keeping the original inspectable",
+          "basic": true,
           "variants": [
             {
               "lang": "go",
@@ -1005,6 +1294,18 @@
               ],
               "answer": 3,
               "explain": "`raise ... from e` stores the original on `__cause__`, and the traceback shows both. Raising inside `except` without `from` still records it, on `__context__`."
+            },
+            {
+              "lang": null,
+              "q": "```text\ntry:\n    row = db.query(order_id)\ncatch err:\n    throw ServiceError(\"could not load order\")   // err is dropped\n```\n\nOn-call sees only `could not load order`. What was lost?",
+              "choices": [
+                "The cause: nothing shows whether it was a timeout, bad SQL or a missing row",
+                "The stack trace of the `ServiceError` itself",
+                "The request id, which the new error doesn't carry",
+                "The database connection, which is no longer released"
+              ],
+              "answer": 0,
+              "explain": "Dropping the original error discards the one thing that tells you why it failed, and prevents callers matching on it. Wrapping keeps it attached; the new error still has its own stack trace."
             }
           ]
         },
@@ -1123,8 +1424,8 @@
               "q": "`load()` is an `async` function that rejects. Does the `catch` block run?\n\n```ts\ntry {\n  load()\n} catch (e) {\n  log(e)\n}\n```",
               "choices": [
                 "Yes, as soon as the promise rejects",
+                "Yes, but only on the next turn of the event loop",
                 "Yes, but only if `load` throws before its first `await`",
-                "Only when the `useUnknownInCatchVariables` option is on",
                 "No: the returned promise rejects later, unhandled"
               ],
               "answer": 3,
@@ -1240,6 +1541,18 @@
               ],
               "answer": 1,
               "explain": "Each `await` waits for its call to finish before the loop moves on. Yielding to the event loop lets other tasks run, but this loop has nothing else started; `gather` would take about 100 ms."
+            },
+            {
+              "lang": null,
+              "q": "Call A takes 100 ms. Call B needs A's result and takes 100 ms. Call C needs nothing and takes 150 ms. All three must finish. What's the shortest total time possible?",
+              "choices": [
+                "About 350 ms",
+                "About 200 ms",
+                "About 150 ms",
+                "About 100 ms"
+              ],
+              "answer": 1,
+              "explain": "A then B must be sequential (200 ms), but C can run alongside them, so the total is the longest chain. 150 ms would ignore that B waits for A."
             }
           ]
         },
@@ -1283,6 +1596,18 @@
               ],
               "answer": 2,
               "explain": "Calling an `async def` function only creates a coroutine; nothing runs until it's awaited or wrapped in a task. Use `await asyncio.gather(*(load(i) for i in ids))`."
+            },
+            {
+              "lang": "python",
+              "q": "What happens when `await handle(order)` runs?\n\n```python\nasync def save(order): ...\n\nasync def handle(order):\n    save(order)\n    return \"ok\"\n```",
+              "choices": [
+                "`save`'s body never runs, and Python warns the coroutine was never awaited",
+                "`save` runs to completion before `handle` returns",
+                "`save` runs in the background as a task",
+                "A `SyntaxError`: coroutine calls need `await`"
+              ],
+              "answer": 0,
+              "explain": "Calling an `async def` only creates a coroutine object; nothing runs until it's awaited or scheduled. It isn't started as a background task automatically."
             }
           ]
         },
@@ -1314,6 +1639,30 @@
               ],
               "answer": 1,
               "explain": "`abort()` only flips `signal.aborted` and fires an `abort` event. APIs like `fetch` react to it, but your own code has to check the signal or pass it on."
+            },
+            {
+              "lang": "go",
+              "q": "Inside a function that has `ctx`, which change makes this loop stop soon after `ctx` is cancelled?\n\n```go\nfor _, row := range rows {\n    process(row)\n}\n```",
+              "choices": [
+                "Check `ctx.Err()` at the top of each iteration and return if it's set",
+                "Wrap the loop in another `context.WithTimeout`",
+                "Call `cancel()` at the end of each iteration",
+                "Run each `process(row)` in its own goroutine"
+              ],
+              "answer": 0,
+              "explain": "Cancellation is cooperative: the loop has to look at `ctx` itself. A second timeout is still just a signal nobody reads, and goroutines don't stop on their own either."
+            },
+            {
+              "lang": "ts",
+              "q": "What happens to the pending request?\n\n```ts\nconst ac = new AbortController()\nconst p = fetch(url, { signal: ac.signal })\nac.abort()\nawait p\n```",
+              "choices": [
+                "`p` resolves with a partial response",
+                "`p` keeps waiting until the server replies",
+                "`p` resolves with `undefined`",
+                "`p` rejects with an `AbortError`"
+              ],
+              "answer": 3,
+              "explain": "`fetch` is one of the APIs that watches its signal and rejects when it's aborted. A function that never checks its signal, like the earlier `processAll`, keeps going."
             }
           ]
         },
@@ -1421,6 +1770,7 @@
           "id": "language-runtime/concurrency/deadlock",
           "title": "Deadlock",
           "summary": "Two or more parties each waiting for the other, so none can proceed",
+          "basic": true,
           "variants": [
             {
               "lang": "go",
@@ -1445,6 +1795,18 @@
               ],
               "answer": 0,
               "explain": "Each worker holds one lock and waits for the other's: a lock-ordering deadlock. A consistent order removes the cycle; sleeps only make it rarer."
+            },
+            {
+              "lang": null,
+              "q": "`mu` is a non-reentrant lock, and `logAudit` also locks `mu`. What happens when one thread calls `transfer`?\n\n```text\nfunction transfer(from, to):\n    lock(mu)\n    logAudit()      // calls lock(mu) inside\n    unlock(mu)\n```",
+              "choices": [
+                "The second `lock` returns at once, since the thread owns it",
+                "It throws a data-race error",
+                "It blocks forever, waiting for a lock it already holds",
+                "It runs, but `logAudit` may read stale data"
+              ],
+              "answer": 2,
+              "explain": "A deadlock doesn't need two threads: a thread waiting for itself never proceeds. Reentrant locks allow it, but common mutexes (like Go's `sync.Mutex`) don't."
             }
           ]
         },
@@ -1550,6 +1912,18 @@
               ],
               "answer": 3,
               "explain": "Every coroutine starts, but only 3 can hold the semaphore at once; the next one enters as soon as any fetch releases it. It's a sliding window, not fixed batches."
+            },
+            {
+              "lang": "python",
+              "q": "`urls` has 10,000 entries and each `fetch` opens a connection. What is the problem?\n\n```python\nresults = await asyncio.gather(*(fetch(u) for u in urls))\n```",
+              "choices": [
+                "`gather` runs them one at a time",
+                "`gather` caps itself at the number of CPU cores",
+                "All 10,000 fetches start at once, risking socket exhaustion and rate limits",
+                "`gather` raises `RuntimeError` above 1,000 tasks"
+              ],
+              "answer": 2,
+              "explain": "`gather` schedules every coroutine immediately and has no limit of its own. A semaphore is what keeps the number in flight bounded."
             }
           ]
         },
@@ -1593,6 +1967,18 @@
               ],
               "answer": 1,
               "explain": "`time.sleep` blocks the event loop's only thread, so nothing else runs. Use `await asyncio.sleep(2)`, or `asyncio.to_thread` for blocking or CPU-heavy work."
+            },
+            {
+              "lang": "python",
+              "q": "The handler is `async`, but `requests.get` is a blocking call that takes about 2 s. Which change keeps the event loop free without switching HTTP libraries?\n\n```python\nasync def handler(request):\n    r = requests.get(url)\n    return r.text\n```",
+              "choices": [
+                "`r = await requests.get(url)`",
+                "`r = await asyncio.to_thread(requests.get, url)`",
+                "`r = asyncio.run(requests.get(url))`",
+                "`r = asyncio.ensure_future(requests.get(url))`"
+              ],
+              "answer": 1,
+              "explain": "`to_thread` runs the blocking call on a worker thread and lets the loop serve others. The other lines still call `requests.get` on the loop thread, and `await` on its non-awaitable result fails."
             }
           ]
         }

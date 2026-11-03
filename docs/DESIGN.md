@@ -142,7 +142,7 @@ Home has two buttons, so people know up front what they're starting. Neither let
 - At most **12** checks. Never a `confirmed` concept.
 - Choices are shuffled when shown, since LLM-drafted questions tend to put the answer in the same position.
 - After each answer, show the right answer and `explain`. Each answer is saved immediately.
-- **Language toggle:** Go / TS / Python / Any, default Any. With Any, prefer the language not yet tested for that concept. Variants with `lang: null` always qualify.
+- **Language toggle:** Go / TS / Python, default TS. A question is picked at random from the variants in that language; variants with `lang: null` always qualify.
 - Each question has a **"Report this question"** link: a prefilled new GitHub issue titled `[report] <concept id> #<variant index>`. Nothing personal in the link.
 
 ## Results page

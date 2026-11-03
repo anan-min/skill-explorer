@@ -69,7 +69,8 @@
               "answer": 0,
               "explain": "Order-dependent failures almost always come from shared mutable state between tests. Each test should set up and clean up what it needs so it can run alone or in any order."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "testing/test-strategy/coverage-limits",
@@ -81,7 +82,7 @@
               "q": "A test calls `calculateInvoice(order)` and has no assertions. What does this do to line coverage for `calculateInvoice`?",
               "choices": [
                 "Nothing: lines only count as covered when an assertion follows them",
-                "It counts the lines as half-covered until an assertion is added",
+                "Only the function's return statement counts as covered",
                 "Every line that ran counts as covered, though nothing is checked",
                 "It fails the coverage report with a missing-assertion warning"
               ],
@@ -113,7 +114,7 @@
               "choices": [
                 "The tool found a bug in the original condition",
                 "The mutant was killed, so the tests are strong here",
-                "The code is dead and can be deleted",
+                "The mutation tool failed to apply the change",
                 "No test checks the boundary at `qty = 10`"
               ],
               "answer": 3,
@@ -242,6 +243,18 @@
               ],
               "answer": 1,
               "explain": "`parametrize` generates a separate test per row (shown as `test_add[1-1-2]` and so on), so one bad case doesn't hide the others. Rows are independent; a failure doesn't stop the rest."
+            },
+            {
+              "lang": null,
+              "q": "A pricing function has eight input/expected cases in a table-driven test. QA reports a ninth edge case: a zero-quantity order. What is the usual change?",
+              "choices": [
+                "Wrap the loop in a retry so the new case gets a second chance",
+                "Add a ninth row to the table; the test body stays the same",
+                "Copy the test function and edit the copy for the new input",
+                "Add a second assertion for it inside the first case"
+              ],
+              "answer": 1,
+              "explain": "The point of the table style is that a new case is data, not new code, and each row is reported on its own. Copying the function brings back the duplication the table was meant to remove."
             }
           ]
         },
@@ -285,6 +298,18 @@
               ],
               "answer": 2,
               "explain": "Making the current time an input lets a test place it exactly on either side of the boundary. `utcnow()` still reads the real clock (and is deprecated since 3.12), so it changes nothing."
+            },
+            {
+              "lang": null,
+              "q": "A retry helper waits 30 seconds between attempts, and the test of its third attempt takes 60 seconds of real waiting. Which change keeps the behaviour while making the test fast?",
+              "choices": [
+                "Assert only that the helper eventually returns, not how long it waited",
+                "Skip the retry test and rely on manual testing of the wait",
+                "Pass the sleep or clock in as a dependency, and use a fake in tests",
+                "Wrap the test in a 60-second timeout and run it in parallel"
+              ],
+              "answer": 2,
+              "explain": "When waiting goes through an injected sleep or clock, a test can record the requested delays and advance time instantly. Dropping the timing assertions or the test gives up checking the behaviour instead of making it testable."
             }
           ]
         },
@@ -489,6 +514,18 @@
               ],
               "answer": 2,
               "explain": "The test client calls the WSGI app directly, so routing, `before_request` hooks and error handlers all run without starting a server. FastAPI's `TestClient` works the same way for ASGI apps."
+            },
+            {
+              "lang": null,
+              "q": "A team tests an endpoint by calling the handler function directly with a fake request. A bug ships where the route's path parameter was named `:orderId` but the handler read `id`. Which test style would have caught it?",
+              "choices": [
+                "Calling the handler with a larger set of fake requests",
+                "Mocking the router so it returns the handler's response",
+                "Measuring statement coverage of the handler",
+                "Sending a request through the real router in-process"
+              ],
+              "answer": 3,
+              "explain": "Going through the real router exercises path matching, parameter extraction and middleware, which a direct call skips. More fake requests to the handler still bypass the routing layer where this bug lives."
             }
           ]
         },
@@ -515,8 +552,8 @@
               "choices": [
                 "Nothing checks the mocks against the real service",
                 "SDK mocks always run slower than the real network calls",
-                "SDK licences usually forbid mocking their client classes",
-                "SDK methods can't be mocked in statically typed languages"
+                "Mocks can't check which arguments the code passed",
+                "Mock-heavy suites need a separate test runner from other tests"
               ],
               "answer": 0,
               "explain": "Your mocks freeze your understanding of someone else's API; when theirs differs or changes, tests still pass. Confining the SDK to one adapter limits how many mocks can drift."
@@ -558,7 +595,8 @@
               "answer": 3,
               "explain": "Refactoring means changing structure without changing behaviour, and you can only confirm that with a green suite. Mixing it with a red test makes it unclear which change broke or fixed what."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "testing/tdd/see-it-fail",
@@ -632,7 +670,7 @@
               "q": "A developer starts with a test for the HTTP endpoint, mocks the service it calls, then writes the service test-first, mocking the repository, and so on inward. Which TDD style is this?",
               "choices": [
                 "Classicist (Detroit/Chicago) TDD",
-                "Inside-out TDD",
+                "Test-last development with mocks",
                 "Outside-in (London/mockist) TDD",
                 "Property-based TDD"
               ],
@@ -688,7 +726,7 @@
               "choices": [
                 "The test will be slow because of the extra mock",
                 "The test can't run in parallel with the rest of the suite",
-                "Mocking internal functions isn't allowed in typed languages",
+                "The mock has to be reset by hand after every test",
                 "Wrong totals pass, and harmless refactors fail it"
               ],
               "answer": 3,

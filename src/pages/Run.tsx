@@ -28,7 +28,6 @@ const BUTTONS: [ScanButton, string, string][] = [
 
 const LANGS: [LangPref, string][] = [
   ...Object.entries(LANG_LABELS).map(([lang, label]) => [lang as LangPref, label] as [LangPref, string]),
-  ["both", "Any"],
 ];
 
 const selected = "data-[state=on]:bg-picked data-[state=on]:border-picked-edge";
@@ -36,7 +35,7 @@ const selected = "data-[state=on]:bg-picked data-[state=on]:border-picked-edge";
 function checks(progress: Progress, lang: LangPref) {
   return checkQueue(GROUPS, progress, lang, Math.random).map((concept) => ({
     concept,
-    variant: pickVariant(concept, progress, lang, Math.random)!,
+    variant: pickVariant(concept, lang, Math.random)!,
   }));
 }
 

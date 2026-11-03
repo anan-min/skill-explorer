@@ -1,10 +1,11 @@
 import { emptyProgress, parseBackup, type LangPref, type Progress } from "./logic.ts";
+import { LANG_LABELS } from "./schema.ts";
 
 const PROGRESS_KEY = "skill-explorer:progress";
 const SETTINGS_KEY = "skill-explorer:settings";
 
 export type Settings = { lang: LangPref };
-const defaultSettings: Settings = { lang: "both" };
+const defaultSettings: Settings = { lang: "ts" };
 
 function read(key: string): string | null {
   try {
@@ -35,7 +36,9 @@ export const saveProgress = (p: Progress) => write(PROGRESS_KEY, p);
 
 export function loadSettings(): Settings {
   try {
-    return { ...defaultSettings, ...JSON.parse(read(SETTINGS_KEY) ?? "{}") };
+    const saved: Settings = { ...defaultSettings, ...(JSON.parse(read(SETTINGS_KEY) ?? "{}") as Partial<Settings>) };
+    // Older settings could hold "both", which is no longer an option.
+    return saved.lang in LANG_LABELS ? saved : defaultSettings;
   } catch {
     return defaultSettings;
   }

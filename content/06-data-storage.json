@@ -69,7 +69,8 @@
               "answer": 3,
               "explain": "0.10 has no exact binary representation, so each value is slightly off and the errors add up. Exact decimal or integer cents avoid it."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "data-storage/schema-design/surrogate-keys",
@@ -82,8 +83,8 @@
               "choices": [
                 "Each email change must update all six tables",
                 "Text columns can't be indexed, so lookups get slow",
-                "Postgres doesn't allow text columns as primary keys",
-                "Foreign keys to text columns can't be enforced"
+                "A text primary key makes each insert lock the whole table",
+                "Foreign keys to a text column can't use `ON UPDATE CASCADE`"
               ],
               "answer": 0,
               "explain": "A primary key is copied into every referencing row, so changing it means changing all of them. A generated id never needs to change; email gets a unique constraint instead."
@@ -193,7 +194,8 @@
               "answer": 3,
               "explain": "A foreign key rejects references to missing rows. It doesn't speed up joins by itself; Postgres doesn't index the referencing column automatically."
             }
-          ]
+          ],
+          "basic": true
         }
       ]
     },
@@ -248,6 +250,18 @@
               ],
               "answer": 2,
               "explain": "Fetching every author in one query replaces 20 round trips with one. `gather` overlaps them but still sends 21 queries."
+            },
+            {
+              "lang": null,
+              "q": "A blog page lists 30 posts with each post's comment count. The query log shows 31 queries per page view. What's the usual fix?",
+              "choices": [
+                "One query that groups comment counts by `post_id`, joined or fetched once",
+                "Add an index on `comments.post_id`",
+                "Run the 30 count queries in parallel",
+                "Cache each count in memory per request"
+              ],
+              "answer": 0,
+              "explain": "One query for the list plus one per post is the N+1 shape, and it goes away by fetching all the counts together. An index makes each query cheaper, and parallelism overlaps them, but both still send 31 queries."
             }
           ]
         },
@@ -379,6 +393,18 @@
               ],
               "answer": 2,
               "explain": "The check and the write happen atomically in one statement; if it affects 0 rows, the item is out of stock. `GREATEST` avoids negative stock but silently oversells."
+            },
+            {
+              "lang": null,
+              "q": "Many requests increment a counter row concurrently on Postgres's default isolation level. Which version never loses an increment?",
+              "choices": [
+                "`SELECT n`, then `UPDATE counters SET n = $1` with `n + 1` computed in the app",
+                "The same `SELECT` and `UPDATE` pair, wrapped in `BEGIN ... COMMIT`",
+                "`UPDATE counters SET n = n + 1 WHERE id = $1`",
+                "Increment a counter in the app's memory and write it out every few seconds"
+              ],
+              "answer": 2,
+              "explain": "The increment happens inside the database against the current row value, with the row locked while it runs. Read-modify-write in the app loses updates, and wrapping it in a transaction at read committed doesn't change that."
             }
           ]
         },
@@ -503,6 +529,18 @@
               ],
               "answer": 2,
               "explain": "A relay (a poller or change data capture) publishes outbox rows after commit. It can publish a row twice if it crashes before marking it sent, so consumers still need to be idempotent."
+            },
+            {
+              "lang": null,
+              "q": "A relay publishes outbox rows to a broker, then marks each row as sent. It crashes after publishing a row but before marking it. What do consumers see after the restart?",
+              "choices": [
+                "The same event twice, so they must handle duplicates",
+                "No event, because the unmarked row is skipped",
+                "The event once, because the broker de-duplicates",
+                "The event once, since the relay's marking is retried in the same transaction as the publish"
+              ],
+              "answer": 0,
+              "explain": "The broker and the outbox table can't commit together, so the relay can only promise at-least-once publishing. Consumers need idempotent handling, such as ignoring an event id they've already processed."
             }
           ]
         },
@@ -759,7 +797,7 @@
                 "Writes get faster; replica reads may now be stale",
                 "Partitions are tolerated with no trade-off at all",
                 "Replica reads are up to date; each write takes longer",
-                "Replica reads see every write; the primary loses durability"
+                "Replica reads are up to date; writes are unaffected"
               ],
               "answer": 2,
               "explain": "Waiting for the replica buys consistency (EC) and costs a round trip on every write. It doesn't change what happens during a partition."
@@ -809,7 +847,7 @@
                 "DynamoDB can't hash date strings evenly",
                 "Today's writes all hit one key and its limit",
                 "The table needs a sort key before it accepts writes",
-                "DynamoDB limits each item key to one write per second"
+                "A partition key can only be written from one client at a time"
               ],
               "answer": 1,
               "explain": "Throughput is spread by partition key, and each partition has a ceiling. When one key gets all the traffic, that ceiling is hit while the table's total capacity goes unused."
@@ -924,6 +962,18 @@
               ],
               "answer": 0,
               "explain": "`MaxOpenConns` defaults to 0, meaning no limit, so a spike can open connections until the database refuses them. The 2 you may remember is the default number of idle connections kept."
+            },
+            {
+              "lang": null,
+              "q": "Postgres is at 100% CPU and requests wait for a free pooled connection. Someone triples every pod's pool size. What's the likely result?",
+              "choices": [
+                "Throughput roughly triples, because requests no longer wait",
+                "More queries run at once on the same database, so latency stays the same or gets worse",
+                "CPU drops, because work is spread over more connections",
+                "The database queues the extra queries more efficiently than the app does"
+              ],
+              "answer": 1,
+              "explain": "A bigger pool doesn't add database capacity; it lets more queries compete for the same CPU. Waiting for a connection in the app is often cheaper than contention inside the database."
             }
           ]
         },
@@ -967,6 +1017,18 @@
               ],
               "answer": 3,
               "explain": "Every `NotFound` leaks a connection until the pool is empty. The `with pool.connection()` context manager returns it on every path, exceptions included."
+            },
+            {
+              "lang": null,
+              "q": "A function checks out a database connection and runs a query. Which structure makes sure the connection goes back to the pool on every path?",
+              "choices": [
+                "Release it on the last line of the function",
+                "Release it in the error handler only",
+                "Rely on the pool's idle timeout to reclaim leaked connections",
+                "Release it in a `finally` / `defer` / context manager right after acquiring it"
+              ],
+              "answer": 3,
+              "explain": "Cleanup tied to the acquisition runs on early returns and exceptions too. A release on the last line is skipped by any early exit, and idle timeouts don't reclaim a connection that's checked out."
             }
           ]
         },
@@ -998,6 +1060,30 @@
               ],
               "answer": 1,
               "explain": "A transaction lives on one connection. Check out a client with `pool.connect()`, run all four statements on it, then release it."
+            },
+            {
+              "lang": null,
+              "q": "`placeOrder` calls `orderRepo.insert(order)` and `stockRepo.decrement(item)`, and each repository takes its own connection from the pool. It must be all-or-nothing. What's needed?",
+              "choices": [
+                "Pass one transaction handle into both repository calls",
+                "Call a rollback method on each repository if the other fails",
+                "Run both calls in parallel threads to shorten the window",
+                "Use `SERIALIZABLE` on each repository's connection"
+              ],
+              "answer": 0,
+              "explain": "Atomicity needs both statements on the same connection inside one transaction. Separate connections commit separately, and an isolation level doesn't join them."
+            },
+            {
+              "lang": "python",
+              "q": "In `psycopg_pool`, what happens to the stock update if the outer transaction rolls back after `reserve_stock` returns?\n\n```python\ndef reserve_stock(item_id: int) -> None:\n    with pool.connection() as conn:\n        conn.execute(\"UPDATE stock SET qty = qty - 1 WHERE id = %s\", (item_id,))\n\nwith pool.connection() as conn:\n    with conn.transaction():\n        conn.execute(\"INSERT INTO orders ...\")\n        reserve_stock(item_id)\n        raise PaymentDeclined()\n```",
+              "choices": [
+                "It's rolled back, because it ran in the same process",
+                "It's rolled back, because `pool.connection()` joins the open transaction",
+                "It stays committed: it ran on a different connection",
+                "It's never committed, because `reserve_stock` doesn't call `commit()`"
+              ],
+              "answer": 2,
+              "explain": "`pool.connection()` hands out a separate connection, and leaving its `with` block commits. The outer rollback only covers statements on the outer connection."
             }
           ]
         },
@@ -1029,6 +1115,18 @@
               ],
               "answer": 3,
               "explain": "The pending row records intent durably, the external call holds no database resources, and a later step (or a reconciler) records the outcome. No isolation level can make an HTTP call atomic with a commit."
+            },
+            {
+              "lang": null,
+              "q": "A handler opens a transaction, inserts an order row, calls a shipping provider's API (usually 300 ms, sometimes 20 s), then updates the row and commits. Under load, which symptom appears first?",
+              "choices": [
+                "Duplicate key errors on the order row",
+                "Pool exhaustion and lock waits, from connections and row locks held during slow calls",
+                "Phantom reads for concurrent readers",
+                "Replication lag on every replica"
+              ],
+              "answer": 1,
+              "explain": "The transaction holds a connection (and any locks it took) for the whole API call, so slow responses pin pool slots and make other writers wait. The other symptoms aren't caused by the call's duration."
             }
           ]
         },

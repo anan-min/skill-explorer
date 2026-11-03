@@ -12,7 +12,6 @@
           "id": "frontend/components/controlled-inputs",
           "title": "Controlled vs uncontrolled inputs",
           "summary": "Whether React state (`value` + `onChange`) or the DOM itself owns an input's current value",
-          "basic": true,
           "variants": [
             {
               "lang": "ts",
@@ -174,7 +173,6 @@
           "id": "frontend/state/immutable-updates",
           "title": "Immutable state updates",
           "summary": "Creating new arrays and objects for state changes, because React compares by reference",
-          "basic": true,
           "variants": [
             {
               "lang": "ts",
@@ -360,8 +358,21 @@
               ],
               "answer": 0,
               "explain": "INP measures the delay from a user interaction to the next frame being painted; it replaced First Input Delay as a Core Web Vital in March 2024. LCP is about how fast the main content loads."
+            },
+            {
+              "lang": null,
+              "q": "A news page shows its headline image only after 4.5 seconds because the file is huge and loaded late. Which Core Web Vital reflects this?",
+              "choices": [
+                "Cumulative Layout Shift (CLS)",
+                "Interaction to Next Paint (INP)",
+                "Total Blocking Time (TBT)",
+                "Largest Contentful Paint (LCP)"
+              ],
+              "answer": 3,
+              "explain": "LCP times how long the largest visible element, often a hero image or headline, takes to render. Total Blocking Time is a lab metric related to main-thread work, not one of the three Core Web Vitals."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "frontend/performance/code-splitting",
@@ -506,8 +517,8 @@
           "basic": true,
           "variants": [
             {
-              "lang": "ts",
-              "q": "What do keyboard users lose with this control?\n\n```tsx\n<div className=\"btn\" onClick={save}>Save</div>\n```",
+              "lang": null,
+              "q": "What do keyboard users lose with this control?\n\n```html\n<div class=\"btn\" onclick=\"save()\">Save</div>\n```",
               "choices": [
                 "Nothing, as long as it has a visible text label",
                 "Only the hover and active styles",
@@ -518,7 +529,7 @@
               "explain": "A `div` has no role, no focusability and no keyboard activation. `<button type=\"button\" onClick={save}>` provides all three for free."
             },
             {
-              "lang": "ts",
+              "lang": null,
               "q": "A team adds `role=\"button\"` to a clickable `div`. What else is still needed for it to behave like a real button?",
               "choices": [
                 "Nothing: the role adds keyboard support",
@@ -528,6 +539,18 @@
               ],
               "answer": 1,
               "explain": "ARIA roles change what assistive technology announces, not how the element behaves. You must add focusability and keyboard activation yourself, which is why a native `<button>` is the better choice."
+            },
+            {
+              "lang": null,
+              "q": "A page needs two controls: \"Go to account settings\" opens a different page, and \"Delete draft\" performs an action on the current page. Which markup is the right fit?",
+              "choices": [
+                "An `<a href=\"#\">` for both, with JavaScript deciding the action",
+                "An `<a href=\"/settings\">` link and a `<button>`",
+                "Two `<button>` elements with `onclick` handlers",
+                "Two `<div role=\"link\">` elements with click handlers"
+              ],
+              "answer": 1,
+              "explain": "Links navigate and buttons act, and each brings the matching keyboard behaviour and announcement. A `div` with a role needs focus and key handling added by hand, and `href=\"#\"` anchors announce a destination that doesn't exist."
             }
           ]
         },
@@ -559,8 +582,21 @@
               ],
               "answer": 0,
               "explain": "When an image is a link's only content, its `alt` becomes the link's name, so it should say where the link goes or what it does. Describing the picture tells users nothing useful, and an empty `alt` leaves the link unnamed."
+            },
+            {
+              "lang": null,
+              "q": "An image is a bar chart showing revenue rising every quarter of the year, and nothing else on the page describes it. Which `alt` serves screen reader users best?",
+              "choices": [
+                "`alt=\"Bar chart\"`",
+                "`alt=\"\"`, because charts are visual content",
+                "`alt=\"Bar chart: revenue rose every quarter this year\"`",
+                "`alt=\"chart.png\"`"
+              ],
+              "answer": 2,
+              "explain": "A meaningful image needs alt text that carries its message when nothing nearby does. A file name or only the image type gives no information, and an empty alt tells assistive tech to skip content that matters."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "frontend/accessibility/form-labels",
@@ -695,8 +731,21 @@
               ],
               "answer": 0,
               "explain": "It makes the layout viewport as wide as the device's screen in CSS pixels, so CSS widths and media queries behave as expected. Physical pixels are a separate thing, handled through the device pixel ratio."
+            },
+            {
+              "lang": null,
+              "q": "A site's viewport tag is `width=device-width, initial-scale=1, user-scalable=no`. Why do accessibility audits flag it?",
+              "choices": [
+                "It makes text render smaller than 16 px",
+                "It blocks screen readers from reading the page",
+                "It forces the page to a fixed desktop width",
+                "It stops people with low vision from pinch-zooming"
+              ],
+              "answer": 3,
+              "explain": "Disabling scaling removes a basic way to enlarge content, which conflicts with WCAG's resize requirements. The width and initial-scale parts are the normal, recommended settings."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "frontend/responsive-design/mobile-first",
@@ -949,8 +998,21 @@
               ],
               "answer": 0,
               "explain": "`HttpOnly` hides the cookie from `document.cookie` and other scripts. Sending only over HTTPS is the `Secure` flag, and cross-site sending is governed by `SameSite`."
+            },
+            {
+              "lang": null,
+              "q": "A site moves its session token from `localStorage` into an `HttpOnly` cookie. An XSS hole remains. Which statement is correct about what injected script can still do?",
+              "choices": [
+                "It can copy the token, but only while the tab is in the background",
+                "It can still send requests as the user, but can't read the token",
+                "It can no longer do anything harmful, since the token is hidden",
+                "It can read the cookie through `document.cookie` after a reload"
+              ],
+              "answer": 1,
+              "explain": "HttpOnly stops scripts from reading the token, so it can't be stolen and reused elsewhere, but the browser still attaches it to requests the injected script makes from the victim's page. XSS stays serious."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "frontend/frontend-security/samesite-cookies",

@@ -37,7 +37,8 @@
               "answer": 2,
               "explain": "Flags let incomplete code ship to main and even to production without being reachable by users. Keeping it on a branch is exactly the long-lived divergence trunk-based development avoids."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "delivery-ops/ci/build-once-promote",
@@ -180,7 +181,7 @@
               "q": "In a blue-green deployment, the new version (green) is live and errors spike. What is the fastest rollback?",
               "choices": [
                 "Rebuild the previous version and redeploy it",
-                "Scale green to zero and wait for autoscaling",
+                "Restart green's pods in case that clears the errors",
                 "Switch traffic back to blue",
                 "Roll forward with a hotfix"
               ],
@@ -322,6 +323,18 @@
               ],
               "answer": 0,
               "explain": "Endpoint removal runs concurrently with SIGTERM, and load balancers and kube-proxy on every node take a moment to drop the pod. A short pause before closing (in the app, or a `preStop` sleep) lets those stragglers be served."
+            },
+            {
+              "lang": null,
+              "q": "A rolling deploy ends a pod while it is halfway through a 20-second report export, and the client gets a connection reset. The pod's termination grace period is 30 seconds. What should the app do on SIGTERM?",
+              "choices": [
+                "Ignore SIGTERM and keep running until Kubernetes sends SIGKILL",
+                "Finish only the requests that are under one second long",
+                "Stop accepting new work, finish in-flight requests, then exit",
+                "Exit immediately, since the client will retry the export"
+              ],
+              "answer": 2,
+              "explain": "Draining means refusing new requests while in-flight ones complete within the grace period. Exiting at once drops the export, and ignoring SIGTERM means the work ends abruptly at SIGKILL anyway."
             }
           ]
         }
@@ -564,6 +577,18 @@
               ],
               "answer": 1,
               "explain": "Indexing `os.environ` raises `KeyError` for a missing key, and at module level that happens at import, before the service accepts traffic. `getenv` returns `None` (or the default), so the failure turns up later, on a request."
+            },
+            {
+              "lang": null,
+              "q": "A service reads `PAYMENT_API_URL` lazily on the first checkout and falls back to an empty string if it is unset. A deploy to production misses the variable. When does anyone find out?",
+              "choices": [
+                "At deploy time, because the rollout health check fails",
+                "At startup, because every runtime refuses to boot with empty values",
+                "Never: the empty string is replaced by a sensible default",
+                "On the first customer checkout, and only if someone sees the error"
+              ],
+              "answer": 3,
+              "explain": "Lazy reads with a silent default push the failure to the first request that needs the value. Validating all required settings at startup makes the bad deploy fail its health check before taking traffic."
             }
           ]
         },
@@ -756,6 +781,30 @@
               ],
               "answer": 0,
               "explain": "The flag tells V8 it may grow the heap to 4 GiB, so it lets garbage pile up past what the container allows and the kernel kills the process. Set the old-space size below the container limit; about three quarters of it is a common rule of thumb, leaving room for buffers and native memory."
+            },
+            {
+              "lang": null,
+              "q": "A service on a garbage-collected runtime holds about 600 MiB of live data in a 1 GiB container. It is OOMKilled at peak traffic, even though live data fits. What is the underlying cause and fix?",
+              "choices": [
+                "Live data is leaking; the only fix is to find and remove the leak",
+                "The runtime lets the heap grow past the container limit; set a heap ceiling below it",
+                "The container's CPU limit is too low for the collector; raise it",
+                "The garbage collector never runs in containers; trigger it manually"
+              ],
+              "answer": 1,
+              "explain": "A runtime sizes its heap from its own settings or the host, not the container's cgroup limit, so garbage can pile up until the kernel kills the process. A leak is possible but not implied: live data stayed at 600 MiB."
+            },
+            {
+              "lang": null,
+              "q": "A Java service in a 1 GiB container is started with a maximum heap of 1 GiB, and it is still OOMKilled while the heap shows no out-of-memory error. Why?",
+              "choices": [
+                "Heap memory is not counted against the container limit until a full GC",
+                "Kubernetes always kills pods whose heap is above 80% of the limit",
+                "Thread stacks, metaspace and native buffers count toward the limit too",
+                "The container limit applies only to the memory the heap has already used"
+              ],
+              "answer": 2,
+              "explain": "The container limit covers the whole process, not just the heap, so a heap ceiling equal to the limit leaves no room for stacks, metaspace and native memory. The heap itself counts as it grows, so the kill can come before the runtime ever reports its own out-of-memory error."
             }
           ]
         },
@@ -867,6 +916,18 @@
               ],
               "answer": 2,
               "explain": "Structured fields let a log tool query \"all failures for provider x\" directly. With free text you depend on regexes that break whenever the wording changes."
+            },
+            {
+              "lang": null,
+              "q": "Service A logs `{\"userId\": 7}`, service B logs `{\"user_id\": 7}` and service C logs `{\"uid\": 7}`. An engineer wants every log line for user 7 across the three services. What is the problem?",
+              "choices": [
+                "The numeric value 7 should have been logged as a string",
+                "Each service needs its own log aggregation pipeline",
+                "One query can't match all three, because field names differ",
+                "JSON logs can't be searched across services"
+              ],
+              "answer": 2,
+              "explain": "Structured logs only pay off when field names are consistent, since queries are by field. Agreeing on a shared schema (or normalising at ingest) lets one query find the user everywhere."
             }
           ]
         },
@@ -892,7 +953,7 @@
               "q": "HTTP traces look complete, but every trace stops where service A publishes to a queue, and the consumer's work shows up as separate traces. What is missing?",
               "choices": [
                 "The consumer's trace sampling rate is set too low",
-                "Message queues can't be traced at all",
+                "The broker has to be restarted with tracing switched on",
                 "The consumer must use the same service name as A",
                 "The context isn't put in the message headers"
               ],
@@ -930,7 +991,8 @@
               "answer": 1,
               "explain": "With 20 independent calls, the chance at least one is in its slowest 1% is about 18%. Fan-out makes tail latency the common case, so look at the tail end to end."
             }
-          ]
+          ],
+          "basic": true
         },
         {
           "id": "delivery-ops/observability/histogram-aggregation",
