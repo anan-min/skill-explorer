@@ -16,16 +16,22 @@ export function Home({ progress }: AppProps) {
       </div>
       <h1 className="text-4xl font-semibold tracking-tight">Find the concepts you've missed</h1>
       <p className="mx-auto max-w-lg text-muted-foreground">
-        Scan every area of software engineering, then prove what you claimed. Find out what kind of developer you are,
-        and which concepts you haven't met yet.
+        See every area of software engineering at a glance, or prove what you know. Find out what kind of developer you
+        are, and which concepts you haven't met yet.
       </p>
-      <div className="space-y-2">
-        <Button size="lg" className="h-auto px-10 py-4 text-base" asChild>
-          <a href="#/start">Start</a>
+      <div className="mx-auto grid max-w-md gap-3 sm:grid-cols-2">
+        <Button size="lg" variant="outline" className="h-auto flex-col gap-1 py-4" asChild>
+          <a href="#/scan">
+            <span className="text-base">Quick scan</span>
+            <span className="text-xs font-normal text-muted-foreground">About 2 min · what you say you know</span>
+          </a>
         </Button>
-        <p className="text-sm text-muted-foreground">
-          About 5 minutes: a quick scan of every topic, then a few questions to check.
-        </p>
+        <Button size="lg" className="h-auto flex-col gap-1 py-4" asChild>
+          <a href="#/quiz">
+            <span className="text-base">Quiz</span>
+            <span className="text-xs font-normal opacity-70">About 5 min · scan, then prove it</span>
+          </a>
+        </Button>
       </div>
       <p className="text-sm text-muted-foreground">
         {explored} of {concepts.length} concepts explored · Your answers stay in this browser.

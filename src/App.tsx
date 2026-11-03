@@ -49,7 +49,13 @@ export function App() {
         </a>
       </header>
       <main className="mx-auto max-w-3xl px-4 pb-16">
-        {route === "start" ? <Run {...props} /> : route === "results" ? <Results {...props} /> : <Home {...props} />}
+        {route === "scan" || route === "quiz" ? (
+          <Run key={route} mode={route} {...props} />
+        ) : route === "results" ? (
+          <Results {...props} />
+        ) : (
+          <Home {...props} />
+        )}
       </main>
       <footer className="mx-auto flex max-w-3xl flex-wrap justify-between gap-2 border-t px-4 py-6 text-sm text-muted-foreground">
         <span>

@@ -131,18 +131,22 @@ export function strength(g: GroupFile, p: Progress): number {
   return explored.length ? explored.reduce((sum, c) => sum + score(p, c.id), 0) / explored.length : 0;
 }
 
-// A topic is done once its scan rows are answered and, if it can be quizzed, one check is answered.
-function runDone(g: GroupFile, p: Progress): boolean {
+// A topic is scanned once its scan rows are answered: enough for a (self-reported) persona.
+function scanned(g: GroupFile, p: Progress): boolean {
   const concepts = conceptsOf(g);
-  const explored = concepts.filter((c) => stateOf(p, c.id) !== "fog").length;
-  const quizzable = concepts.some((c) => c.variants.length);
-  return (
-    explored >= Math.min(SCAN_PER_GROUP, concepts.length) && (!quizzable || concepts.some((c) => answered(p, c.id)))
-  );
+  return concepts.filter((c) => stateOf(p, c.id) !== "fog").length >= Math.min(SCAN_PER_GROUP, concepts.length);
+}
+
+// True once every topic that can be quizzed has a quiz answer, i.e. the result is checked, not just claimed.
+export function allChecked(groups: GroupFile[], p: Progress): boolean {
+  return groups.every((g) => {
+    const concepts = conceptsOf(g);
+    return !concepts.some((c) => c.variants.length) || concepts.some((c) => answered(p, c.id));
+  });
 }
 
 export function persona(groups: GroupFile[], p: Progress): Persona {
-  if (!groups.length || !groups.every((g) => runDone(g, p))) return { kind: "locked" };
+  if (!groups.length || !groups.every((g) => scanned(g, p))) return { kind: "locked" };
   const rows = groups.map((g, order) => ({
     id: g.group.id,
     order,

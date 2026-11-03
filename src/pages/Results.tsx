@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Separator } from "@/components/ui/separator";
 import type { AppProps } from "../App.tsx";
 import { GROUPS } from "../content.ts";
-import { gapsByGroup, gapText, parseBackup, persona, stats, strength, type Persona } from "../logic.ts";
+import { allChecked, gapsByGroup, gapText, parseBackup, persona, stats, strength, type Persona } from "../logic.ts";
 import { Inline, Markdown } from "../Markdown.tsx";
 import { mascot } from "../mascots.ts";
 import { Radar } from "../Radar.tsx";
@@ -26,6 +26,7 @@ function download(blob: Blob, name: string) {
 
 export function Results({ progress, update }: AppProps) {
   const who = persona(GROUPS, progress);
+  const checked = allChecked(GROUPS, progress);
   const m = personaMascot(who);
   const hero = useRef<HTMLDivElement>(null);
 
@@ -92,12 +93,15 @@ export function Results({ progress, update }: AppProps) {
               {who.kind === "apprentice" && (
                 <p className="text-sm text-muted-foreground">Every area is still open to explore.</p>
               )}
+              {m && !checked && (
+                <p className="text-sm text-muted-foreground">Based on what you said. Take the quiz to check it.</p>
+              )}
             </>
           ) : (
             <>
               <img className="mascot size-44 opacity-30 grayscale" src={mascot("wanderer").src} alt="" />
               <p className="text-2xl font-semibold tracking-[0.25em] uppercase">Keep exploring</p>
-              <p className="text-sm text-muted-foreground">Finish a run to meet your mascot.</p>
+              <p className="text-sm text-muted-foreground">Finish a quick scan or a quiz to meet your mascot.</p>
             </>
           )}
           <Radar axes={GROUPS.map((g) => ({ id: g.group.id, title: g.group.title, value: strength(g, progress) }))} />
@@ -105,7 +109,7 @@ export function Results({ progress, update }: AppProps) {
         </div>
         <div className="flex flex-wrap justify-center gap-2">
           <Button asChild>
-            <a href="#/start">{m ? "Run again" : "Start a run"}</a>
+            <a href="#/quiz">{checked ? "Quiz again" : "Take the quiz"}</a>
           </Button>
           <Button variant="outline" onClick={copyImage}>
             Copy image

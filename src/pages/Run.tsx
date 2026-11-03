@@ -40,8 +40,8 @@ function checks(progress: Progress, lang: LangPref) {
   }));
 }
 
-// One run: scan a sample of every topic, then check the claims (or a basic question) in each.
-export function Run({ progress, update, settings, setSettings }: AppProps) {
+// Quick scan: a sample of every topic. Quiz: the same scan, then check the claims (or a basic question) in each.
+export function Run({ mode, progress, update, settings, setSettings }: AppProps & { mode: "scan" | "quiz" }) {
   const [sample] = useState(() => scanSample(GROUPS, progress, Math.random));
   const [queue, setQueue] = useState<ReturnType<typeof checks> | null>(null);
   const [index, setIndex] = useState(0);
@@ -56,7 +56,7 @@ export function Run({ progress, update, settings, setSettings }: AppProps) {
     return (
       <section className="space-y-8 pb-24">
         <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">Step 1 of 2 · Quick scan</p>
+          <p className="text-sm text-muted-foreground">{mode === "quiz" ? "Step 1 of 2 · Quick scan" : "Quick scan"}</p>
           <h1 className="text-3xl font-semibold tracking-tight">Have you met these?</h1>
           <p className="text-muted-foreground">
             A few from every topic. Never heard of it, heard the name, or used it?
@@ -82,8 +82,13 @@ export function Run({ progress, update, settings, setSettings }: AppProps) {
           <span className="text-sm text-muted-foreground tabular-nums">
             {done} of {rows.length} answered
           </span>
-          <Button disabled={done < rows.length} onClick={() => setQueue(checks(progress, settings.lang))}>
-            Next: quick check →
+          <Button
+            disabled={done < rows.length}
+            onClick={() =>
+              mode === "quiz" ? setQueue(checks(progress, settings.lang)) : (window.location.hash = "#/results")
+            }
+          >
+            {mode === "quiz" ? "Next: quick check →" : "See my result →"}
           </Button>
         </StickyBar>
       </section>

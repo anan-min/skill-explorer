@@ -16,7 +16,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 ## Stack and hosting
 
 - Vite + React + TypeScript.
-- Hash routing (`#/start`, `#/results`), because GitHub Pages has no SPA fallback.
+- Hash routing (`#/scan`, `#/quiz`, `#/results`), because GitHub Pages has no SPA fallback.
 - UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page so the mascots are the only colour.
 - GitHub Pages at `anan-min.github.io/skill-explorer`, deployed by GitHub Actions on push to `main`.
 - English only.
@@ -80,7 +80,7 @@ One file per group: `content/NN-<group-id>.json` (`01-language-runtime.json` …
       "id": "language-runtime/async/errgroup",   // group/skill/slug
       "title": "errgroup",
       "summary": "One line, shown in the gap list",
-      "basic": true,                              // optional: a foundational question, see "One run"
+      "basic": true,                              // optional: a foundational question, see step 2
       "variants": [{                              // [] = scan-only
         "lang": "go",                             // "go" | "ts" | null
         "q": "Markdown, code fences allowed",
@@ -118,9 +118,12 @@ Each concept is in one state:
 - **Explored** = any state except `fog`.
 - Scan-only concepts top out at `claimed`.
 
-## One run
+## Two buttons, both cover every topic
 
-Home has one **Start** button. A run covers every topic, takes about 5 minutes, and has two steps; there is no way to finish only one topic and get a result.
+Home has two buttons, so people know up front what they're starting. Neither lets someone do only one topic and get a result.
+
+- **Quick scan** (`#/scan`, about 2 min): step 1 only, then the result, based on self-reports.
+- **Quiz** (`#/quiz`, about 5 min): step 1, then step 2, then the result, checked against quiz answers.
 
 ### Step 1: quick scan (breadth)
 
@@ -130,7 +133,7 @@ Home has one **Start** button. A run covers every topic, takes about 5 minutes, 
   - **Heard** (know the name) → `gap`
   - **Used** → `claimed`
 - A gap remembers which button made it (`scan: "never" | "name"`), so rows show earlier answers.
-- "Next: quick check" stays disabled until every row is answered.
+- The next button ("See my result" in a scan, "Next: quick check" in a quiz) stays disabled until every row is answered.
 
 ### Step 2: quick check (depth, aimed at claims)
 
@@ -148,7 +151,8 @@ Home has one **Start** button. A run covers every topic, takes about 5 minutes, 
 
 - **Strength** per topic = average over its explored concepts of: quiz right 1, unverified Used ¾, Heard ½, New 0, quiz wrong 0. A quiz answer replaces the self-report for that concept; unverified claims count less so claiming everything doesn't pay.
 - **Radar:** strength per topic, no numbers.
-- **Unlock:** once every topic has its scan rows answered and (if it can be quizzed) at least one quiz answer, i.e. one finished run. Before that, a silhouette and "finish a run".
+- **Unlock:** once every topic has its scan rows answered (a finished Quick scan or Quiz). Before that, a silhouette and "finish a quick scan or a quiz".
+- **Checked or claimed:** until every quizzable topic has a quiz answer, the hero says "Based on what you said. Take the quiz to check it."
 - **Persona rule:** a topic **passes** at ≥ 60% strength.
   - No topic passes → **Apprentice**.
   - Every topic passes → **Wanderer**.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Concept, GroupFile, Variant } from "./schema.ts";
 import {
+  allChecked,
   answer,
   emptyProgress,
   gapText,
@@ -201,15 +202,17 @@ describe("persona", () => {
   const a = topic("a", 4);
   const b = topic("b", 4);
   const c = topic("c", 4);
-  // A finished run: all 4 rows scanned and one quiz answer per topic.
+  // A finished scan: all 4 rows answered.
   const run = (g: string, ...parts: Progress["concepts"][]) =>
     Object.assign({}, fresh(`${g}1`, `${g}2`, `${g}3`, `${g}4`), ...parts) as Progress["concepts"];
 
-  it("stays locked until every topic is scanned and checked", () => {
-    expect(persona([a, b], progress(run("a", right("a1")), fresh("b1", "b2"), wrong("b4")))).toEqual({
-      kind: "locked",
-    });
-    expect(persona([a, b], progress(run("a", right("a1")), run("b")))).toEqual({ kind: "locked" });
+  it("stays locked until every topic is scanned", () => {
+    expect(persona([a, b], progress(run("a"), fresh("b1", "b2", "b3")))).toEqual({ kind: "locked" });
+  });
+
+  it("unlocks from a scan alone, on self-reports", () => {
+    const claimed = (g: string) => run(g, used(`${g}1`, `${g}2`, `${g}3`, `${g}4`));
+    expect(persona([a, b], progress(claimed("a"), run("b")))).toEqual({ kind: "group", id: "a" });
   });
 
   it("is the Apprentice when no topic reaches 60%", () => {
@@ -236,6 +239,16 @@ describe("persona", () => {
       run("c", wrong("c1")),
     );
     expect(persona([a, b, c], tie)).toEqual({ kind: "group", id: "a" });
+  });
+});
+
+describe("allChecked", () => {
+  it("is true once every quizzable topic has a quiz answer", () => {
+    const a = topic("a", 2);
+    const b = topic("b", 2);
+    const scanOnly = group("s", [{ ...quizzable("s1"), variants: [] }]);
+    expect(allChecked([a, b, scanOnly], progress(used("a1", "a2", "b1", "b2")))).toBe(false);
+    expect(allChecked([a, b, scanOnly], progress(right("a1"), wrong("b2")))).toBe(true);
   });
 });
 
