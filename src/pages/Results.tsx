@@ -85,7 +85,7 @@ export function Results({ progress, update, collection, setCollection }: AppProp
   };
   const startOver = () => {
     if (!window.confirm("Clear every rating and answer in this browser and start over?")) return;
-    if (window.confirm("Also clear the mascots you've found? Cancel keeps them.")) setCollection([]);
+    if (window.confirm("Also clear the nerds you've found? Cancel keeps them.")) setCollection([]);
     update(emptyProgress);
     window.location.hash = "#/";
   };
@@ -128,7 +128,7 @@ export function Results({ progress, update, collection, setCollection }: AppProp
                 alt=""
               />
               <p className="text-2xl font-semibold tracking-[0.25em] uppercase">Keep exploring</p>
-              <p className="text-sm text-muted-foreground">Finish a quick scan or a quiz to meet your mascot.</p>
+              <p className="text-sm text-muted-foreground">Finish a quick scan or a quiz to meet your nerd.</p>
             </>
           )}
           <Radar
@@ -167,7 +167,7 @@ export function Results({ progress, update, collection, setCollection }: AppProp
           href="#/mascots"
           className="-my-3 inline-block py-3 text-sm sm:my-0 sm:py-0 text-muted-foreground underline-offset-4 hover:underline"
         >
-          Mascot dex · {collection.length} of {DEX.length} found
+          Nerd dex · {collection.length} of {DEX.length} found
         </a>
       </section>
 

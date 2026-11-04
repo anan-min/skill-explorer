@@ -113,13 +113,25 @@ describe("skillScore", () => {
     expect(skillScore(g, a, rate(emptyProgress(), g, a, "expert"))).toBe(1);
   });
 
-  it("moves by level: right easy/medium/hard +0.1/+0.15/+0.2, wrong −0.25/−0.15/−0.05", () => {
+  it("moves by level: right easy/medium/hard +0.1/+0.15/+0.2, wrong −0.4/−0.3/−0.15", () => {
     const used = rate(emptyProgress(), g, a, "used");
     expect(skillScore(g, a, right(used, find(g, "a-easy")))).toBeCloseTo(0.8);
-    expect(skillScore(g, a, wrong(used, find(g, "a-easy")))).toBeCloseTo(0.45);
-    expect(skillScore(g, a, wrong(used, find(g, "a-hard")))).toBeCloseTo(0.65);
+    expect(skillScore(g, a, wrong(used, find(g, "a-easy")))).toBeCloseTo(0.3);
+    expect(skillScore(g, a, wrong(used, find(g, "a-hard")))).toBeCloseTo(0.55);
     const heard = rate(emptyProgress(), g, a, "heard");
     expect(skillScore(g, a, right(right(heard, find(g, "a-med")), find(g, "a-hard")))).toBeCloseTo(0.75);
+  });
+
+  it("caps a skill while a miss stands, so a bigger claim falls further", () => {
+    const expert = rate(emptyProgress(), g, a, "expert");
+    expect(skillScore(g, a, wrong(expert, find(g, "a-easy")))).toBeCloseTo(0.4);
+    expect(skillScore(g, a, wrong(expert, find(g, "a-med")))).toBeCloseTo(0.55);
+    expect(skillScore(g, a, wrong(expert, find(g, "a-hard")))).toBeCloseTo(0.7);
+    // Right answers elsewhere don't lift it past the cap; the lowest cap wins.
+    expect(skillScore(g, a, right(wrong(expert, find(g, "a-easy")), find(g, "a-hard")))).toBeCloseTo(0.4);
+    expect(skillScore(g, a, wrong(wrong(expert, find(g, "a-hard")), find(g, "a-easy")))).toBeCloseTo(0.4);
+    // Answering the missed concept right lifts the cap.
+    expect(skillScore(g, a, right(wrong(expert, find(g, "a-easy")), find(g, "a-easy")))).toBe(1);
   });
 
   it("counts only the latest answer per concept, and clamps to 0–1", () => {
@@ -239,12 +251,28 @@ describe("persona", () => {
     expect(persona([strong, weak], p)).toEqual({ kind: "wanderer" });
   });
 
-  it("is the Wanderer from 5 strong topics out of 9, not 4", () => {
+  it("is the Wanderer from 7 strong topics out of 9, not 6", () => {
     const nine = Array.from({ length: 9 }, (_, i) => group(`g${i}`, { s: [["s", "easy"]] }));
     const strongIn = (k: number) =>
       nine.reduce((p, g, i) => rate(p, g, skill(g, "s"), i < k ? "used" : "new"), emptyProgress());
-    expect(persona(nine, strongIn(5))).toEqual({ kind: "wanderer" });
-    expect(persona(nine, strongIn(4))).toEqual({ kind: "group", id: "g0", job: "g1" });
+    expect(persona(nine, strongIn(7))).toEqual({ kind: "wanderer" });
+    expect(persona(nine, strongIn(6))).toEqual({ kind: "group", id: "g0", job: "g1" });
+  });
+
+  it("doesn't count a topic as strong when it has more missed answers than right ones", () => {
+    // Rated Used everywhere, then missed every Quick scan question: no topic passes.
+    const nine = Array.from({ length: 9 }, (_, i) =>
+      group(`g${i}`, Object.fromEntries(["a", "b", "c", "d", "e", "f"].map((k) => [k, [[k, "easy" as Level]]]))),
+    );
+    let p = nine.reduce(
+      (acc, g) => rateAll(acc, g, Object.fromEntries(g.skills.map((s) => [s.id, "used" as Rating]))),
+      emptyProgress(),
+    );
+    p = nine.reduce((acc, g) => wrong(acc, find(g, "a")), p);
+    expect(persona(nine, p)).toEqual({ kind: "apprentice" });
+    // One right answer evens it out again.
+    p = right(p, find(nine[0], "b"));
+    expect(persona(nine, p)).toEqual({ kind: "group", id: "g0", job: "g0" });
   });
 
   it("with one strong topic, is that topic's animal in its own job", () => {
@@ -262,9 +290,8 @@ describe("persona", () => {
     // Both 0.8, but third has two right answers.
     p = right(right(right(p, find(strong, "s")), find(third, "t")), find(third, "u"));
     expect(persona([strong, weak, third], p)).toEqual({ kind: "group", id: "third", job: "strong" });
-    // Higher strength beats more right answers.
-    p = right(p, find(strong, "s"));
-    expect(persona([weak, third, strong], wrong(p, find(third, "u")))).toEqual({
+    // Higher strength beats more right answers: strong 0.95 with one right, third 0.8 with two.
+    expect(persona([weak, third, strong], rate(p, strong, skill(strong, "s"), "strong"))).toEqual({
       kind: "group",
       id: "strong",
       job: "third",

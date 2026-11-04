@@ -51,10 +51,10 @@ export function Mascots({ collection }: AppProps) {
     <section className="space-y-8">
       <SilhouetteFilter />
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Mascot dex</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Nerd dex</h1>
         <p className="text-muted-foreground">
-          Found {count} of {DEX.length}. Your map's mascot joins the dex; quiz again or take another path to find more.
-          A topic is strong at {Math.round(PASS_RATE * 100)}% or more.
+          Found {count} of {DEX.length}. Your map's nerd joins the dex; quiz again or take another path to find more. A
+          topic is strong at {Math.round(PASS_RATE * 100)}% or more, with no more missed answers than right ones.
         </p>
       </div>
       {SECTIONS.map((s) => {
