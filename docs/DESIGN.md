@@ -183,15 +183,18 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
   - Two or more pass → the strongest topic's animal in the second-strongest topic's job (e.g. Octopus · Knight); a third or later topic doesn't change it. Ranking: strength, then more right answers, then the lower group number.
 - Results accumulate across runs, so later runs sharpen the result.
 
-Your gaps and Your skills start closed: each heading opens its section and shows a count (skills in the gap list; right and missed answers), so the page stays short.
+Below the hero, two summary cards keep the results page short; each links to its own page (`#/gaps`, `#/skills`) with "← Back to your map" and topic chips (All, then each topic with its count) that show one topic at a time.
 
-### Your gaps
+- **Your gaps card:** "N skills to work on · M missed questions", the 3 topics with the most gap skills, **See all gaps →**.
+- **Your skills card:** "N of M strong · K checked" (strong = score ≥ 60%), the 3 strongest and 3 weakest rated skills with their score, **See all skills →**.
+
+### Your gaps page
 
 By topic, sorted by size: every skill rated **New** (grey tag, no stripe) or **Heard** (butter), or scoring under 50% (**Low score**, rose), with its summary. Under each skill, every missed question, tagged with its level (easy first), expanding to the question, the picked choice, the answer and the explanation. No links, no how-to-learn.
 
-### Your skills
+### Your skills page
 
-Below the gaps, never on the share card: right and missed answers, skills rated Used, and skills not rated. Then every topic's skills with their score and whether they're checked; each expands to its concepts ("To explore"), with their level and result.
+Never on the share card: right and missed answers, skills rated Used, and skills not rated. Then every topic's skills with their score and whether they're checked; each expands to its concepts ("To explore"), with their level and result.
 
 ### Footer
 

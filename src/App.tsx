@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import type { Progress } from "./logic.ts";
+import { Gaps, Skills } from "./pages/Details.tsx";
 import { Home } from "./pages/Home.tsx";
 import { Results } from "./pages/Results.tsx";
 import { Run } from "./pages/Run.tsx";
@@ -57,6 +58,10 @@ export function App() {
           <Run key={route} mode={route} {...props} />
         ) : route === "results" ? (
           <Results {...props} />
+        ) : route === "gaps" ? (
+          <Gaps {...props} />
+        ) : route === "skills" ? (
+          <Skills {...props} />
         ) : (
           <Home {...props} />
         )}
