@@ -271,10 +271,10 @@ const indent = (text: string) =>
 
 // A Markdown file of every skill's rating and score and every concept's result, with the question
 // behind each missed one. `personaName` is null while the persona is locked.
-export function report(groups: GroupFile[], p: Progress, personaName: string | null): string {
+export function report(groups: GroupFile[], p: Progress, personaName: string | null, tagline?: string): string {
   const { checked, claimed } = claimsChecked(groups, p);
   const who = personaName
-    ? `Persona: **${personaName}** (checked ${checked} of ${claimed} claimed skills)`
+    ? `Persona: **${personaName}** (checked ${checked} of ${claimed} claimed skills)${tagline ? `\n\n_${tagline}_` : ""}`
     : "Persona: not unlocked yet (finish a quick scan or a quiz)";
   const concept = (c: Concept) => {
     const result = resultOf(p, c);

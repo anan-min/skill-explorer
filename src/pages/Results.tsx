@@ -94,7 +94,7 @@ export function Results({ progress, update }: AppProps) {
   };
   const downloadReport = () => {
     const name = m && `${m.animal} · ${m.job}`;
-    download(new Blob([report(GROUPS, progress, name)], { type: "text/markdown" }), "nerdscape-report.md");
+    download(new Blob([report(GROUPS, progress, name, m?.tagline)], { type: "text/markdown" }), "nerdscape-report.md");
   };
   const backup = () =>
     download(new Blob([JSON.stringify(progress, null, 2)], { type: "application/json" }), "nerdscape-backup.json");
@@ -130,10 +130,7 @@ export function Results({ progress, update }: AppProps) {
               <img className="mascot size-44" src={m.src} alt="" />
               <p className="text-2xl font-semibold tracking-[0.25em] uppercase">{m.animal}</p>
               <p className="text-sm tracking-[0.2em] text-muted-foreground uppercase">{m.job}</p>
-              {who.kind === "wanderer" && <p className="text-sm text-muted-foreground">Strong in every area.</p>}
-              {who.kind === "apprentice" && (
-                <p className="text-sm text-muted-foreground">Every area is still open to explore.</p>
-              )}
+              <p className="max-w-sm text-sm text-muted-foreground italic">{m.tagline}</p>
               {claimed > 0 && (
                 <p className="text-sm text-muted-foreground">
                   Checked {checked} of {claimed} claimed skills.{checked < claimed && " Take the quiz to check more."}
