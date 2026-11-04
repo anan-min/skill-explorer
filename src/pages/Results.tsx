@@ -142,7 +142,7 @@ export function Results({ progress, update, collection, setCollection }: AppProp
           {canShare && (
             <Button onClick={share}>
               <Share2 />
-              Share
+              Share your nerd
             </Button>
           )}
           <Button variant={canShare ? "outline" : "default"} onClick={copyImage}>
