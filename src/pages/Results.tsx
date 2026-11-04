@@ -1,5 +1,5 @@
 import { toBlob } from "html-to-image";
-import { RotateCcw } from "lucide-react";
+import { Copy, ImageDown, RotateCcw, Share2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -137,22 +137,28 @@ export function Results({ progress, update, collection, setCollection }: AppProp
           />
           <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase">Nerdscape</p>
         </div>
+        {/* Sharing the card is the point of this page, so it gets the first, filled button and icons. */}
         <div className="flex flex-wrap justify-center gap-2">
-          <Button asChild>
-            <a href="#/quiz">{checked < claimed ? "Take the quiz" : "Quiz again"}</a>
-          </Button>
-          <Button variant="outline" onClick={copyImage}>
+          {canShare && (
+            <Button onClick={share}>
+              <Share2 />
+              Share your nerd
+            </Button>
+          )}
+          <Button variant={canShare ? "outline" : "default"} onClick={copyImage}>
+            <Copy />
             Copy image
           </Button>
           <Button variant="outline" onClick={async () => download(await card(), "nerdscape.png")}>
-            Download
+            <ImageDown />
+            Save image
           </Button>
-          {canShare && (
-            <Button variant="outline" onClick={share}>
-              Share
-            </Button>
-          )}
-          <Button variant="outline" onClick={startOver}>
+        </div>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button variant="outline" asChild>
+            <a href="#/quiz">{checked < claimed ? "Take the quiz →" : "Quiz again →"}</a>
+          </Button>
+          <Button variant="ghost" onClick={startOver}>
             <RotateCcw />
             Start over
           </Button>
