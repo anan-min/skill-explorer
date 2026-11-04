@@ -206,8 +206,8 @@ Never on the share card: right and missed answers, skills rated Used or higher, 
 ## Sharing
 
 - The hero exports as a PNG card (persona, mascot and radar, **no numbers**) via `html-to-image`.
-- Buttons: **Copy image** (`ClipboardItem`), **Download**, **Share** (`navigator.share` with the file, on mobile).
-- Next to them, **Start over**: after a confirm, clears all progress in this browser (the language choice stays) and goes to Home. A second confirm asks whether to clear the mascot dex too; Cancel keeps it.
+- Sharing is the page's main action, so its buttons come first, right under the card, each with an icon: **Share** (`navigator.share` with the file, where supported; the filled button), **Copy image** (`ClipboardItem`; filled when Share isn't available), **Save image** (downloads the PNG).
+- A second row: **Take the quiz →** / **Quiz again →** (outline) and **Start over** (ghost): after a confirm, clears all progress in this browser (the language choice stays) and goes to Home. A second confirm asks whether to clear the mascot dex too; Cancel keeps it.
 - No share links: a per-user Slack/OG preview would need a backend.
 - If `html-to-image` renders badly, switch to drawing the card by hand on `<canvas>`.
 - `html-to-image` drops SVG paint set through CSS classes, so the radar sets `fill`/`stroke` as attributes.
