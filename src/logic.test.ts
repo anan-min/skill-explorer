@@ -251,12 +251,12 @@ describe("persona", () => {
     expect(persona([strong, weak], p)).toEqual({ kind: "wanderer" });
   });
 
-  it("is the Wanderer from 5 strong topics out of 9, not 4", () => {
+  it("is the Wanderer from 7 strong topics out of 9, not 6", () => {
     const nine = Array.from({ length: 9 }, (_, i) => group(`g${i}`, { s: [["s", "easy"]] }));
     const strongIn = (k: number) =>
       nine.reduce((p, g, i) => rate(p, g, skill(g, "s"), i < k ? "used" : "new"), emptyProgress());
-    expect(persona(nine, strongIn(5))).toEqual({ kind: "wanderer" });
-    expect(persona(nine, strongIn(4))).toEqual({ kind: "group", id: "g0", job: "g1" });
+    expect(persona(nine, strongIn(7))).toEqual({ kind: "wanderer" });
+    expect(persona(nine, strongIn(6))).toEqual({ kind: "group", id: "g0", job: "g1" });
   });
 
   it("doesn't count a topic as strong when it has more missed answers than right ones", () => {
