@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { AppProps } from "../App.tsx";
 import { GROUPS } from "../content.ts";
-import { gapsByGroup, isChecked, ratingOf, resultOf, skillScore, stats, type Rating } from "../logic.ts";
+import { choiceLabel, gapsByGroup, isChecked, ratingOf, resultOf, skillScore, stats, type Rating } from "../logic.ts";
 import { Inline, Markdown } from "../Markdown.tsx";
 import type { Concept, GroupFile, Level } from "../schema.ts";
 
@@ -197,7 +197,7 @@ function Missed({ concept: c, seen }: { concept: Concept; seen: { variant: numbe
       <CollapsibleContent className="space-y-3 pt-3 text-sm">
         <Markdown text={v.q} />
         <p>
-          You picked <Inline text={v.choices[seen.choice]} />. Answer: <Inline text={v.choices[v.answer]} />
+          You picked <Inline text={choiceLabel(v, seen.choice)} />. Answer: <Inline text={v.choices[v.answer]} />
         </p>
         <Markdown text={v.explain} />
       </CollapsibleContent>

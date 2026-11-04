@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Concept, GroupFile, Level, Variant } from "./schema.ts";
 import {
   answer,
+  DONT_KNOW,
   claimsChecked,
   emptyProgress,
   finishRun,
@@ -132,6 +133,16 @@ describe("skillScore", () => {
     expect(skillScore(g, a, wrong(wrong(expert, find(g, "a-hard")), find(g, "a-easy")))).toBeCloseTo(0.4);
     // Answering the missed concept right lifts the cap.
     expect(skillScore(g, a, right(wrong(expert, find(g, "a-easy")), find(g, "a-easy")))).toBe(1);
+  });
+
+  it("treats I don't know as a miss at half the penalty, still capped", () => {
+    const dunno = (q: Progress, c: Concept) => answer(q, c, 0, DONT_KNOW);
+    const used = rate(emptyProgress(), g, a, "used");
+    expect(skillScore(g, a, dunno(used, find(g, "a-hard")))).toBeCloseTo(0.625);
+    expect(skillScore(g, a, dunno(used, find(g, "a-easy")))).toBeCloseTo(0.4);
+    expect(resultOf(dunno(used, find(g, "a-easy")), find(g, "a-easy"))).toBe("wrong");
+    // Better than a wrong guess.
+    expect(skillScore(g, a, wrong(used, find(g, "a-easy")))).toBeCloseTo(0.3);
   });
 
   it("counts only the latest answer per concept, and clamps to 0–1", () => {

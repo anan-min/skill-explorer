@@ -60,6 +60,12 @@ export const rate = (p: Progress, g: GroupFile, s: Skill, rating: Rating): Progr
   skills: { ...p.skills, [skillKey(g, s)]: rating },
 });
 
+// The "I don't know" choice. It counts as a miss (caps the skill, blocks a strong topic)
+// but costs half a wrong answer's penalty, so saying so beats a wrong guess.
+export const DONT_KNOW = -1;
+export const choiceLabel = (v: Concept["variants"][number], choice: number) =>
+  choice === DONT_KNOW ? "I don't know" : v.choices[choice];
+
 export const answer = (p: Progress, concept: Concept, variant: number, choice: number): Progress => ({
   ...p,
   answers: { ...p.answers, [concept.id]: { variant, choice } },
@@ -183,7 +189,9 @@ export function skillScore(g: GroupFile, s: Skill, p: Progress): number | null {
   if (!rating) return null;
   const moved = s.concepts.reduce((sum, c) => {
     const result = resultOf(p, c);
-    return result ? sum + DELTA[c.level][result] : sum;
+    if (!result) return sum;
+    const unsure = p.answers[c.id].choice === DONT_KNOW;
+    return sum + DELTA[c.level][result] * (unsure ? 0.5 : 1);
   }, START[rating]);
   const cap = Math.min(1, ...s.concepts.filter((c) => resultOf(p, c) === "wrong").map((c) => CAP[c.level]));
   return Math.min(cap, Math.max(0, moved));
@@ -301,7 +309,7 @@ export function report(groups: GroupFile[], p: Progress, personaName: string | n
     const a = p.answers[c.id];
     if (result !== "wrong" || !a) return line;
     const v = c.variants[a.variant];
-    const detail = [v.q, `You picked: ${v.choices[a.choice]}\nAnswer: ${v.choices[v.answer]}`, v.explain];
+    const detail = [v.q, `You picked: ${choiceLabel(v, a.choice)}\nAnswer: ${v.choices[v.answer]}`, v.explain];
     return `${line}\n\n${detail.map(indent).join("\n\n")}`;
   };
   const sections = groups.flatMap((g) => [

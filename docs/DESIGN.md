@@ -147,6 +147,7 @@ Home has two buttons, so people know up front what they're starting. Both rate e
 - A skill rated New is never asked in a topic that has claims (that would be guessing).
 - Concepts not asked before come first.
 - Choices are shuffled when shown, since LLM-drafted questions tend to put the answer in the same position.
+- Under the four choices, an **I don't know** button (saved as choice `-1`). It counts as a miss everywhere (gap list, topic rule, cap) but moves the skill by half a wrong answer's penalty, so admitting it beats a wrong guess. The feedback reads "Here's the answer."
 - After each answer, show the right answer and `explain`. Each answer is saved immediately.
 - **Language toggle:** Go / TS / Python, default TS. A question is picked at random from the variants in that language; variants with `lang: null` always qualify.
 - Each question has a **"Report this question"** link: a prefilled new GitHub issue titled `[report] <concept id> #<variant index>`. Nothing personal in the link.
@@ -163,7 +164,7 @@ Each skill gets a score from 0 to 1:
 | Right | +0.10 | +0.15 | +0.20 |
 | Wrong | −0.4 | −0.3 | −0.15 |
 
-3. **Clamp** to 0–1.
+3. **Clamp** to 0–1. An **I don't know** answer counts as wrong at half the penalty.
 4. **Cap** while a miss stands: missing an easy question caps the skill at **0.4** (Heard), a medium one at **0.55**, a hard one at **0.7** (Used). The lowest cap wins. So the bigger the claim, the further a miss drops it: Expert missing an easy question goes 1 → 0.4, Used goes 0.7 → 0.3 (the penalty alone already takes it under the cap). Answering that concept right later lifts the cap.
 
 Missing an easy question says the most, missing a hard one little, and only right answers lift a skill above 0.7, so claiming everything doesn't pay. A topic's **strength** is the average of its rated skills. The numbers are constants in `src/logic.ts`.
@@ -200,7 +201,7 @@ Never on the share card: right and missed answers, skills rated Used or higher, 
 ### Footer
 
 - **Copy gap list** as plain text (it doubles as a personal growth note).
-- **Download report:** a Markdown file (`nerdscape-report.md`) with the persona and how many claims are checked, then every topic → skill with its rating and score → concept with its level and result (Right, Missed or Not asked). Each missed concept also has the question, the picked choice, the answer and the explanation.
+- **Download report:** a Markdown file (`nerdscape-report.md`) with the persona and how many claims are checked, then every topic → skill with its rating and score → concept with its level and result (Right, Missed or Not asked). Each missed concept also has the question, the picked choice (or "I don't know"), the answer and the explanation.
 
 - One line on the first screen saying the data lives in this browser. No export nagging.
 

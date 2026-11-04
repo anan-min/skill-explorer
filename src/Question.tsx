@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { shuffle } from "./logic.ts";
+import { DONT_KNOW, shuffle } from "./logic.ts";
 import { Inline, Markdown } from "./Markdown.tsx";
 import { LANG_LABELS, type Concept } from "./schema.ts";
 
@@ -66,10 +66,18 @@ export function Question({ concept, variant, onAnswer, onNext, nextLabel = "Next
             );
           })}
         </ol>
+        {/* Costs half a wrong answer, so admitting it beats a wrong guess. */}
+        {picked === null && (
+          <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => pick(DONT_KNOW)}>
+            I don't know
+          </Button>
+        )}
       </CardContent>
       {picked !== null && (
         <CardFooter className="flex-col items-stretch gap-4 border-t pt-5">
-          <p className="font-semibold">{picked === v.answer ? "Right." : "Not quite."}</p>
+          <p className="font-semibold">
+            {picked === v.answer ? "Right." : picked === DONT_KNOW ? "Here's the answer." : "Not quite."}
+          </p>
           <Markdown text={v.explain} />
           <div className="flex items-center justify-between gap-2">
             <Button onClick={onNext} autoFocus>
