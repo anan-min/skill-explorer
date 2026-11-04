@@ -10,73 +10,73 @@
       "summary": "Reusable, composable UI components and their lifecycle",
       "concepts": [
         {
-          "id": "frontend/components/props-down-events-up",
-          "title": "Props down, events up",
-          "summary": "Parents pass data to children as props; children report changes back through callbacks instead of changing props",
+          "id": "frontend/components/inputs-down-outputs-up",
+          "title": "Inputs down, outputs up",
+          "summary": "Parents bind data into a child's inputs; the child reports changes through outputs instead of writing to its inputs",
           "level": "easy",
           "variants": [
             {
               "lang": "ts",
-              "q": "```tsx\nfunction Counter({ count }: { count: number }) {\n  return <button onClick={() => count++}>{count}</button>;\n}\n```\nWhy doesn't clicking the button change the number?",
+              "q": "```ts\n@Component({\n  selector: 'app-counter',\n  template: `<button (click)=\"count.set(count() + 1)\">{{ count() }}</button>`,\n})\nexport class Counter {\n  count = input(0);\n}\n```\nWhat's wrong with this child component?",
               "choices": [
-                "The parent must own the state and pass a callback such as `onIncrement`",
-                "`count++` must be written as `count += 1` for React to notice it",
-                "Buttons can only change props when they're inside a `<form>` element",
-                "The returned JSX needs to be wrapped in a `useMemo` call to update"
+                "`count.set` can only be called from `ngOnInit`",
+                "Templates can't call methods inside a `(click)` binding",
+                "An `input()` signal is read-only; the parent owns the value, so emit an output",
+                "The input must be marked `{ required: true }` before it can change"
               ],
-              "answer": 0,
-              "explain": "Reassigning a prop only changes a local variable in that render, and nothing re-renders. The parent holds the state and passes a callback the child calls: data flows down, changes flow up."
+              "answer": 2,
+              "explain": "`input()` gives the child a read-only signal with no `set`. Declare an output such as `increment = output<void>()` and let the parent update its own state, or use `model()` for a two-way binding."
             },
             {
               "lang": null,
-              "q": "In a component-based UI (React, Vue and Svelte alike), a `SearchBox` child needs to tell its parent page that the user typed a new query, so the page can refetch results. What is the usual design?",
+              "q": "In an Angular app, a `SearchBox` child needs to tell its parent page that the user typed a new query, so the page can refetch results. What is the usual design?",
               "choices": [
-                "The child reaches into the parent's state and edits it directly",
-                "The parent passes a callback such as `onQueryChange`; the child calls it",
+                "The child injects the parent component and sets its field directly",
+                "The child declares an output like `queryChange`; the parent binds `(queryChange)`",
                 "The child writes the query to a global variable that the parent polls",
                 "The child reloads the whole page with the query string attached"
               ],
               "answer": 1,
-              "explain": "The child emits an event (a callback prop in React, an emitted event in Vue) and the parent decides what to do. Editing the parent's state directly ties the child to one parent and breaks one-way data flow."
+              "explain": "An output lets the child announce what happened while the parent decides what to do. Injecting the parent ties the child to one specific parent and hides the data flow."
             },
             {
               "lang": null,
-              "q": "A `Modal` gets `isOpen` from its parent. To support its close button, the modal copies `isOpen` into its own local state and sets that to `false` on close. What goes wrong?",
+              "q": "A `Modal` gets `isOpen` as an input from its parent. To support its close button, the modal copies `isOpen` into its own signal and sets that to `false` on close. What goes wrong?",
               "choices": [
                 "Nothing, as long as the modal has a close animation",
                 "The modal closes and the parent's value updates to match",
                 "The parent still holds `true`, so the modal can't be reopened",
-                "The framework merges the two values on the next render"
+                "Angular merges the two values on the next change detection"
               ],
               "answer": 2,
-              "explain": "Two owners of one value drift apart: the parent never learned the modal closed. The parent should own `isOpen` and pass an `onClose` callback the modal calls."
+              "explain": "Two owners of one value drift apart: the parent never learned the modal closed, so setting `true` again isn't a change. The parent should own `isOpen` and react to a `closed` output (or use `model()`)."
             }
           ]
         },
         {
           "id": "frontend/components/composition-children",
-          "title": "Composition with children",
-          "summary": "Building flexible components by passing content in (`children`, slots) instead of adding a prop per variation",
+          "title": "Composition with content projection",
+          "summary": "Building flexible components by projecting content in with `<ng-content>` instead of adding an input per variation",
           "level": "easy",
           "variants": [
             {
               "lang": null,
-              "q": "A `Card` component has grown the props `showIcon`, `iconName`, `title`, `subtitle`, `showFooter`, `footerText` and `footerButtonLabel`, and every new screen needs another one. What is the usual refactor?",
+              "q": "A `Card` component has grown the inputs `showIcon`, `iconName`, `title`, `subtitle`, `showFooter`, `footerText` and `footerButtonLabel`, and every new screen needs another one. What is the usual refactor?",
               "choices": [
-                "Group all of the options into a single `config` object prop",
+                "Group all of the options into a single `config` object input",
                 "Move the options into global CSS classes that callers can toggle",
                 "Copy the component once per screen so each copy stays simple",
-                "Let callers pass body and footer content as children or slots"
+                "Let callers project body and footer content with `<ng-content>`"
               ],
               "answer": 3,
-              "explain": "Composition lets the caller decide what goes inside, so the component stays small and stops growing a prop for each case. A `config` object just moves the same flags into one place."
+              "explain": "Content projection lets the caller decide what goes inside, so the component stays small and stops growing an input for each case. A `config` object just moves the same flags into one place."
             },
             {
               "lang": null,
               "q": "Which design makes a `Dialog` component easiest to reuse across many different screens?",
               "choices": [
-                "`Dialog` takes its title, body and actions as content supplied by the caller",
-                "`Dialog` imports every screen's form and picks one using a `type` prop",
+                "`Dialog` projects a title, body and actions supplied by the caller",
+                "`Dialog` imports every screen's form and picks one using a `type` input",
                 "Each screen keeps its own copy of the dialog's markup and styles",
                 "`Dialog` looks up which content to show in a global store"
               ],
@@ -86,162 +86,174 @@
           ]
         },
         {
-          "id": "frontend/components/controlled-inputs",
-          "title": "Controlled vs uncontrolled inputs",
-          "summary": "Whether React state (`value` + `onChange`) or the DOM itself owns an input's current value",
+          "id": "frontend/components/form-value-ownership",
+          "title": "Who owns a form field's value",
+          "summary": "One-way `[value]`, two-way `[(ngModel)]` or a reactive `FormControl`: which one holds the field's current value",
           "level": "medium",
           "variants": [
             {
               "lang": "ts",
-              "q": "What happens when the user types into this input?\n\n```tsx\nfunction Name() {\n  const [name, setName] = useState('Ada')\n  return <input value={name} />\n}\n```",
+              "q": "```ts\n@Component({\n  template: `<input [value]=\"name()\" /> <p>Hello {{ name() }}</p>`,\n})\nexport class NameField {\n  name = signal('Ada');\n}\n```\nThe user clears the input and types `Grace`. What do the input and the paragraph show?",
               "choices": [
-                "The text updates and `name` stays `'Ada'`",
-                "The text updates and `name` updates with it",
-                "It stays `'Ada'`: nothing updates `name`",
-                "React throws an error on the first keystroke"
+                "Both show `Grace`: `[value]` writes typed text back to the signal",
+                "The input shows `Grace`; the paragraph still says `Hello Ada`",
+                "Both show `Ada`: the input snaps back on every keystroke",
+                "Neither renders: `[value]` on an input needs `FormsModule`"
               ],
-              "answer": 2,
-              "explain": "Passing `value` makes React the owner of the input, so without an `onChange` that updates state the displayed value never changes (React also warns about it). Use `defaultValue` for an uncontrolled input."
+              "answer": 1,
+              "explain": "`[value]` is a one-way property binding: it sets the DOM value when `name()` changes, and nothing listens for typing. Write back with `[(ngModel)]`, a `FormControl`, or an `(input)` handler that calls `name.set`."
             },
             {
               "lang": "ts",
-              "q": "`<input defaultValue={user.name} />` renders with `'Ada'`. Later the parent passes a user whose name is `'Grace'`. What does the input show?",
+              "q": "```ts\nform = new FormGroup({\n  email: new FormControl('a@b.co'),\n  plan: new FormControl({ value: 'pro', disabled: true }),\n});\n\nsave() {\n  this.api.post(this.form.value);\n}\n```\nThe server never receives `plan`. Why?",
               "choices": [
-                "`'Grace'`, because the prop changed",
-                "`'Ada'`: `defaultValue` only applies on mount",
-                "An empty input, since the old default was replaced",
-                "`'AdaGrace'`, appended to the existing value"
+                "Disabled controls are reset to `null` when the form is read",
+                "`value` only includes controls the user has touched",
+                "Controls created from an object need `setValue` before they're read",
+                "`value` leaves out disabled controls; `getRawValue()` includes them"
               ],
-              "answer": 1,
-              "explain": "An uncontrolled input keeps its own value after mount, so later `defaultValue` changes are ignored. Make it controlled, or give it a `key` tied to the user so it remounts."
+              "answer": 3,
+              "explain": "A reactive form's `value` holds only enabled controls, which suits forms where disabled means not applicable. When disabled fields should still be sent, read `getRawValue()`."
             }
           ]
         },
         {
-          "id": "frontend/components/list-keys",
-          "title": "Keys in lists",
-          "summary": "Giving list items stable, unique `key`s so React matches each item's state to the right row",
+          "id": "frontend/components/for-track",
+          "title": "`track` in `@for`",
+          "summary": "Giving `@for` a stable `track` expression so Angular keeps each item's DOM and component state with the right item",
           "level": "easy",
           "variants": [
             {
               "lang": "ts",
-              "q": "Each row has its own text input with local state. After deleting the first todo, the remaining rows show the wrong typed text. Why?\n\n```tsx\n{todos.map((todo, i) => (\n  <TodoRow key={i} todo={todo} />\n))}\n```",
+              "q": "Each row has its own text input that keeps what was typed. After deleting the first todo, the remaining rows show the wrong typed text. Why?\n\n```html\n@for (todo of todos(); track $index) {\n  <app-todo-row [todo]=\"todo\" />\n}\n```",
               "choices": [
-                "Keys must be strings, not numbers, or React ignores them",
-                "React re-renders lists from scratch, so input state is lost",
-                "`TodoRow` needs `React.memo` to hold on to its state",
-                "Index keys tie state to position, so it shifts"
-              ],
-              "answer": 3,
-              "explain": "After removing item 0, the old key `1` becomes key `0`, so React reuses the first row's component (and state) for what was the second todo. Use a stable ID like `todo.id` as the key."
-            },
-            {
-              "lang": "ts",
-              "q": "Which `key` is the best choice for rows rendered from API data?",
-              "choices": [
-                "The item's database ID, `item.id`",
-                "`Math.random()`, so every key is unique",
-                "The array index",
-                "`JSON.stringify(item)`"
-              ],
-              "answer": 0,
-              "explain": "A key should be unique among siblings and stay the same for the same item across renders. Random keys remount every row on each render, and stringified content changes whenever any field changes."
-            }
-          ]
-        },
-        {
-          "id": "frontend/components/effect-cleanup",
-          "title": "Effect cleanup",
-          "summary": "Returning a cleanup function from `useEffect` to undo subscriptions, timers and listeners",
-          "level": "medium",
-          "variants": [
-            {
-              "lang": "ts",
-              "q": "In development with React 18+ `<StrictMode>`, this component receives every chat message twice. Why?\n\n```tsx\nuseEffect(() => {\n  socket.on('message', addMessage)\n}, [])\n```",
-              "choices": [
-                "StrictMode delivers every socket event twice",
-                "Setup ran twice and nothing removed a listener",
-                "`useEffect` with `[]` runs on every render in development",
-                "`addMessage` is a new function on every render"
+                "`@for` rebuilds every row from scratch, so typed text is lost",
+                "Tracking by `$index` ties each row's state to its position, so it shifts",
+                "`track` needs a string, so `$index` is silently ignored",
+                "`app-todo-row` needs `OnPush` change detection to keep its state"
               ],
               "answer": 1,
-              "explain": "StrictMode deliberately runs the setup, cleanup, setup cycle in development to expose missing cleanups. Returning `() => socket.off('message', addMessage)` fixes it, and fixes the same leak in production when the component remounts."
+              "explain": "After removing item 0, the row at position 0 is kept and handed the second todo, along with the first row's typed text. Track by a stable ID such as `track todo.id`."
             },
             {
               "lang": "ts",
-              "q": "What goes wrong here when `delayMs` changes a few times?\n\n```tsx\nuseEffect(() => {\n  setInterval(poll, delayMs)\n}, [delayMs])\n```",
+              "q": "A list is refetched from the API every 30 seconds, which returns fresh objects each time. Which `track` expression fits best?",
               "choices": [
-                "Nothing: React stops the old interval automatically",
-                "The effect runs once, so the new delay is ignored",
-                "`setInterval` can't be called inside an effect",
-                "Intervals pile up; old ones never stop"
+                "`track $index`",
+                "`track item`, the object itself",
+                "`track item.updatedAt`",
+                "`track item.id`"
               ],
               "answer": 3,
-              "explain": "React runs the effect again but doesn't know about the timer, so intervals pile up. Return `() => clearInterval(id)` so the previous one is cleared before the next starts and on unmount."
+              "explain": "A track key should be unique and stay the same for the same item. Refetched objects are new references, so tracking by object recreates every row; `$index` follows position; a timestamp changes on edit and may repeat."
+            },
+            {
+              "lang": null,
+              "q": "In Angular's built-in `@for` block, what happens if you leave out the `track` expression?",
+              "choices": [
+                "Angular falls back to tracking items by object identity",
+                "The template fails to compile: `track` is required",
+                "Angular falls back to tracking by index, with a console warning",
+                "The loop renders once and ignores later changes to the list"
+              ],
+              "answer": 1,
+              "explain": "Unlike the older `*ngFor`, where `trackBy` was optional, `@for` makes `track` mandatory so every loop chooses its item identity on purpose."
             }
           ]
         },
         {
-          "id": "frontend/components/derived-state",
-          "title": "Derived state instead of copied props",
-          "summary": "Computing values from props and state during render instead of copying them into extra state",
+          "id": "frontend/components/destroy-cleanup",
+          "title": "Cleaning up when a component is destroyed",
+          "summary": "Ending subscriptions, timers and listeners with `takeUntilDestroyed`, `DestroyRef` or an effect's `onCleanup`",
           "level": "medium",
           "variants": [
             {
               "lang": "ts",
-              "q": "The parent changes `initialPrice` after the first render. What does the component show?\n\n```tsx\nfunction Price({ initialPrice }: { initialPrice: number }) {\n  const [price] = useState(initialPrice)\n  return <span>{price}</span>\n}\n```",
+              "q": "`ChatService` and `UnreadBadge` are root services. After the user opens and leaves the chat page three times, each new message bumps the badge by 3. Why?\n\n```ts\nexport class ChatPage {\n  private badge = inject(UnreadBadge);\n\n  constructor() {\n    inject(ChatService).messages$.subscribe(() => this.badge.bump());\n  }\n}\n```",
               "choices": [
-                "The first value: `useState` ignores later arguments",
-                "The new value, since prop changes re-run `useState`",
-                "The new value, but only one render later",
-                "Nothing: React throws on a changed initial value"
+                "Each old page's subscription is still alive after the page is destroyed",
+                "Angular runs component constructors twice in development mode",
+                "Root services are created again on every navigation",
+                "`messages$` replays every message to each new subscriber"
               ],
               "answer": 0,
-              "explain": "The argument to `useState` is just the initial value. If the component should follow the prop, read the prop directly instead of copying it into state."
+              "explain": "Destroying a component doesn't end subscriptions it opened on a longer-lived observable. Pipe through `takeUntilDestroyed()` (the constructor is an injection context) or unsubscribe in a `DestroyRef.onDestroy` callback."
             },
             {
               "lang": "ts",
-              "q": "A component keeps `fullName` in state and updates it in a `useEffect` whenever `first` or `last` change. What is the simpler and more correct approach?",
+              "q": "What goes wrong here when the `delayMs` signal changes a few times?\n\n```ts\nconstructor() {\n  effect(() => {\n    setInterval(() => this.poll(), this.delayMs());\n  });\n}\n```",
               "choices": [
-                "Store `fullName` in a `useRef` instead of state",
-                "Move the effect into a `useLayoutEffect`",
-                "Compute `fullName` during render",
-                "Keep `fullName` in a global store"
+                "Nothing: Angular clears timers started inside an effect",
+                "The effect runs only once, so the new delay is ignored",
+                "`setInterval` isn't allowed inside an `effect`",
+                "Intervals pile up, because the old ones are never cleared"
               ],
-              "answer": 2,
-              "explain": "Values that can be computed from existing props or state shouldn't be state. The effect version renders once with a stale `fullName`, then again with the right one."
+              "answer": 3,
+              "explain": "The effect reruns when `delayMs()` changes but knows nothing about the timer. Register a cleanup: `effect((onCleanup) => { const id = setInterval(...); onCleanup(() => clearInterval(id)); })`. It runs before the next run and on destroy."
             }
           ]
         },
         {
-          "id": "frontend/components/key-reset",
-          "title": "Resetting state with a key",
-          "summary": "Changing a component's `key` to make React throw away its state and mount a fresh one",
+          "id": "frontend/components/computed-derived-state",
+          "title": "Derived state with `computed()`",
+          "summary": "Deriving values from inputs and signals with `computed()` instead of copying them into extra state",
+          "level": "medium",
+          "variants": [
+            {
+              "lang": "ts",
+              "q": "The template shows `{{ price() }}`. The parent changes `initialPrice` after the first render. What is shown?\n\n```ts\nexport class Price {\n  initialPrice = input.required<number>();\n  price = signal(0);\n\n  ngOnInit() {\n    this.price.set(this.initialPrice());\n  }\n}\n```",
+              "choices": [
+                "The new value, since input changes rerun `ngOnInit`",
+                "The first value: `ngOnInit` runs once, so the copy never updates",
+                "The new value, but one change detection cycle late",
+                "Nothing: Angular throws when a required input is copied"
+              ],
+              "answer": 1,
+              "explain": "`ngOnInit` runs once per instance, so the copy is frozen at the first value. Read `initialPrice()` directly, or derive with `price = computed(() => this.initialPrice())`."
+            },
+            {
+              "lang": "ts",
+              "q": "A component keeps `fullName` in a signal and sets it from an `effect` whenever the `first` or `last` signals change. What is the simpler, more reliable approach?",
+              "choices": [
+                "Set `fullName` in `ngAfterViewInit` instead of an effect",
+                "Assign `fullName` once as a plain field in the constructor",
+                "`fullName = computed(() => this.first() + ' ' + this.last())`",
+                "Move `fullName` into a root service that both fields write to"
+              ],
+              "answer": 2,
+              "explain": "A value that can be computed from other signals shouldn't be its own state. `computed()` is always in step with its sources and recalculates only when they change; syncing with an effect adds a second copy that can lag."
+            }
+          ]
+        },
+        {
+          "id": "frontend/components/route-component-reuse",
+          "title": "Route component reuse",
+          "summary": "Navigating between URLs of the same route keeps the component instance, so it must follow changing params",
           "level": "hard",
           "variants": [
             {
               "lang": "ts",
-              "q": "`<ProfileForm userId={id} />` keeps the previous user's half-typed form data when you switch users. Which change resets the form whenever the user changes?",
+              "q": "A link on `/users/1` goes to `/users/2`. The URL changes, but the page still shows user 1. Why?\n\n```ts\nexport class ProfilePage {\n  private route = inject(ActivatedRoute);\n\n  ngOnInit() {\n    const id = this.route.snapshot.paramMap.get('id')!;\n    this.load(id);\n  }\n}\n```",
               "choices": [
-                "Wrap `ProfileForm` in `React.memo`",
-                "Add `key={id}` to `ProfileForm`",
-                "Call `forceUpdate()` when `id` changes",
-                "Move the form state into a `useRef`"
+                "The `snapshot` is cached for the whole session after the first read",
+                "`routerLink` skips navigation when only a parameter changes",
+                "The router reuses the component, so `ngOnInit` doesn't run again",
+                "Route params must be read with `params`, not `paramMap`"
               ],
-              "answer": 1,
-              "explain": "A new `key` tells React this is a different component instance, so it unmounts the old one and mounts a new one with fresh state. Re-rendering (memo or not) keeps the existing state."
+              "answer": 2,
+              "explain": "By default the router keeps the same component when only params change. Subscribe to `route.paramMap` (it emits each change), or bind the param to an input with `withComponentInputBinding()`."
             },
             {
               "lang": "ts",
-              "q": "A chat window is rendered as `<Chat key={roomId} roomId={roomId} />`. What happens to `Chat`'s state and effects when `roomId` changes?",
+              "q": "The router has `withComponentInputBinding()`, and `ProfilePage` declares `id = input.required<string>()` and loads the user in an `effect` that reads `id()`. The user has a half-typed note in a local signal. What happens on `/users/1` → `/users/2`?",
               "choices": [
-                "State is kept; only the props update",
-                "State is kept, but all effects rerun",
-                "It remounts with fresh state",
-                "React throws, since `key` duplicates a prop"
+                "A new instance is created, so the note is cleared",
+                "Nothing: route inputs are set once, when the component is created",
+                "The router throws, since inputs can't hold route params",
+                "Same instance: `id` becomes `'2'`, the effect reruns, the note stays"
               ],
-              "answer": 2,
-              "explain": "Different key, different instance: React runs the old instance's effect cleanups, discards its state and mounts a fresh one. Passing the same value as both `key` and a prop is normal."
+              "answer": 3,
+              "explain": "The reused component gets its input updated, so anything derived from `id()` follows. Other local state is not reset, so per-user state must be cleared or derived from `id()` explicitly."
             }
           ]
         }
@@ -317,152 +329,157 @@
           ]
         },
         {
-          "id": "frontend/state/immutable-updates",
-          "title": "Immutable state updates",
-          "summary": "Creating new arrays and objects for state changes, because React compares by reference",
+          "id": "frontend/state/signal-immutable-updates",
+          "title": "Immutable updates to signals",
+          "summary": "Signals compare values by reference, so arrays and objects need a new value through `set` or `update`",
           "level": "medium",
           "variants": [
             {
               "lang": "ts",
-              "q": "Clicking the button doesn't show the new item. Why?\n\n```tsx\nconst [items, setItems] = useState<string[]>([])\nconst add = () => {\n  items.push('new')\n  setItems(items)\n}\n```",
+              "q": "`count` stays at 0 after clicking Add. Why?\n\n```ts\nitems = signal<string[]>([]);\ncount = computed(() => this.items().length);\n\nadd() {\n  this.items().push('new');\n  this.items.set(this.items());\n}\n```",
               "choices": [
-                "`push` is asynchronous inside React components",
-                "`setItems` needs to be awaited before rendering",
-                "`useState` arrays are frozen, so `push` does nothing",
-                "Same array reference, so React skips the render"
+                "`push` doesn't work on an array held in a signal",
+                "`computed` only recalculates on the next change detection",
+                "Signals freeze arrays, so `push` fails silently",
+                "`set` got the same array reference, so the signal reports no change"
               ],
               "answer": 3,
-              "explain": "React compares the new state with the old using `Object.is`; mutating and passing the same reference looks unchanged. Use `setItems([...items, 'new'])` to create a new array."
+              "explain": "A signal compares old and new values with `Object.is` by default; mutating and setting the same array looks unchanged, so dependents aren't notified. Use `this.items.update(list => [...list, 'new'])`."
             },
             {
               "lang": "ts",
-              "q": "Which update correctly changes `user.address.city` in state?",
+              "q": "`user` is a `signal<User>`. Which update correctly changes `user.address.city`?",
               "choices": [
-                "`user.address.city = 'Oslo'; setUser(user)`",
-                "`setUser({ ...user, address: { ...user.address, city: 'Oslo' } })`",
-                "`setUser({ ...user, city: 'Oslo' })`",
-                "`setUser(Object.assign(user, { address: { ...user.address, city: 'Oslo' } }))`"
+                "`this.user().address.city = 'Oslo'`",
+                "`this.user.update(u => Object.assign(u, { address: { ...u.address, city: 'Oslo' } }))`",
+                "`this.user.update(u => ({ ...u, address: { ...u.address, city: 'Oslo' } }))`",
+                "`this.user.update(u => ({ ...u, city: 'Oslo' }))`"
               ],
-              "answer": 1,
-              "explain": "Each level on the path to the change needs a new object, while untouched fields are copied over. `Object.assign` onto `user` mutates and returns the same reference, so React won't re-render."
+              "answer": 2,
+              "explain": "Each object on the path to the change needs a new copy, with untouched fields copied over. `Object.assign` onto `u` mutates and returns the same reference, so the signal sees no change."
             }
           ]
         },
         {
-          "id": "frontend/state/functional-updates",
-          "title": "Functional state updates",
-          "summary": "Passing an updater like `setCount(c => c + 1)` so each update builds on the latest value",
+          "id": "frontend/state/synchronous-signal-updates",
+          "title": "Synchronous signal updates",
+          "summary": "A signal write takes effect at once: later reads, including `computed()` values, see it before the view refreshes",
           "level": "medium",
           "variants": [
             {
               "lang": "ts",
-              "q": "`count` starts at 0. What is it after one click?\n\n```tsx\nconst onClick = () => {\n  setCount(count + 1)\n  setCount(count + 1)\n  setCount(count + 1)\n}\n```",
-              "choices": ["1", "3", "0", "It depends on whether React batches"],
-              "answer": 0,
-              "explain": "All three calls read the same `count` from this render, so each sets it to 1. `setCount(c => c + 1)` three times would give 3, because each updater gets the latest pending value."
+              "q": "`count` is `signal(0)`. What is it after one click?\n\n```ts\nonClick() {\n  this.count.set(this.count() + 1);\n  this.count.set(this.count() + 1);\n  this.count.set(this.count() + 1);\n}\n```",
+              "choices": ["1", "0", "3", "It depends on when change detection runs"],
+              "answer": 2,
+              "explain": "Signal writes are synchronous, so each `count()` read sees the previous write and the value goes 1, 2, 3. The view still refreshes once, at the next change detection. `update(c => c + 1)` is the shorter way to write it."
             },
             {
               "lang": "ts",
-              "q": "`count` starts at 0. What is it after one click?\n\n```tsx\nconst onClick = () => {\n  setCount(c => c + 1)\n  setCount(c => c + 1)\n}\n```",
-              "choices": ["1", "0", "2", "It throws, because updaters can't be chained"],
-              "answer": 2,
-              "explain": "React queues updater functions and runs them in order, each receiving the result of the previous one, so the count goes 0, 1, 2."
+              "q": "What does this log on the first click?\n\n```ts\ncount = signal(0);\ndoubled = computed(() => this.count() * 2);\n\nonClick() {\n  this.count.update(c => c + 1);\n  console.log(this.doubled());\n}\n```",
+              "choices": [
+                "`0`: `computed` values refresh at the next change detection",
+                "`2`: reading `doubled` recalculates it from the new `count`",
+                "`1`: `computed` reads the value from before the update",
+                "`undefined` until the template has read `doubled` once"
+              ],
+              "answer": 1,
+              "explain": "A `computed` is lazy: reading it after a dependency changed recalculates it on the spot, so it is never stale. It doesn't wait for change detection."
             }
           ]
         },
         {
           "id": "frontend/state/server-state-cache",
           "title": "Server state caching",
-          "summary": "Treating fetched data as a cache keyed by query (TanStack Query, SWR), separate from UI state",
+          "summary": "Treating fetched data as a cache keyed by request (for example TanStack Query), separate from UI state",
           "level": "medium",
           "variants": [
             {
-              "lang": "ts",
-              "q": "Switching pages shows the same todos every time. What's wrong?\n\n```tsx\nconst { data } = useQuery({\n  queryKey: ['todos'],\n  queryFn: () => fetchTodos(page),\n})\n```",
+              "lang": null,
+              "q": "A paged list fetches through a query cache. The cache key is `['todos']`, while the fetch function reads the current page. Switching pages shows the same todos every time. What's wrong?",
               "choices": [
-                "`queryFn` must be declared outside the component",
-                "TanStack Query caches only the first page by default",
-                "`page` must be passed as a separate query option",
-                "`page` is missing from `queryKey`"
+                "The fetch function must be declared outside the component",
+                "Query caches store only the first page by default",
+                "The page must be passed as a separate option, not in the key",
+                "The page is missing from the cache key"
               ],
               "answer": 3,
-              "explain": "The query key identifies the cached data; anything the fetch depends on must be in it. Use `queryKey: ['todos', page]` so each page has its own entry and changing it triggers a fetch."
+              "explain": "The key identifies the cached data, so anything the fetch depends on must be part of it. With `['todos', page]` each page gets its own entry, and changing the page triggers a fetch."
             },
             {
-              "lang": "ts",
-              "q": "Two components mounted at the same time both call `useQuery({ queryKey: ['user', id], ... })` with the same `id`. How many requests does TanStack Query make?",
+              "lang": null,
+              "q": "Two components on screen at the same time ask a query cache for the key `['user', 42]`. How many requests does a library like TanStack Query make?",
               "choices": [
-                "Two, one per component that calls `useQuery`",
+                "Two, one per component that asks",
                 "One, shared by both components",
                 "None until one of them calls `refetch()`",
-                "One per render of each of the two components"
+                "One per change detection cycle in each component"
               ],
               "answer": 1,
-              "explain": "Queries with the same key share one cache entry, so concurrent consumers are deduplicated into a single fetch. This is a main reason to use a server-state library instead of fetching in each component's effect."
+              "explain": "Queries with the same key share one cache entry, so concurrent consumers are deduplicated into one fetch. That's a main reason to use a server-state cache instead of fetching separately in each component."
             }
           ]
         },
         {
-          "id": "frontend/state/stale-closures",
-          "title": "Stale closures in hooks",
-          "summary": "Callbacks created in one render keep seeing that render's state unless they are recreated",
+          "id": "frontend/state/signal-dependency-tracking",
+          "title": "Dependency tracking in `computed` and `effect`",
+          "summary": "Only signals read synchronously during a run become dependencies; reads in callbacks or untaken branches don't",
           "level": "hard",
           "variants": [
             {
               "lang": "ts",
-              "q": "The button increments `count`, but the interval always logs `0`. Why?\n\n```tsx\nconst [count, setCount] = useState(0)\nuseEffect(() => {\n  const id = setInterval(() => console.log(count), 1000)\n  return () => clearInterval(id)\n}, [])\n```",
+              "q": "The user types in a search box bound to the `query` signal, but this only ever logs once. Why?\n\n```ts\nconstructor() {\n  effect(() => {\n    setTimeout(() => console.log(this.query()), 300);\n  });\n}\n```",
               "choices": [
-                "`setInterval` copies its arguments when it starts",
-                "The callback holds the first render's `count`",
-                "`console.log` caches the first value it prints",
-                "State updates are paused while an interval runs"
+                "`setTimeout` copies the signal's value when it is scheduled",
+                "`query()` is read in a later callback, so the effect has no dependencies",
+                "Effects run once unless created with `{ manualCleanup: true }`",
+                "Signals can't be read from inside timer callbacks"
               ],
               "answer": 1,
-              "explain": "Each render has its own `count`; the callback created in the first render only ever sees `0`. Add `count` to the dependencies, or read the latest value through a ref."
+              "explain": "Only reads made while the effect function itself runs are tracked. Here nothing is read synchronously, so nothing triggers a rerun. Read `const q = this.query()` first, then use `q` in the timeout."
             },
             {
               "lang": "ts",
-              "q": "A `keydown` listener is added in `useEffect(() => { ... }, [])` and calls `save(draft)`. After typing, pressing Ctrl+S saves an empty draft. What is the cause?",
+              "q": "`showName()` is `false` when `label` is first read. While it stays `false`, `name` changes. Is `label` recalculated?\n\n```ts\nlabel = computed(() => (this.showName() ? this.name() : 'Anonymous'));\n```",
               "choices": [
-                "`keydown` events fire before React state updates",
-                "Window listeners can't read React state at all",
-                "`save` must be wrapped in `useCallback` first",
-                "The listener still holds the first `draft`"
-              ],
-              "answer": 3,
-              "explain": "With an empty dependency list the listener is never replaced, so it closes over the initial `draft`. Re-subscribe when `draft` changes, or keep the latest value in a ref the listener reads."
-            }
-          ]
-        },
-        {
-          "id": "frontend/state/context-rerenders",
-          "title": "Context re-renders",
-          "summary": "Every consumer re-renders when a context value changes, including when it's a new object each render",
-          "level": "hard",
-          "variants": [
-            {
-              "lang": "ts",
-              "q": "Every component using `AuthContext` re-renders whenever `App` re-renders, even when `user` hasn't changed. Why?\n\n```tsx\n<AuthContext.Provider value={{ user, setUser }}>\n  {children}\n</AuthContext.Provider>\n```",
-              "choices": [
-                "`value` is a new object on every render",
-                "Context consumers always re-render with their parent",
-                "`setUser` gets a new identity on every render",
-                "Providers must be placed outside `App` to work"
+                "No: only signals read on the last run are dependencies",
+                "Yes: every signal mentioned in the function is a dependency",
+                "Yes, but only at the next change detection",
+                "No: `computed` never tracks signals inside a ternary"
               ],
               "answer": 0,
-              "explain": "React compares the context value by reference, and an object literal is new each time. Wrap it in `useMemo(() => ({ user, setUser }), [user])`. `setUser` from `useState` is stable, so it isn't the cause."
-            },
+              "explain": "Dependencies are recorded per run. With `showName()` false, `name()` wasn't read, so changing it can't affect the result. Once `showName` becomes true, the next run reads and tracks `name`."
+            }
+          ]
+        },
+        {
+          "id": "frontend/state/service-provider-scope",
+          "title": "Service scope and shared state",
+          "summary": "A service provided in `root` is one shared instance; listing it in a component's `providers` gives each instance its own copy",
+          "level": "hard",
+          "variants": [
             {
               "lang": "ts",
-              "q": "A component is wrapped in `React.memo` and calls `useContext(ThemeContext)`. Its props don't change, but the theme value does. Does it re-render?",
+              "q": "Items added on the product page never appear in the cart badge. Why?\n\n```ts\n@Injectable({ providedIn: 'root' })\nexport class CartService {\n  items = signal<Item[]>([]);\n}\n\n@Component({ selector: 'app-cart-badge', providers: [CartService] })\nexport class CartBadge {\n  cart = inject(CartService);\n}\n```",
               "choices": [
-                "No: `memo` blocks re-renders when props are equal",
-                "Only if it also receives the theme as a prop",
-                "Yes: context changes bypass `memo`",
-                "Only in development mode, not in production"
+                "Root services are created lazily, once per route",
+                "Signals inside services don't notify components",
+                "The badge needs `OnPush` to see changes from a service",
+                "`providers` gives the badge its own `CartService`, separate from the root one"
               ],
-              "answer": 2,
-              "explain": "`memo` skips re-renders caused by the parent with equal props, but a component that reads a context always re-renders when that context's value changes."
+              "answer": 3,
+              "explain": "Injection looks up the nearest provider, and the badge's own `providers` entry wins over `providedIn: 'root'`. Remove it so the badge shares the root instance."
+            },
+            {
+              "lang": null,
+              "q": "A dialog component lists `DraftService` in its `providers`, and its child components inject it. Two of these dialogs are open at once. Which instances exist?",
+              "choices": [
+                "One, shared by both dialogs, since services are singletons",
+                "One per dialog, shared by that dialog's children",
+                "One per child component that injects it",
+                "One for the first dialog; the second one throws"
+              ],
+              "answer": 1,
+              "explain": "A component-level provider creates an instance per component, and its descendants resolve to the nearest one. That's useful for state that belongs to one dialog, and a trap when the state should be shared."
             }
           ]
         }
@@ -550,41 +567,53 @@
           ]
         },
         {
-          "id": "frontend/performance/code-splitting",
-          "title": "Code splitting",
-          "summary": "Loading parts of the app on demand with dynamic `import()` instead of in one big bundle",
+          "id": "frontend/performance/lazy-routes-defer",
+          "title": "Lazy routes and `@defer`",
+          "summary": "Splitting code with `loadComponent` routes and `@defer` blocks so it downloads only when needed",
           "level": "medium",
           "variants": [
             {
               "lang": "ts",
-              "q": "What does this change do to the app's bundles?\n\n```tsx\nconst Reports = lazy(() => import('./Reports'))\n// ...\n<Suspense fallback={<Spinner />}>\n  <Reports />\n</Suspense>\n```",
+              "q": "What does this route do to the app's bundles?\n\n```ts\n{\n  path: 'reports',\n  loadComponent: () => import('./reports/reports').then(m => m.Reports),\n}\n```",
               "choices": [
-                "Nothing: `lazy` only delays rendering, not loading",
+                "Nothing: `loadComponent` only delays creating the component",
                 "It removes `Reports` from the production build",
-                "`Reports` moves to its own chunk, loaded on use",
-                "It preloads `Reports` in a web worker at startup"
+                "It preloads `Reports` in a web worker at startup",
+                "`Reports` moves to its own chunk, fetched when the route is first visited"
               ],
-              "answer": 2,
-              "explain": "A dynamic `import()` is a split point: the module goes into its own chunk and loads on first use, with `Suspense` showing the fallback meanwhile. Users who never open Reports never download it."
+              "answer": 3,
+              "explain": "A dynamic `import()` is a split point, so the component and code only it uses go into a separate chunk. Users who never open Reports never download it, as long as nothing else imports it statically."
             },
             {
               "lang": "ts",
+              "q": "`SalesChart` is a standalone component used only here. What happens?\n\n```html\n@defer (on viewport) {\n  <app-sales-chart />\n} @placeholder {\n  <div class=\"chart-box\"></div>\n}\n```",
+              "choices": [
+                "The chart's code is fetched and rendered once the placeholder scrolls into view",
+                "The chart renders immediately; only its data loads later",
+                "The chart's code stays in the main bundle but is hidden until visible",
+                "The chart renders only during server-side rendering"
+              ],
+              "answer": 0,
+              "explain": "Dependencies used only inside `@defer` go into a separate chunk that loads when the trigger fires; `on viewport` watches the placeholder. Using `SalesChart` elsewhere in the same template would keep it in the main chunk."
+            },
+            {
+              "lang": null,
               "q": "A dashboard's initial bundle is 2 MB, mostly from a charting library used only on one admin page. What's the most effective fix?",
               "choices": [
                 "Run the bundle through a second minifier pass",
                 "Lazy-load the admin page's route",
                 "Serve the bundle from a CDN closer to users",
-                "Wrap the chart components in `React.memo`"
+                "Switch the chart components to `OnPush` change detection"
               ],
               "answer": 1,
-              "explain": "Splitting at the route keeps the library out of the code every user downloads. A CDN helps delivery but still sends 2 MB, and `memo` affects rendering, not download size."
+              "explain": "Splitting at the route keeps the library out of the code every user downloads. A CDN speeds delivery but still sends 2 MB, and `OnPush` affects rendering, not download size."
             }
           ]
         },
         {
           "id": "frontend/performance/list-virtualization",
           "title": "List virtualization",
-          "summary": "Rendering only the rows in view for very long lists (react-window, TanStack Virtual)",
+          "summary": "Rendering only the rows in view for very long lists (for example the Angular CDK's virtual scroll viewport)",
           "level": "medium",
           "variants": [
             {
@@ -614,41 +643,66 @@
           ]
         },
         {
-          "id": "frontend/performance/react-profiler",
-          "title": "Profiling renders with React DevTools",
-          "summary": "Recording interactions in the React DevTools Profiler to see which components render and why",
+          "id": "frontend/performance/angular-devtools-profiler",
+          "title": "Profiling with Angular DevTools",
+          "summary": "Recording change detection in the Angular DevTools profiler to see which components were checked and how long each took",
           "level": "medium",
-          "variants": []
+          "variants": [
+            {
+              "lang": null,
+              "q": "You record an interaction in the Angular DevTools profiler. What does it show for each change detection cycle?",
+              "choices": [
+                "The network requests the cycle triggered",
+                "The components and lifecycle hooks that ran, with time spent in each",
+                "The JavaScript heap size before and after the cycle",
+                "The page's Core Web Vitals scores for that moment"
+              ],
+              "answer": 1,
+              "explain": "The profiler records each change detection cycle and breaks it down by component and hook, so you can see which ones are slow or checked more often than expected. Network and memory belong to the browser's own tools."
+            },
+            {
+              "lang": null,
+              "q": "Typing one letter in a search box produces a change detection cycle in which the profiler shows every component on the page being checked, though only the results list changed. What is a usual next step?",
+              "choices": [
+                "Wrap the search box in a `@defer` block",
+                "Replace `@for` with the older `*ngFor` directive",
+                "Make components `OnPush` or signal-driven so unaffected subtrees are skipped",
+                "Move the results list into a web worker"
+              ],
+              "answer": 2,
+              "explain": "Default change detection checks every component each cycle. `OnPush` components are checked only when an input reference changes, an event fires inside them, or a signal their template reads changes."
+            }
+          ]
         },
         {
-          "id": "frontend/performance/memo-referential-equality",
-          "title": "Memoization and referential equality",
-          "summary": "`React.memo` only skips a render when every prop is the same reference, so new objects and functions defeat it",
+          "id": "frontend/performance/onpush-references",
+          "title": "OnPush, pure pipes and references",
+          "summary": "`OnPush` components and pure pipes rerun only when an input's reference changes, so mutating objects is missed",
           "level": "hard",
           "variants": [
             {
               "lang": "ts",
-              "q": "`Row` is wrapped in `React.memo`, yet every row re-renders when the parent does. Why?\n\n```tsx\n{rows.map(r => (\n  <Row key={r.id} row={r} onSelect={() => select(r.id)} />\n))}\n```",
+              "q": "The parent calls `rename()`, but the card still shows the old name. Why?\n\n```ts\n@Component({\n  selector: 'app-user-card',\n  changeDetection: ChangeDetectionStrategy.OnPush,\n  template: `{{ user.name }}`,\n})\nexport class UserCard {\n  @Input() user!: User;\n}\n\n// in the parent\nrename() {\n  this.user.name = 'Grace';\n}\n```",
               "choices": [
-                "`memo` doesn't work for components rendered inside `map`",
-                "`onSelect` is a new function every render",
-                "Passing a `key` prop disables memoization",
-                "`row` objects are deep-compared and always differ"
+                "The `user` reference didn't change, so the OnPush card isn't checked",
+                "`@Input` properties become read-only after the first binding",
+                "OnPush components only update their view in `ngOnInit`",
+                "Interpolation in an OnPush template is cached until reload"
               ],
-              "answer": 1,
-              "explain": "`memo` does a shallow comparison by reference, and an inline arrow is a new function each time. Pass a stable callback (for example `useCallback` and `onSelect={select}` with the id passed inside `Row`)."
+              "answer": 0,
+              "explain": "An OnPush component is checked when an input gets a new reference, an event fires inside it, or a signal it reads changes. Replace the object, `this.user = { ...this.user, name: 'Grace' }`, or hold it in a signal."
             },
             {
               "lang": "ts",
-              "q": "A memoized `Chart` gets `options={{ color: 'red' }}` from its parent. Which change lets `memo` skip re-renders when nothing else changes?",
+              "q": "`total` is a pipe with the default `pure: true`. After `this.items.push(newItem)`, what does `{{ items | total }}` show?",
               "choices": [
-                "Hoist it to a constant or use `useMemo`",
-                "Pass `options={Object.freeze({ color: 'red' })}` instead",
-                "Add `options` to `Chart`'s `key` prop",
-                "Convert `Chart` to a class component"
+                "The new total: pipes run on every change detection",
+                "The new total, but only if the component is `OnPush`",
+                "An error: pipes can't take arrays as input",
+                "The old total: a pure pipe reruns only when its input reference changes"
               ],
-              "answer": 0,
-              "explain": "An object literal in JSX is a new reference every render, so the shallow prop check fails. A constant or `useMemo` keeps the same reference across renders."
+              "answer": 3,
+              "explain": "Angular caches a pure pipe's result and calls it again only when an argument changes by reference (or a primitive changes value). Assign a new array, `this.items = [...this.items, newItem]`, to get a new total."
             }
           ]
         },
@@ -707,14 +761,14 @@
                 "Tab focus, Enter/Space, and the button role"
               ],
               "answer": 3,
-              "explain": "A `div` has no role, no focusability and no keyboard activation. `<button type=\"button\" onClick={save}>` provides all three for free."
+              "explain": "A `div` has no role, no focusability and no keyboard activation. `<button type=\"button\" (click)=\"save()\">` provides all three for free."
             },
             {
               "lang": null,
               "q": "A team adds `role=\"button\"` to a clickable `div`. What else is still needed for it to behave like a real button?",
               "choices": [
                 "Nothing: the role adds keyboard support",
-                "`tabIndex={0}` plus Enter/Space handlers",
+                "`tabindex=\"0\"` plus Enter/Space handlers",
                 "Only an `aria-label` describing the action",
                 "Only a visible `:focus` outline style"
               ],
@@ -789,15 +843,15 @@
             },
             {
               "lang": "ts",
-              "q": "Which markup correctly labels the input in React?",
+              "q": "Which markup correctly labels the input in a reactive form?",
               "choices": [
-                "`<label for=\"email\">Email</label><input name=\"email\" />`",
-                "`<label htmlFor=\"email\">Email</label><input id=\"email\" />`",
+                "`<label for=\"email\">Email</label><input formControlName=\"email\" />`",
+                "`<label for=\"email\">Email</label><input id=\"email\" formControlName=\"email\" />`",
                 "`<span id=\"email\">Email</span><input aria-describedby=\"email\" />`",
-                "`<label id=\"email\">Email</label><input />` as siblings"
+                "`<label id=\"email\">Email</label><input formControlName=\"email\" />` as siblings"
               ],
               "answer": 1,
-              "explain": "`htmlFor` must match the input's `id` (React uses `htmlFor` for the HTML `for` attribute). `name` doesn't link a label, and a sibling label without `htmlFor` isn't associated, whatever its own `id`."
+              "explain": "A label's `for` must match the input's `id`. `formControlName` links the field to the form model, not to a label, and a sibling label without `for` isn't associated, whatever its own `id`."
             }
           ]
         },
@@ -1189,39 +1243,51 @@
                 "Checking in the browser that the text has no `<script>` tag"
               ],
               "answer": 0,
-              "explain": "Output escaping turns `<`, `>` and quotes into harmless entities, so the text is displayed instead of run; React does this for text by default. HTTPS and encryption don't change what the browser executes, and a `<script>` filter misses event-handler attributes."
+              "explain": "Output escaping turns `<`, `>` and quotes into harmless entities, so the text is displayed instead of run; Angular interpolation does this by default. HTTPS and encryption don't change what the browser executes, and a `<script>` filter misses event-handler attributes."
             }
           ]
         },
         {
-          "id": "frontend/frontend-security/xss-inner-html",
-          "title": "XSS and dangerouslySetInnerHTML",
-          "summary": "React escapes text it renders, but raw HTML you insert can run attacker scripts",
+          "id": "frontend/frontend-security/inner-html-sanitizer",
+          "title": "XSS, `[innerHTML]` and `DomSanitizer`",
+          "summary": "Angular escapes interpolated text and sanitizes `[innerHTML]`; `bypassSecurityTrustHtml` turns that protection off",
           "level": "medium",
           "variants": [
             {
               "lang": "ts",
-              "q": "A user's comment is `<img src=x onerror=alert(1)>`. What happens when it's rendered with `<p>{comment}</p>`?",
+              "q": "A user's comment is `<img src=x onerror=alert(1)>`. What happens when it's rendered with `<p>{{ comment }}</p>`?",
               "choices": [
-                "It shows as text: React escapes strings",
-                "The image tag runs and the alert fires",
-                "React strips the tag and shows nothing",
-                "React throws an error on HTML in strings"
+                "The image tag is created and the alert fires",
+                "It shows as text: interpolation escapes strings",
+                "Angular strips the tag and shows nothing",
+                "Angular throws an error on HTML inside strings"
               ],
-              "answer": 0,
-              "explain": "React treats a string child as text and escapes it, so no element is created. The danger starts when you use `dangerouslySetInnerHTML` or other raw-HTML APIs."
+              "answer": 1,
+              "explain": "Interpolation sets text content, so the markup is displayed rather than parsed. Raw HTML only comes into play with `[innerHTML]` or direct DOM writes."
             },
             {
               "lang": "ts",
-              "q": "User-written Markdown is converted to HTML and shown with `dangerouslySetInnerHTML`. What should happen before rendering?",
+              "q": "The same comment, `<img src=x onerror=alert(1)>`, is bound with `<div [innerHTML]=\"comment\"></div>`. What happens?",
               "choices": [
-                "Nothing: Markdown output can't contain raw HTML",
-                "Encode the HTML with `encodeURIComponent` first",
-                "Wrap it in a `<div>` so any scripts are contained",
-                "Sanitize it with an allow-list sanitizer"
+                "The alert fires: `[innerHTML]` inserts raw HTML as given",
+                "It shows as escaped text, exactly like interpolation",
+                "Angular sanitizes it: the `onerror` handler is removed, so no script runs",
+                "Angular refuses the binding and throws an error"
               ],
-              "answer": 3,
-              "explain": "CommonMark allows raw HTML, and many renderers pass it through, so the output can carry event handlers or scripts. An allow-list sanitizer removes them; URL-encoding would just garble the content."
+              "answer": 2,
+              "explain": "Angular treats `[innerHTML]` values as untrusted and sanitizes them, keeping safe tags like `<img>` but dropping event handlers; in development it warns that content was stripped."
+            },
+            {
+              "lang": "ts",
+              "q": "To keep some inline styles, a developer passes HTML rendered from user-written Markdown through `bypassSecurityTrustHtml` before binding it to `[innerHTML]`. What has this done?",
+              "choices": [
+                "Turned off sanitizing for that value, so injected event handlers can run",
+                "Nothing risky: Angular still removes scripts from trusted values",
+                "Escaped the HTML so it is shown as plain text",
+                "Allowed styles only; handlers and scripts are still removed"
+              ],
+              "answer": 0,
+              "explain": "The bypass methods tell Angular the value is already safe, so it is inserted untouched. Use them only for content you control; for user content, sanitize with an allow-list instead."
             }
           ]
         },
@@ -1290,22 +1356,34 @@
           ]
         },
         {
-          "id": "frontend/frontend-security/javascript-urls",
+          "id": "frontend/frontend-security/javascript-url-sanitizing",
           "title": "`javascript:` URLs",
-          "summary": "User-supplied links can carry `javascript:` URLs that run code when clicked; validate the scheme",
+          "summary": "User-supplied links can carry `javascript:` URLs; Angular sanitizes bound URLs, but bypassing the sanitizer re-opens the hole",
           "level": "hard",
           "variants": [
             {
               "lang": "ts",
-              "q": "A profile page renders `<a href={user.website}>Website</a>` with a value the user entered. In React 18, what happens if they enter `javascript:alert(document.cookie)`?",
+              "q": "A profile page renders `<a [href]=\"user.website\">Website</a>` with a value the user entered. What happens if they enter `javascript:alert(document.cookie)`?",
               "choices": [
-                "React escapes it, so clicking does nothing",
-                "React warns but renders it; the script runs",
+                "The script runs when someone clicks the link",
+                "Angular prefixes it with `unsafe:`, so clicking runs nothing",
                 "The browser refuses to render the link at all",
-                "React rewrites it to `https://javascript:...`"
+                "Angular throws during change detection"
               ],
               "answer": 1,
-              "explain": "Escaping protects text content, not the meaning of a URL. React 18 only warns about `javascript:` URLs, so validate that user links use `http:` or `https:` before rendering."
+              "explain": "Angular's URL sanitizer catches `javascript:` in bound URLs and prefixes it with `unsafe:`, with a warning in development. Still validate on input, so the link points somewhere useful."
+            },
+            {
+              "lang": "ts",
+              "q": "`url` holds a user-entered string. Which binding still lets a `javascript:` URL run when clicked?",
+              "choices": [
+                "`<a [href]=\"url\">`",
+                "`<a href=\"{{ url }}\">`",
+                "`<a [href]=\"url.trim()\">`",
+                "`<a [href]=\"sanitizer.bypassSecurityTrustUrl(url)\">`"
+              ],
+              "answer": 3,
+              "explain": "Property bindings and interpolation both go through the URL sanitizer. `bypassSecurityTrustUrl` marks the value as safe, so Angular inserts it unchanged."
             },
             {
               "lang": "ts",
