@@ -104,7 +104,7 @@ export function Results({ progress, update }: AppProps) {
         >
           {m ? (
             <>
-              <img className="mascot size-44" src={m.src} alt="" />
+              <img className="mascot size-44 rounded-3xl bg-white" src={m.src} alt="" />
               <p className="text-2xl font-semibold tracking-[0.25em] uppercase">{m.animal}</p>
               <p className="text-sm tracking-[0.2em] text-muted-foreground uppercase">{m.job}</p>
               <p className="max-w-sm text-sm text-muted-foreground italic">{m.tagline}</p>
@@ -116,12 +116,19 @@ export function Results({ progress, update }: AppProps) {
             </>
           ) : (
             <>
-              <img className="mascot size-44 opacity-30 grayscale" src={mascot("wanderer").src} alt="" />
+              <img
+                className="mascot size-44 rounded-3xl bg-white opacity-30 grayscale"
+                src={mascot("wanderer").src}
+                alt=""
+              />
               <p className="text-2xl font-semibold tracking-[0.25em] uppercase">Keep exploring</p>
               <p className="text-sm text-muted-foreground">Finish a quick scan or a quiz to meet your mascot.</p>
             </>
           )}
-          <Radar axes={GROUPS.map((g) => ({ id: g.group.id, title: g.group.title, value: strength(g, progress) }))} />
+          <Radar
+            color={m?.color}
+            axes={GROUPS.map((g) => ({ id: g.group.id, title: g.group.title, value: strength(g, progress) }))}
+          />
           <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase">Nerdscape</p>
         </div>
         <div className="flex flex-wrap justify-center gap-2">

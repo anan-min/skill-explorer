@@ -21,8 +21,8 @@ function wrap(title: string) {
   return lines;
 }
 
-// Quiz strength per group, drawn without numbers so it can go on the share card.
-export function Radar({ axes }: { axes: Axis[] }) {
+// Quiz strength per group in the persona's colour (grey without one), drawn without numbers so it can go on the share card.
+export function Radar({ axes, color = MUTED }: { axes: Axis[]; color?: string }) {
   const titles = new Map(axes.map((a) => [a.id, a.title]));
   const Label = ({ id, x, y, anchor }: GridLabelProps) => {
     const lines = wrap(titles.get(id) ?? id);
@@ -57,9 +57,9 @@ export function Radar({ axes }: { axes: Axis[] }) {
         gridLabel={Label}
         gridLabelOffset={14}
         curve="linearClosed"
-        colors={[MUTED]}
-        fillOpacity={0.35}
-        borderWidth={0}
+        colors={[color]}
+        fillOpacity={0.3}
+        borderWidth={color === MUTED ? 0 : 2}
         enableDots={false}
         isInteractive={false}
         theme={{ grid: { line: { stroke: GRID, strokeWidth: 1 } } }}
