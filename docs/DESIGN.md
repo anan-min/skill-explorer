@@ -207,7 +207,7 @@ Never on the share card: right and missed answers, skills rated Used, and skills
 
 - The hero exports as a PNG card (persona, mascot and radar, **no numbers**) via `html-to-image`.
 - Buttons: **Copy image** (`ClipboardItem`), **Download**, **Share** (`navigator.share` with the file, on mobile).
-- Next to them, **Start over**: after a confirm, clears all progress in this browser (the language choice stays) and goes to Home.
+- Next to them, **Start over**: after a confirm, clears all progress in this browser (the language choice stays) and goes to Home. A second confirm asks whether to clear the mascot dex too; Cancel keeps it.
 - No share links: a per-user Slack/OG preview would need a backend.
 - If `html-to-image` renders badly, switch to drawing the card by hand on `<canvas>`.
 - `html-to-image` drops SVG paint set through CSS classes, so the radar sets `fill`/`stroke` as attributes.
@@ -221,6 +221,14 @@ Never on the share card: right and missed answers, skills rated Used, and skills
 - Framing: each drawing is centred on its 512px square with at least ~45px white padding. One scale per animal (the largest of its 9 drawings fills 420px), so the body stays the same size when the hat and tool change.
 - The backgrounds are white, so every mascot sits on a white rounded card on the off-white page.
 - No external placeholder services: cross-origin images break the PNG export.
+
+## Mascot dex
+
+- `#/mascots`, linked from the header (except mid-run) and under the results buttons ("Mascot dex · X of 83 found").
+- All 83 mascots numbered #001–#083 in `DEX` order (`src/mascots.ts`): each animal's 9 jobs, one row per animal, then Fox and Chick.
+- **Collectible:** the mascot on your results page joins the dex, stored under `skill-explorer:collection` (a list of `dexKey`s: `<animal topic>--<job topic>`, `wanderer`, `apprentice`). Quizzing again or ending up stronger elsewhere finds more.
+- Found ones show in full with their job; the rest are grey silhouettes (an SVG filter, since the JPGs' white backgrounds would black out with `brightness-0`) with their number.
+- Tapping one opens its card under that row: number, name and description when found, `???` when not, and always how to get it ("Strongest in Frontend, second strongest in Code craft").
 
 ## Build order
 
