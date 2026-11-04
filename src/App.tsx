@@ -63,7 +63,7 @@ export function App() {
         {!running && (
           <nav className="flex gap-4 text-sm">
             <a href="#/mascots" className="-my-3 inline-block py-3 underline-offset-4 hover:underline sm:my-0 sm:py-0">
-              Mascots
+              Nerds
             </a>
             {progress.finished && (
               <a
