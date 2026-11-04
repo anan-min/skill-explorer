@@ -17,7 +17,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 
 - Vite + React + TypeScript.
 - Hash routing (`#/scan`, `#/quiz`, `#/results`), because GitHub Pages has no SPA fallback.
-- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page. Besides the mascots, the only colour is two pastels in the gap list: rose (Missed) and butter (Heard). They sit behind near-black text, never as text colour. A picked option (scan answer, language toggle, the right quiz answer), every main-action button and the progress bar are solid black for contrast; code blocks are a light grey panel. Text stays near-black for readability.
+- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page. Besides the mascots and the results radar (drawn in the persona animal's own colour, from `color` in `src/mascots.ts`; grey before there's a persona), the only colour is two pastels in the gap list: rose (Missed) and butter (Heard). They sit behind near-black text, never as text colour. A picked option (scan answer, language toggle, the right quiz answer), every main-action button and the progress bar are solid black for contrast; code blocks are a light grey panel. Text stays near-black for readability.
 - GitHub Pages at `anan-min.github.io/skill-explorer`, deployed by GitHub Actions on push to `main`.
 - English only.
 - The owner merges on their own judgment; CI validation is the only gate.
