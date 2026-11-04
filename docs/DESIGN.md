@@ -37,7 +37,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 | 7 | Testing | Mouse · Knight |
 | 8 | Delivery & ops | Rhino · Warrior |
 | 9 | Frontend | Golden retriever · Bard |
-| — | Strong in 5 or more of the 9 topics | Fox · Wanderer |
+| — | Strong in 7 or more of the 9 topics | Fox · Wanderer |
 | — | Strong in no group yet | Chick · Apprentice |
 
 Skills per group:
@@ -161,9 +161,10 @@ Each skill gets a score from 0 to 1:
 | | Easy | Medium | Hard |
 |---|---|---|---|
 | Right | +0.10 | +0.15 | +0.20 |
-| Wrong | −0.25 | −0.15 | −0.05 |
+| Wrong | −0.4 | −0.3 | −0.15 |
 
 3. **Clamp** to 0–1.
+4. **Cap** while a miss stands: missing an easy question caps the skill at **0.4** (Heard), a medium one at **0.55**, a hard one at **0.7** (Used). The lowest cap wins. So the bigger the claim, the further a miss drops it: Expert missing an easy question goes 1 → 0.4, Used goes 0.7 → 0.3 (the penalty alone already takes it under the cap). Answering that concept right later lifts the cap.
 
 Missing an easy question says the most, missing a hard one little, and only right answers lift a skill above 0.7, so claiming everything doesn't pay. A topic's **strength** is the average of its rated skills. The numbers are constants in `src/logic.ts`.
 
@@ -176,9 +177,9 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
 - **Radar:** strength per topic, no numbers, drawn as a filled shape with a 2px outline in the persona animal's colour, no dots; grey with no outline before there's a persona.
 - **Unlock:** once every skill is rated (a finished Quick scan or Quiz). Before that, a silhouette and "finish a quick scan or a quiz".
 - **Checked:** "Checked X of Y claimed skills", where a claimed skill is rated Heard or higher and checked means it has had a question. While some aren't checked: "Take the quiz to check more."
-- **Persona rule:** a topic **passes** at ≥ 60% strength.
+- **Persona rule:** a topic **passes** at ≥ 60% strength and with no more missed answers than right ones in it. A skill's question only moves that skill, so without the second part, rating everything Used and missing every question still passed most topics.
   - No topic passes → **Apprentice**.
-  - 5 or more of the 9 topics pass → **Wanderer** (`WANDERER_AT` in `src/logic.ts`; with fewer than 5 topics, all of them).
+  - 7 or more of the 9 topics pass → **Wanderer** (`WANDERER_AT` in `src/logic.ts`; with fewer than 7 topics, all of them). It was 5, but then anyone rating Used in 5 topics and answering right got the Fox, crowding out the combos.
   - One topic passes → that topic's animal in its own job (e.g. Mouse · Knight).
   - Two or more pass → the strongest topic's animal in the second-strongest topic's job (e.g. Octopus · Knight); a third or later topic doesn't change it. Ranking: strength, then more right answers, then the lower group number.
 - Results accumulate across runs, so later runs sharpen the result.
@@ -207,7 +208,7 @@ Never on the share card: right and missed answers, skills rated Used or higher, 
 
 - The hero exports as a PNG card (persona, mascot and radar, **no numbers**) via `html-to-image`.
 - Sharing is the page's main action, so its buttons come first, right under the card, each with an icon: **Share your nerd** (`navigator.share` with the file, where supported; the filled button) and **Save image** (downloads the PNG; filled when Share isn't available). No Copy image: the phone share sheet already saves or copies, and two buttons read clearer.
-- A second row: **Take the quiz →** / **Quiz again →** (outline) and **Start over** (ghost): after a confirm, clears all progress in this browser (the language choice stays) and goes to Home. A second confirm asks whether to clear the mascot dex too; Cancel keeps it.
+- A second row: **Take the quiz →** / **Quiz again →** (outline) and **Start over** (ghost): after a confirm, clears all progress in this browser (the language choice stays) and goes to Home. A second confirm asks whether to clear the nerd dex too; Cancel keeps it.
 - No share links: a per-user Slack/OG preview would need a backend.
 - If `html-to-image` renders badly, switch to drawing the card by hand on `<canvas>`.
 - `html-to-image` drops SVG paint set through CSS classes, so the radar sets `fill`/`stroke` as attributes.
@@ -222,9 +223,10 @@ Never on the share card: right and missed answers, skills rated Used or higher, 
 - The backgrounds are white, so every mascot sits on a white rounded card on the off-white page.
 - No external placeholder services: cross-origin images break the PNG export.
 
-## Mascot dex
+## Nerd dex
 
-- `#/mascots`, linked from the header (except mid-run) and under the results buttons ("Mascot dex · X of 83 found").
+- Players see the mascots as **nerds**: header link "Nerds", page "Nerd dex", results link "Nerd dex · X of 83 found". Code, the route (`#/mascots`), image paths and the `skill-explorer:collection` key keep the mascot name, so links and saved collections still work.
+- `#/mascots`, linked from the header (except mid-run) and under the results buttons.
 - All 83 mascots numbered #001–#083 in `DEX` order (`src/mascots.ts`): each animal's 9 jobs, one row per animal, then Fox and Chick.
 - **Collectible:** the mascot on your results page joins the dex, stored under `skill-explorer:collection` (a list of `dexKey`s: `<animal topic>--<job topic>`, `wanderer`, `apprentice`). Quizzing again or ending up stronger elsewhere finds more.
 - Found ones show in full with their job; the rest are grey silhouettes (an SVG filter, since the JPGs' white backgrounds would black out with `brightness-0`) with their number.

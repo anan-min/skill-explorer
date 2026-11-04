@@ -26,10 +26,10 @@ export type Persona =
 
 // Quiz length; Quick scan asks one easy question per topic.
 const QUIZ_CHECKS = 18;
-// A topic passes at this strength.
+// A topic passes at this strength, and only with no more missed answers than right ones.
 const PASS_RATE = 0.6;
 // The Wanderer needs this many passing topics (capped at the number of topics).
-const WANDERER_AT = 5;
+const WANDERER_AT = 7;
 // A skill below this, or rated New or Heard, shows in the gap list.
 const GAP_BELOW = 0.5;
 // A skill's score starts from its rating, then each answered concept moves it.
@@ -38,10 +38,13 @@ export const START: Record<Rating, number> = { new: 0, heard: 0.4, used: 0.7, st
 // Ratings that claim hands-on use, highest first.
 const USED: Rating[] = ["expert", "strong", "used"];
 export const DELTA: Record<Level, { right: number; wrong: number }> = {
-  easy: { right: 0.1, wrong: -0.25 },
-  medium: { right: 0.15, wrong: -0.15 },
-  hard: { right: 0.2, wrong: -0.05 },
+  easy: { right: 0.1, wrong: -0.4 },
+  medium: { right: 0.15, wrong: -0.3 },
+  hard: { right: 0.2, wrong: -0.15 },
 };
+// While a miss stands, the skill can't score above what it showed: missing an easy question
+// means Heard at most, so the bigger the claim, the further it falls.
+export const CAP: Record<Level, number> = { easy: START.heard, medium: 0.55, hard: START.used };
 const LEVELS: Level[] = ["easy", "medium", "hard"];
 
 export const emptyProgress = (): Progress => ({ schemaVersion: 2, skills: {}, answers: {} });
@@ -182,7 +185,8 @@ export function skillScore(g: GroupFile, s: Skill, p: Progress): number | null {
     const result = resultOf(p, c);
     return result ? sum + DELTA[c.level][result] : sum;
   }, START[rating]);
-  return Math.min(1, Math.max(0, moved));
+  const cap = Math.min(1, ...s.concepts.filter((c) => resultOf(p, c) === "wrong").map((c) => CAP[c.level]));
+  return Math.min(cap, Math.max(0, moved));
 }
 
 export const isChecked = (s: Skill, p: Progress) => s.concepts.some((c) => resultOf(p, c) !== null);
@@ -211,8 +215,9 @@ export function persona(groups: GroupFile[], p: Progress): Persona {
     order,
     strength: strength(g, p),
     right: conceptsOf(g).filter((c) => resultOf(p, c) === "right").length,
+    missed: conceptsOf(g).filter((c) => resultOf(p, c) === "wrong").length,
   }));
-  const passing = rows.filter((r) => r.strength >= PASS_RATE);
+  const passing = rows.filter((r) => r.strength >= PASS_RATE && r.missed <= r.right);
   if (!passing.length) return { kind: "apprentice" };
   if (passing.length >= Math.min(WANDERER_AT, rows.length)) return { kind: "wanderer" };
   const [top, second] = passing.sort((x, y) => y.strength - x.strength || y.right - x.right || x.order - y.order);
