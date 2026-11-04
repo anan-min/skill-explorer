@@ -157,7 +157,10 @@ export function Results({ progress, update, collection, setCollection }: AppProp
             Start over
           </Button>
         </div>
-        <a href="#/mascots" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+        <a
+          href="#/mascots"
+          className="-my-3 inline-block py-3 text-sm sm:my-0 sm:py-0 text-muted-foreground underline-offset-4 hover:underline"
+        >
           Mascot dex · {collection.length} of {DEX.length} found
         </a>
       </section>

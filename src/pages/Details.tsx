@@ -137,7 +137,10 @@ export function Skills({ progress }: AppProps) {
 function Page({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-6">
-      <a href="#/results" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+      <a
+        href="#/results"
+        className="-my-3 inline-block py-3 text-sm text-muted-foreground underline-offset-4 hover:underline sm:my-0 sm:py-0"
+      >
         ← Back to your map
       </a>
       <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
@@ -158,7 +161,7 @@ function TopicChips(props: {
       type="button"
       onClick={() => props.onChange(id)}
       aria-pressed={props.value === id}
-      className="rounded-full border px-3 py-1 text-sm aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+      className="rounded-full border px-4 py-2.5 text-sm sm:px-3 sm:py-1 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
     >
       {label}
       {count !== undefined && <span className="ml-1.5 tabular-nums opacity-60">{count}</span>}
