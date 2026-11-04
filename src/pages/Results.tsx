@@ -31,7 +31,7 @@ import { Radar } from "../Radar.tsx";
 
 function personaMascot(p: Persona) {
   if (p.kind === "locked") return null;
-  return mascot(p.kind === "group" ? p.id : p.kind);
+  return p.kind === "group" ? mascot(p.id, p.job) : mascot(p.kind);
 }
 
 // Why a skill is in the gap list. New stays neutral so a long list of unmet skills

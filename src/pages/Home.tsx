@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import type { AppProps } from "../App.tsx";
 import { GROUPS } from "../content.ts";
 import { ratingOf } from "../logic.ts";
-import { MASCOTS, mascot } from "../mascots.ts";
+import { MASCOT_IDS, mascot } from "../mascots.ts";
 
 export function Home({ progress }: AppProps) {
   const skills = GROUPS.flatMap((g) => g.skills.map((s) => ratingOf(progress, g, s)));
@@ -10,7 +10,7 @@ export function Home({ progress }: AppProps) {
   return (
     <section className="space-y-8 pt-6 text-center">
       <div className="mx-auto flex max-w-md flex-wrap justify-center">
-        {Object.keys(MASCOTS).map((id) => (
+        {MASCOT_IDS.map((id) => (
           <img key={id} className="size-16" src={mascot(id).src} alt="" />
         ))}
       </div>

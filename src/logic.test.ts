@@ -231,19 +231,28 @@ describe("persona", () => {
     expect(persona([strong, weak], p)).toEqual({ kind: "wanderer" });
   });
 
-  it("otherwise is the strongest passing topic, ties broken by right answers then topic order", () => {
+  it("with one strong topic, is that topic's animal in its own job", () => {
+    const p = rate(rate(emptyProgress(), strong, skill(strong, "s"), "used"), weak, skill(weak, "w"), "new");
+    expect(persona([strong, weak], p)).toEqual({ kind: "group", id: "strong", job: "strong" });
+  });
+
+  it("otherwise is the strongest topic's animal in the second-strongest's job, ties broken by right answers then topic order", () => {
     const third = group("third", { t: [["t", "easy"]], u: [["u", "easy"]] });
     let p = rate(emptyProgress(), strong, skill(strong, "s"), "used");
     p = rate(p, weak, skill(weak, "w"), "new");
     p = rateAll(p, third, { t: "used", u: "used" });
     // Both 0.7: the earlier topic wins.
-    expect(persona([strong, weak, third], p)).toEqual({ kind: "group", id: "strong" });
+    expect(persona([strong, weak, third], p)).toEqual({ kind: "group", id: "strong", job: "third" });
     // Both 0.8, but third has two right answers.
     p = right(right(right(p, find(strong, "s")), find(third, "t")), find(third, "u"));
-    expect(persona([strong, weak, third], p)).toEqual({ kind: "group", id: "third" });
+    expect(persona([strong, weak, third], p)).toEqual({ kind: "group", id: "third", job: "strong" });
     // Higher strength beats more right answers.
     p = right(p, find(strong, "s"));
-    expect(persona([weak, third, strong], wrong(p, find(third, "u")))).toEqual({ kind: "group", id: "strong" });
+    expect(persona([weak, third, strong], wrong(p, find(third, "u")))).toEqual({
+      kind: "group",
+      id: "strong",
+      job: "third",
+    });
   });
 });
 

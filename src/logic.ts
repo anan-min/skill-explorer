@@ -18,12 +18,18 @@ export type Progress = z.infer<typeof ProgressSchema>;
 export type LangPref = z.infer<typeof Lang>;
 export type Check = { concept: Concept; variant: number };
 export type Persona =
-  { kind: "locked" } | { kind: "apprentice" } | { kind: "wanderer" } | { kind: "group"; id: string };
+  | { kind: "locked" }
+  | { kind: "apprentice" }
+  | { kind: "wanderer" }
+  // The strongest topic's animal in the second-strongest topic's job (its own job if only one is strong).
+  | { kind: "group"; id: string; job: string };
 
 // Quiz length; Quick scan asks one easy question per topic.
 const QUIZ_CHECKS = 18;
 // A topic passes at this strength.
 const PASS_RATE = 0.6;
+// The Wanderer needs this many passing topics (capped at the number of topics).
+const WANDERER_AT = 9;
 // A skill below this, or rated New or Heard, shows in the gap list.
 const GAP_BELOW = 0.5;
 // A skill's score starts from its rating, then each answered concept moves it.
@@ -201,9 +207,9 @@ export function persona(groups: GroupFile[], p: Progress): Persona {
   }));
   const passing = rows.filter((r) => r.strength >= PASS_RATE);
   if (!passing.length) return { kind: "apprentice" };
-  if (passing.length === rows.length) return { kind: "wanderer" };
-  const [top] = passing.sort((x, y) => y.strength - x.strength || y.right - x.right || x.order - y.order);
-  return { kind: "group", id: top.id };
+  if (passing.length >= Math.min(WANDERER_AT, rows.length)) return { kind: "wanderer" };
+  const [top, second] = passing.sort((x, y) => y.strength - x.strength || y.right - x.right || x.order - y.order);
+  return { kind: "group", id: top.id, job: (second ?? top).id };
 }
 
 export function stats(groups: GroupFile[], p: Progress) {

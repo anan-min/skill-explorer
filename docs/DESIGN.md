@@ -26,18 +26,18 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 
 ### Groups (54 skills)
 
-| # | Group | Mascot |
+| # | Group | Animal · job |
 |---|---|---|
-| 1 | Language & runtime | Octopus · Interpreter |
-| 2 | Data structures & algorithms | Owl · Navigator |
-| 3 | Code craft | Beaver · Builder |
-| 4 | Design & architecture | Spider · Bridge architect |
-| 5 | Backend | Ant · Porter |
-| 6 | Data & storage | Squirrel · Storekeeper |
-| 7 | Testing | Meerkat · Lookout |
-| 8 | Delivery & ops | Husky · Sled runner |
-| 9 | Frontend | Chameleon · Signaller |
-| — | Strong in every group | Fox · Backpacker (Wanderer) |
+| 1 | Language & runtime | Octopus · Mage |
+| 2 | Data structures & algorithms | Owl · Ranger |
+| 3 | Code craft | Bear · Blacksmith |
+| 4 | Design & architecture | Cat · Noble |
+| 5 | Backend | Ant · Merchant |
+| 6 | Data & storage | Crow · Alchemist |
+| 7 | Testing | Rat · Knight |
+| 8 | Delivery & ops | Rhino · Warrior |
+| 9 | Frontend | Golden retriever · Bard |
+| — | Strong in every group | Fox · Wanderer |
 | — | Strong in no group yet | Chick · Apprentice |
 
 Skills per group:
@@ -178,8 +178,9 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
 - **Checked:** "Checked X of Y claimed skills", where a claimed skill is rated Used or Heard and checked means it has had a question. While some aren't checked: "Take the quiz to check more."
 - **Persona rule:** a topic **passes** at ≥ 60% strength.
   - No topic passes → **Apprentice**.
-  - Every topic passes → **Wanderer**.
-  - Otherwise → the strongest passing topic's mascot. Tie → more right answers, then the lower group number.
+  - Every topic passes → **Wanderer** (`WANDERER_AT` in `src/logic.ts`, 9 for now).
+  - One topic passes → that topic's animal in its own job (e.g. Rat · Knight).
+  - Two or more pass → the strongest topic's animal in the second-strongest topic's job (e.g. Octopus · Knight); a third or later topic doesn't change it. Ranking: strength, then more right answers, then the lower group number.
 - Results accumulate across runs, so later runs sharpen the result.
 
 ### Your gaps
@@ -209,8 +210,9 @@ Below the gaps, never on the share card: right and missed answers, skills rated 
 ## Mascots
 
 - The owner draws them by hand. Until then, ship placeholders.
-- Placeholders: `public/mascots/<id>.svg`, where `<id>` is the group ID, `wanderer` or `apprentice`. Each is a coloured circle with the animal emoji and job name (e.g. 🐙 Interpreter). There is no meerkat or husky emoji, so those two use 🦦 and 🐺 until drawn.
-- `src/mascots.ts` maps each ID to its file, so swapping in a drawing (PNG or SVG) is a one-line change.
+- Each job is one hat and one tool, so a combo is one topic's animal wearing another topic's hat and holding its tool. The page prints animal and job, so drawings carry no lettering.
+- Drawings: 512×512 transparent PNGs in `public/mascots/`, named `<animal topic>--<job topic>.png` (`testing--testing.png` for Rat · Knight, `language-runtime--testing.png` for Octopus · Knight), plus `wanderer.png` and `apprentice.png`. 9 own-job drawings plus Fox and Chick first, the 72 combos later.
+- `src/mascots.ts` lists the drawn files in `DRAWN`. A combo that isn't drawn shows the animal in its own job; one that isn't drawn either shows the placeholder `public/mascots/<topic id>.svg` (a coloured circle with the animal emoji).
 - No external placeholder services: cross-origin images break the PNG export.
 
 ## Build order
