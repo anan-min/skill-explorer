@@ -255,22 +255,22 @@ describe("persona", () => {
     });
   });
 
-  it("is the Apprentice when no topic reaches 60%", () => {
+  it("is the Apprentice when no topic reaches 40%", () => {
     const p = rate(rate(emptyProgress(), strong, skill(strong, "s"), "heard"), weak, skill(weak, "w"), "new");
     expect(persona([strong, weak], p)).toEqual({ kind: "apprentice" });
   });
 
-  it("is the Wanderer when every topic reaches 60%", () => {
+  it("is the Wanderer when every topic reaches 70%", () => {
     const p = rate(rate(emptyProgress(), strong, skill(strong, "s"), "expert"), weak, skill(weak, "w"), "expert");
     expect(persona([strong, weak], p)).toEqual({ kind: "wanderer" });
   });
 
-  it("is the Wanderer from 5 strong topics out of 9, not 4", () => {
+  it("is the Wanderer from 7 topics at 70% out of 9, not 6", () => {
     const nine = Array.from({ length: 9 }, (_, i) => group(`g${i}`, { s: [["s", "easy"]] }));
     const strongIn = (k: number) =>
       nine.reduce((p, g, i) => rate(p, g, skill(g, "s"), i < k ? "expert" : "new"), emptyProgress());
-    expect(persona(nine, strongIn(5))).toEqual({ kind: "wanderer" });
-    expect(persona(nine, strongIn(4))).toEqual({ kind: "group", id: "g0", job: "g1" });
+    expect(persona(nine, strongIn(7))).toEqual({ kind: "wanderer" });
+    expect(persona(nine, strongIn(6))).toEqual({ kind: "group", id: "g0", job: "g1" });
   });
 
   it("doesn't count a topic as strong when it has more missed answers than right ones", () => {

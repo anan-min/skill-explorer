@@ -26,13 +26,14 @@ export type Persona =
 
 // Quiz length; Quick scan asks one easy question per topic.
 const QUIZ_CHECKS = 18;
-// A topic passes at this strength, and only with no more missed answers than right ones.
-const PASS_RATE = 0.6;
-// When no topic passes, topics from this strength (same miss rule) still pick the nerd, so the
-// Chick is for people who are new or missed a lot, not everyone short of 60%.
+// The nerd is your two best topics among those at LEAN_RATE or more with no more missed answers
+// than right ones; no such topic gives the Chick. The Fox needs WANDERER_AT topics at PASS_RATE.
+// Tuned by simulation so the Fox and the Chick are each a few percent and nearly everyone else
+// gets one of the 81 combos.
+const PASS_RATE = 0.7;
 const LEAN_RATE = 0.4;
-// The Wanderer needs this many passing topics (capped at the number of topics).
-const WANDERER_AT = 5;
+// The Wanderer needs this many topics at PASS_RATE (capped at the number of topics).
+const WANDERER_AT = 7;
 // A skill below this, or rated New or Heard, shows in the gap list.
 const GAP_BELOW = 0.5;
 // A skill's score starts from its rating, then each answered concept moves it.
@@ -235,7 +236,7 @@ export function persona(groups: GroupFile[], p: Progress): Persona {
   const fair = rows.filter((r) => r.missed <= r.right);
   const passing = fair.filter((r) => r.strength >= PASS_RATE);
   if (passing.length >= Math.min(WANDERER_AT, rows.length)) return { kind: "wanderer" };
-  const pool = passing.length ? passing : fair.filter((r) => r.strength >= LEAN_RATE);
+  const pool = fair.filter((r) => r.strength >= LEAN_RATE);
   if (!pool.length) return { kind: "apprentice" };
   const [top, second] = pool.sort((x, y) => y.strength - x.strength || y.right - x.right || x.order - y.order);
   return { kind: "group", id: top.id, job: (second ?? top).id };

@@ -37,7 +37,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 | 7 | Testing | Mouse · Knight |
 | 8 | Delivery & ops | Rhino · Warrior |
 | 9 | Frontend | Golden retriever · Bard |
-| — | Strong in 5 or more of the 9 topics | Fox · Wanderer |
+| — | 70%+ in 7 or more of the 9 topics | Fox · Wanderer |
 | — | No topic at 40% yet (or more misses than right answers) | Chick · Apprentice |
 
 Skills per group:
@@ -178,11 +178,12 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
 - **Radar:** strength per topic, no numbers, drawn as a filled shape with a 2px outline in the persona animal's colour, no dots; grey with no outline before there's a persona.
 - **Unlock:** once every skill is rated (a finished Quick scan or Quiz). Before that, a silhouette and "finish a quick scan or a quiz".
 - **Checked:** "Checked X of Y claimed skills", where a claimed skill is rated Heard or higher and checked means it has had a question. While some aren't checked: "Take the quiz to check more."
-- **Persona rule:** a topic **passes** at ≥ 60% strength and with no more missed answers than right ones in it. A skill's question only moves that skill, so without the second part, rating everything Used and missing every question still passed most topics.
-  - No topic passes → the same rules below over topics at ≥ **40%** (same miss rule; `LEAN_RATE`), so harsher scoring doesn't turn everyone short of 60% into the Chick. Nothing at 40% either → **Apprentice**.
-  - 5 or more of the 9 topics pass → **Wanderer** (`WANDERER_AT` in `src/logic.ts`; with fewer than 5 topics, all of them). It was briefly 7, but the real problem was claims scoring too high, now fixed by the lower starting scores.
-  - One topic passes → that topic's animal in its own job (e.g. Mouse · Knight).
-  - Two or more pass → the strongest topic's animal in the second-strongest topic's job (e.g. Octopus · Knight); a third or later topic doesn't change it. Ranking: strength, then more right answers, then the lower group number.
+- **Persona rule.** Scores stay fair; the rule on top is tuned so the Fox and the Chick are rare and nearly everyone gets one of the 81 combos. A topic **counts** at ≥ **40%** strength (`LEAN_RATE`) with no more missed answers than right ones in it (a skill's question only moves that skill, so without the miss rule, rating everything high and missing every question still counted most topics).
+  - ≥ **70%** (`PASS_RATE`) in **7** or more of the 9 topics, each with the miss rule → **Wanderer** (`WANDERER_AT`; with fewer than 7 topics, all of them).
+  - No topic counts → **Apprentice**.
+  - One topic counts → that topic's animal in its own job (e.g. Mouse · Knight).
+  - Two or more → the strongest topic's animal in the second-strongest topic's job (e.g. Octopus · Knight). Ranking: strength, then more right answers, then the lower group number.
+  - Tuned with a throwaway simulation (2,000 synthetic users of varied level who mostly overclaim a little, guess or say I don't know): Fox about 2% after Quick scan and 3% after the Quiz, Chick about 4% and 1%, own-job about 7%, combos the rest. Fox at 5 of 9 topics at 60% gave about a third Fox. The users are a model, so the percentages are a guide.
 - Results accumulate across runs, so later runs sharpen the result.
 
 Below the hero, two summary cards keep the results page short; each links to its own page (`#/gaps`, `#/skills`) with "← Back to your map" and topic chips (All, then each topic with its count) that show one topic at a time.
