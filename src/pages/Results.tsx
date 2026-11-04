@@ -1,9 +1,8 @@
 import { toBlob } from "html-to-image";
-import { ChevronDown, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import type { AppProps } from "../App.tsx";
 import { GROUPS } from "../content.ts";
@@ -12,40 +11,24 @@ import {
   emptyProgress,
   gapsByGroup,
   gapText,
-  isChecked,
   persona,
-  ratingOf,
   report,
-  resultOf,
   skillScore,
   stats,
   strength,
   type Persona,
-  type Rating,
 } from "../logic.ts";
-import type { Concept, Level } from "../schema.ts";
-import { Inline, Markdown } from "../Markdown.tsx";
 import { mascot } from "../mascots.ts";
 import { Radar } from "../Radar.tsx";
+import { percent } from "./Details.tsx";
+
+// A skill counts as strong in the summary from this score, the same bar a topic needs to pass.
+const STRONG = 0.6;
 
 function personaMascot(p: Persona) {
   if (p.kind === "locked") return null;
   return p.kind === "group" ? mascot(p.id, p.job) : mascot(p.kind);
 }
-
-// Why a skill is in the gap list. New stays neutral so a long list of unmet skills
-// doesn't read as an alarm.
-const ORIGINS = {
-  low: { label: "Low score", tag: "bg-rose", stripe: "border-l-rose-edge" },
-  heard: { label: "Heard", tag: "bg-butter", stripe: "border-l-butter-edge" },
-  new: { label: "New", tag: "bg-muted text-muted-foreground", stripe: "border-l-transparent" },
-};
-const originOf = (rating: Rating | null) =>
-  rating === "new" ? ORIGINS.new : rating === "heard" ? ORIGINS.heard : ORIGINS.low;
-
-const LEVEL_LABEL: Record<Level, string> = { easy: "Easy", medium: "Medium", hard: "Hard" };
-
-const percent = (n: number | null) => (n === null ? "Not rated" : `${Math.round(n * 100)}%`);
 
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -103,6 +86,14 @@ export function Results({ progress, update }: AppProps) {
 
   const gaps = gapsByGroup(GROUPS, progress);
   const numbers = stats(GROUPS, progress);
+  const gapSkills = gaps.reduce((n, g) => n + g.skills.length, 0);
+  // Rated skills by score, for the summary's strongest and weakest three.
+  const rated = GROUPS.flatMap((g) => g.skills.map((s) => ({ title: s.title, score: skillScore(g, s, progress) })))
+    .filter((r): r is { title: string; score: number } => r.score !== null)
+    .sort((a, b) => b.score - a.score);
+  const strongCount = rated.filter((r) => r.score >= STRONG).length;
+  const strongest = rated.slice(0, 3);
+  const weakest = rated.slice(Math.max(3, rated.length - 3)).reverse();
 
   return (
     <div className="space-y-10">
@@ -157,96 +148,27 @@ export function Results({ progress, update }: AppProps) {
 
       <Separator />
 
-      <Section title="Your gaps" note={`${gaps.reduce((n, g) => n + g.skills.length, 0)} skills`}>
-        {gaps.length === 0 && <p className="text-muted-foreground">No gaps yet. Scan or quiz a topic to find some.</p>}
-        {gaps.map(({ group, skills }) => (
-          <div key={group.group.id} className="space-y-2">
-            <h3 className="text-lg font-semibold">{group.group.title}</h3>
-            <ul className="divide-y overflow-hidden rounded-lg border">
-              {skills.map(({ skill, rating, weak, missed }) => {
-                const origin = originOf(rating);
-                return (
-                  <li
-                    key={skill.id}
-                    className={`space-y-2 border-l-4 px-4 py-3 ${weak ? origin.stripe : "border-l-transparent"}`}
-                  >
-                    <p className="[overflow-wrap:anywhere]">
-                      <strong>{skill.title}</strong>
-                      {weak && (
-                        <span
-                          className={`ml-2 rounded-full px-2 py-0.5 align-middle text-xs font-medium ${origin.tag}`}
-                        >
-                          {origin.label}
-                        </span>
-                      )}
-                      <span className="text-muted-foreground"> · {skill.summary}</span>
-                    </p>
-                    {missed.map((c) => (
-                      <Missed key={c.id} concept={c} seen={progress.answers[c.id]} />
-                    ))}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </Section>
-
-      <Separator />
-
-      <Section title="Your skills" note={`${numbers.right} right · ${numbers.missed} missed`}>
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {(
-            [
-              ["Right", numbers.right],
-              ["Missed", numbers.missed],
-              ["Skills used", numbers.used],
-              ["Not rated", numbers.unrated],
-            ] as const
-          ).map(([label, value]) => (
-            <div key={label} className="rounded-lg border px-4 py-3">
-              <dt className="text-xs tracking-widest text-muted-foreground uppercase">{label}</dt>
-              <dd className="text-2xl font-semibold tabular-nums">{value}</dd>
-            </div>
-          ))}
-        </dl>
-        {GROUPS.map((g) => (
-          <div key={g.group.id} className="space-y-2">
-            <h3 className="text-lg font-semibold">{g.group.title}</h3>
-            <ul className="divide-y rounded-lg border">
-              {g.skills.map((s) => (
-                <li key={s.id} className="px-4 py-3">
-                  <Collapsible>
-                    <CollapsibleTrigger className="group flex w-full items-baseline justify-between gap-x-4 text-left">
-                      <span className="font-medium">{s.title}</span>
-                      <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground tabular-nums">
-                        {percent(skillScore(g, s, progress))}
-                        {ratingOf(progress, g, s) && (isChecked(s, progress) ? " · checked" : " · not checked")}
-                        <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
-                      </span>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pt-2">
-                      <p className="text-xs tracking-widest text-muted-foreground uppercase">To explore</p>
-                      <ul className="mt-1 space-y-1 text-sm">
-                        {s.concepts.map((c) => (
-                          <li key={c.id} className="[overflow-wrap:anywhere]">
-                            <span className="font-medium">{c.title}</span>{" "}
-                            <span className="text-muted-foreground">
-                              ({LEVEL_LABEL[c.level]}
-                              {resultOf(progress, c) && (resultOf(progress, c) === "right" ? ", right" : ", missed")}) ·{" "}
-                              <Inline text={c.summary} />
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </Section>
+      <section className="grid gap-4 sm:grid-cols-2">
+        <Summary
+          title="Your gaps"
+          headline={`${gapSkills} skills to work on · ${numbers.missed} missed questions`}
+          href="#/gaps"
+          link="See all gaps"
+          rows={gaps.slice(0, 3).map((g) => [g.group.group.title, `${g.skills.length} skills`])}
+          empty="No gaps yet."
+        />
+        <Summary
+          title="Your skills"
+          headline={`${strongCount} of ${rated.length} strong · ${checked} checked`}
+          href="#/skills"
+          link="See all skills"
+          rows={[
+            ...strongest.map((r): [string, string] => [r.title, percent(r.score)]),
+            ...weakest.map((r): [string, string] => [r.title, percent(r.score)]),
+          ]}
+          empty="Rate some skills to see them here."
+        />
+      </section>
 
       <footer className="flex flex-wrap gap-2 border-t pt-6">
         <Button variant="outline" onClick={copyGaps} disabled={!gaps.length}>
@@ -260,50 +182,34 @@ export function Results({ progress, update }: AppProps) {
   );
 }
 
-// A missed question in the gap list, expanding to what was asked and why.
-function Missed({ concept: c, seen }: { concept: Concept; seen: { variant: number; choice: number } | undefined }) {
-  const v = seen && c.variants[seen.variant];
-  if (!v) return null;
+// A short look at a list that has its own page.
+function Summary(props: {
+  title: string;
+  headline: string;
+  href: string;
+  link: string;
+  rows: [string, string][];
+  empty: string;
+}) {
   return (
-    <Collapsible className="rounded-md border-l-4 border-l-rose-edge bg-muted/40 px-3 py-2">
-      <CollapsibleTrigger className="group flex w-full items-start justify-between gap-2 text-left text-sm">
-        <span className="[overflow-wrap:anywhere]">
-          <span className="mr-2 rounded-full bg-rose px-2 py-0.5 text-xs font-medium">
-            Missed · {LEVEL_LABEL[c.level]}
-          </span>
-          <strong>{c.title}</strong>
-          <span className="text-muted-foreground">
-            {" "}
-            · <Inline text={c.summary} />
-          </span>
-        </span>
-        <ChevronDown className="mt-1 size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-3 pt-3 text-sm">
-        <Markdown text={v.q} />
-        <p>
-          You picked <Inline text={v.choices[seen.choice]} />. Answer: <Inline text={v.choices[v.answer]} />
-        </p>
-        <Markdown text={v.explain} />
-      </CollapsibleContent>
-    </Collapsible>
-  );
-}
-
-// A long results section, closed until opened so the page stays short.
-function Section({ title, note, children }: { title: string; note: string; children: React.ReactNode }) {
-  return (
-    <Collapsible asChild>
-      <section className="space-y-6">
-        <CollapsibleTrigger className="group flex w-full items-baseline justify-between gap-4 text-left">
-          <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
-          <span className="flex items-center gap-2 text-sm text-muted-foreground tabular-nums">
-            {note}
-            <ChevronDown className="size-5 transition-transform group-data-[state=open]:rotate-180" />
-          </span>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-6">{children}</CollapsibleContent>
-      </section>
-    </Collapsible>
+    <div className="flex flex-col gap-3 rounded-lg border p-5">
+      <h2 className="text-xl font-semibold tracking-tight">{props.title}</h2>
+      <p className="text-sm text-muted-foreground">{props.headline}</p>
+      {props.rows.length ? (
+        <ul className="divide-y text-sm">
+          {props.rows.map(([label, value]) => (
+            <li key={label} className="flex justify-between gap-4 py-1.5">
+              <span className="[overflow-wrap:anywhere]">{label}</span>
+              <span className="text-muted-foreground tabular-nums">{value}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">{props.empty}</p>
+      )}
+      <Button variant="outline" className="mt-auto self-start" asChild>
+        <a href={props.href}>{props.link} →</a>
+      </Button>
+    </div>
   );
 }
