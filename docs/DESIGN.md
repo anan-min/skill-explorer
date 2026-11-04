@@ -217,7 +217,8 @@ Never on the share card: right and missed answers, skills rated Used, and skills
 - The owner draws them by hand; all 83 are in.
 - Each persona has a one-line description under its name, on the card and in the report: the animal's trait plus the job's deed ("Juggles eight languages at once, one per tentacle, and stands guard over every release with a shield made of tests."), so each of the 81 topic combos reads differently. Fox and Chick have their own line. The lines live in `src/mascots.ts`.
 - Each job is one hat and one tool, so a combo is one topic's animal wearing another topic's hat and holding its tool. The page prints animal and job, so drawings carry no lettering.
-- Drawings: 512×512 white-background JPGs in `public/mascots/`, named `<animal topic>--<job topic>.jpg` (`testing--testing.jpg` for Mouse · Knight, `language-runtime--testing.jpg` for Octopus · Knight), plus `wanderer.jpg` and `apprentice.jpg`: all 81 combos plus Fox and Chick, about 40 KB each.
+- Drawings: 512×512 white-background JPGs in `public/mascots/`, named `<animal topic>--<job topic>.jpg` (`testing--testing.jpg` for Mouse · Knight, `language-runtime--testing.jpg` for Octopus · Knight), plus `wanderer.jpg` and `apprentice.jpg`: all 81 combos plus Fox and Chick, about 25 KB each.
+- Framing: each drawing is centred on its 512px square with at least ~45px white padding. One scale per animal (the largest of its 9 drawings fills 420px), so the body stays the same size when the hat and tool change.
 - The backgrounds are white, so every mascot sits on a white rounded card on the off-white page.
 - No external placeholder services: cross-origin images break the PNG export.
 
