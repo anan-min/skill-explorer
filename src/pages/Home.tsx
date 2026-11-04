@@ -26,7 +26,7 @@ export function Home({ progress }: AppProps) {
             <span className="text-xs font-normal text-muted-foreground">About 5 min · 9 easy questions</span>
           </a>
         </Button>
-        <Button size="lg" variant="soft" className="h-auto flex-col gap-1 py-4 whitespace-normal" asChild>
+        <Button size="lg" className="h-auto flex-col gap-1 py-4 whitespace-normal" asChild>
           <a href="#/quiz">
             <span className="text-base">Quiz</span>
             <span className="text-xs font-normal opacity-70">About 10 min · up to 18 questions</span>

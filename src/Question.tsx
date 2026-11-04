@@ -51,7 +51,7 @@ export function Question({ concept, variant, onAnswer, onNext, nextLabel = "Next
                   variant="outline"
                   className={cn(
                     "h-auto w-full justify-start py-3 text-left whitespace-normal disabled:opacity-100",
-                    right && "border-picked-edge bg-picked font-semibold disabled:bg-picked",
+                    right && "border-primary bg-primary font-semibold text-primary-foreground disabled:bg-primary",
                     wrong && "line-through decoration-2",
                     picked !== null && !right && !wrong && "opacity-40 disabled:opacity-40",
                   )}
@@ -72,7 +72,7 @@ export function Question({ concept, variant, onAnswer, onNext, nextLabel = "Next
           <p className="font-semibold">{picked === v.answer ? "Right." : "Not quite."}</p>
           <Markdown text={v.explain} />
           <div className="flex items-center justify-between gap-2">
-            <Button variant="soft" onClick={onNext} autoFocus>
+            <Button onClick={onNext} autoFocus>
               {nextLabel}
             </Button>
             <a

@@ -28,7 +28,7 @@ const LANGS: [LangPref, string][] = [
   ...Object.entries(LANG_LABELS).map(([lang, label]) => [lang as LangPref, label] as [LangPref, string]),
 ];
 
-const selected = "data-[state=on]:bg-picked data-[state=on]:border-picked-edge";
+const selected = "data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground";
 
 const checks = (mode: "scan" | "quiz", progress: Progress, lang: LangPref): Check[] =>
   (mode === "quiz" ? quizChecks : quickChecks)(GROUPS, progress, lang, Math.random);
@@ -87,7 +87,6 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
               </Button>
             )}
             <Button
-              variant="soft"
               disabled={done < group.skills.length}
               onClick={() => (!last ? go(page + 1) : setQueue(checks(mode, progress, settings.lang)))}
             >
@@ -172,14 +171,14 @@ function SkillRow({ skill, value, onPick }: RowProps) {
 function ProgressBar({ value }: { value: number }) {
   return (
     <div
-      className="fixed inset-x-0 top-0 z-10 h-1 bg-picked"
+      className="fixed inset-x-0 top-0 z-10 h-1 bg-border"
       role="progressbar"
       aria-label="Progress"
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(value * 100)}
     >
-      <div className="h-full bg-picked-edge transition-[width] duration-300" style={{ width: `${value * 100}%` }} />
+      <div className="h-full bg-primary transition-[width] duration-300" style={{ width: `${value * 100}%` }} />
     </div>
   );
 }

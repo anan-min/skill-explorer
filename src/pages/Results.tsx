@@ -151,7 +151,7 @@ export function Results({ progress, update }: AppProps) {
           <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase">Nerdscape</p>
         </div>
         <div className="flex flex-wrap justify-center gap-2">
-          <Button variant="soft" asChild>
+          <Button asChild>
             <a href="#/quiz">{checked < claimed ? "Take the quiz" : "Quiz again"}</a>
           </Button>
           <Button variant="outline" onClick={copyImage}>
@@ -170,8 +170,7 @@ export function Results({ progress, update }: AppProps) {
 
       <Separator />
 
-      <section className="space-y-6">
-        <h2 className="text-2xl font-semibold tracking-tight">Your gaps</h2>
+      <Section title="Your gaps" note={`${gaps.reduce((n, g) => n + g.skills.length, 0)} skills`}>
         {gaps.length === 0 && <p className="text-muted-foreground">No gaps yet. Scan or quiz a topic to find some.</p>}
         {gaps.map(({ group, skills }) => (
           <div key={group.group.id} className="space-y-2">
@@ -204,12 +203,11 @@ export function Results({ progress, update }: AppProps) {
             </ul>
           </div>
         ))}
-      </section>
+      </Section>
 
       <Separator />
 
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold tracking-tight">Your skills</h2>
+      <Section title="Your skills" note={`${numbers.right} right · ${numbers.missed} missed`}>
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {(
             [
@@ -261,7 +259,7 @@ export function Results({ progress, update }: AppProps) {
             </ul>
           </div>
         ))}
-      </section>
+      </Section>
 
       <footer className="flex flex-wrap gap-2 border-t pt-6">
         <Button variant="outline" onClick={copyGaps} disabled={!gaps.length}>
@@ -313,6 +311,24 @@ function Missed({ concept: c, seen }: { concept: Concept; seen: { variant: numbe
         </p>
         <Markdown text={v.explain} />
       </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+// A long results section, closed until opened so the page stays short.
+function Section({ title, note, children }: { title: string; note: string; children: React.ReactNode }) {
+  return (
+    <Collapsible asChild>
+      <section className="space-y-6">
+        <CollapsibleTrigger className="group flex w-full items-baseline justify-between gap-4 text-left">
+          <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+          <span className="flex items-center gap-2 text-sm text-muted-foreground tabular-nums">
+            {note}
+            <ChevronDown className="size-5 transition-transform group-data-[state=open]:rotate-180" />
+          </span>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6">{children}</CollapsibleContent>
+      </section>
     </Collapsible>
   );
 }

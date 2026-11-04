@@ -17,7 +17,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 
 - Vite + React + TypeScript.
 - Hash routing (`#/scan`, `#/quiz`, `#/results`), because GitHub Pages has no SPA fallback.
-- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page. Besides the mascots, the only colour is two pastels in the gap list: rose (Missed) and butter (Heard). They sit behind near-black text, never as text colour. No solid black fills anywhere: a picked option (scan answer, language toggle, the right quiz answer), every main-action button and the progress bar are soft greys, and code blocks are a light grey panel. Text stays near-black for readability.
+- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page. Besides the mascots, the only colour is two pastels in the gap list: rose (Missed) and butter (Heard). They sit behind near-black text, never as text colour. A picked option (scan answer, language toggle, the right quiz answer), every main-action button and the progress bar are solid black for contrast; code blocks are a light grey panel. Text stays near-black for readability.
 - GitHub Pages at `anan-min.github.io/skill-explorer`, deployed by GitHub Actions on push to `main`.
 - English only.
 - The owner merges on their own judgment; CI validation is the only gate.
@@ -181,6 +181,8 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
   - Every topic passes → **Wanderer**.
   - Otherwise → the strongest passing topic's mascot. Tie → more right answers, then the lower group number.
 - Results accumulate across runs, so later runs sharpen the result.
+
+Your gaps and Your skills start closed: each heading opens its section and shows a count (skills in the gap list; right and missed answers), so the page stays short.
 
 ### Your gaps
 
