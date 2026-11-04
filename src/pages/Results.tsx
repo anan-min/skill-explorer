@@ -1,5 +1,5 @@
 import { toBlob } from "html-to-image";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, RotateCcw } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import {
   gapsByGroup,
   gapText,
   isChecked,
-  parseBackup,
   persona,
   ratingOf,
   report,
@@ -96,19 +95,6 @@ export function Results({ progress, update }: AppProps) {
     const name = m && `${m.animal} · ${m.job}`;
     download(new Blob([report(GROUPS, progress, name)], { type: "text/markdown" }), "nerdscape-report.md");
   };
-  const backup = () =>
-    download(new Blob([JSON.stringify(progress, null, 2)], { type: "application/json" }), "nerdscape-backup.json");
-  const restore = async (file: File | undefined) => {
-    if (!file) return;
-    try {
-      const restored = parseBackup(await file.text());
-      update(() => restored);
-      toast("Restored");
-    } catch {
-      toast("That file isn't a Nerdscape backup");
-    }
-  };
-
   const startOver = () => {
     if (!window.confirm("Clear every rating and answer in this browser and start over?")) return;
     update(emptyProgress);
@@ -165,6 +151,10 @@ export function Results({ progress, update }: AppProps) {
               Share
             </Button>
           )}
+          <Button variant="outline" onClick={startOver}>
+            <RotateCcw />
+            Start over
+          </Button>
         </div>
       </section>
 
@@ -267,18 +257,6 @@ export function Results({ progress, update }: AppProps) {
         </Button>
         <Button variant="outline" onClick={downloadReport}>
           Download report
-        </Button>
-        <Button variant="outline" onClick={backup}>
-          Backup
-        </Button>
-        <Button variant="outline" asChild>
-          <label>
-            Restore
-            <input type="file" accept="application/json" hidden onChange={(e) => void restore(e.target.files?.[0])} />
-          </label>
-        </Button>
-        <Button variant="outline" className="sm:ml-auto" onClick={startOver}>
-          Start over
         </Button>
       </footer>
     </div>
