@@ -161,7 +161,7 @@ Each skill gets a score from 0 to 1:
 | | Easy | Medium | Hard |
 |---|---|---|---|
 | Right | +0.10 | +0.15 | +0.20 |
-| Wrong | −0.25 | −0.15 | −0.05 |
+| Wrong | −0.4 | −0.3 | −0.15 |
 
 3. **Clamp** to 0–1.
 
@@ -176,7 +176,7 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
 - **Radar:** strength per topic, no numbers, drawn as a filled shape with a 2px outline in the persona animal's colour, no dots; grey with no outline before there's a persona.
 - **Unlock:** once every skill is rated (a finished Quick scan or Quiz). Before that, a silhouette and "finish a quick scan or a quiz".
 - **Checked:** "Checked X of Y claimed skills", where a claimed skill is rated Heard or higher and checked means it has had a question. While some aren't checked: "Take the quiz to check more."
-- **Persona rule:** a topic **passes** at ≥ 60% strength.
+- **Persona rule:** a topic **passes** at ≥ 60% strength and with no more missed answers than right ones in it. A skill's question only moves that skill, so without the second part, rating everything Used and missing every question still passed most topics.
   - No topic passes → **Apprentice**.
   - 5 or more of the 9 topics pass → **Wanderer** (`WANDERER_AT` in `src/logic.ts`; with fewer than 5 topics, all of them).
   - One topic passes → that topic's animal in its own job (e.g. Mouse · Knight).

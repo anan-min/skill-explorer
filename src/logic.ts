@@ -26,7 +26,7 @@ export type Persona =
 
 // Quiz length; Quick scan asks one easy question per topic.
 const QUIZ_CHECKS = 18;
-// A topic passes at this strength.
+// A topic passes at this strength, and only with no more missed answers than right ones.
 const PASS_RATE = 0.6;
 // The Wanderer needs this many passing topics (capped at the number of topics).
 const WANDERER_AT = 5;
@@ -38,9 +38,9 @@ export const START: Record<Rating, number> = { new: 0, heard: 0.4, used: 0.7, st
 // Ratings that claim hands-on use, highest first.
 const USED: Rating[] = ["expert", "strong", "used"];
 export const DELTA: Record<Level, { right: number; wrong: number }> = {
-  easy: { right: 0.1, wrong: -0.25 },
-  medium: { right: 0.15, wrong: -0.15 },
-  hard: { right: 0.2, wrong: -0.05 },
+  easy: { right: 0.1, wrong: -0.4 },
+  medium: { right: 0.15, wrong: -0.3 },
+  hard: { right: 0.2, wrong: -0.15 },
 };
 const LEVELS: Level[] = ["easy", "medium", "hard"];
 
@@ -211,8 +211,9 @@ export function persona(groups: GroupFile[], p: Progress): Persona {
     order,
     strength: strength(g, p),
     right: conceptsOf(g).filter((c) => resultOf(p, c) === "right").length,
+    missed: conceptsOf(g).filter((c) => resultOf(p, c) === "wrong").length,
   }));
-  const passing = rows.filter((r) => r.strength >= PASS_RATE);
+  const passing = rows.filter((r) => r.strength >= PASS_RATE && r.missed <= r.right);
   if (!passing.length) return { kind: "apprentice" };
   if (passing.length >= Math.min(WANDERER_AT, rows.length)) return { kind: "wanderer" };
   const [top, second] = passing.sort((x, y) => y.strength - x.strength || y.right - x.right || x.order - y.order);
