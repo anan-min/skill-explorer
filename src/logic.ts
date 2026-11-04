@@ -28,6 +28,9 @@ export type Persona =
 const QUIZ_CHECKS = 18;
 // A topic passes at this strength, and only with no more missed answers than right ones.
 const PASS_RATE = 0.6;
+// When no topic passes, topics from this strength (same miss rule) still pick the nerd, so the
+// Chick is for people who are new or missed a lot, not everyone short of 60%.
+const LEAN_RATE = 0.4;
 // The Wanderer needs this many passing topics (capped at the number of topics).
 const WANDERER_AT = 5;
 // A skill below this, or rated New or Heard, shows in the gap list.
@@ -218,7 +221,7 @@ export function claimsChecked(groups: GroupFile[], p: Progress) {
 }
 
 // The dex page explains the persona rule with these.
-export { PASS_RATE, WANDERER_AT };
+export { LEAN_RATE, PASS_RATE, WANDERER_AT };
 
 export function persona(groups: GroupFile[], p: Progress): Persona {
   if (!groups.length || !groups.every((g) => scanned(g, p))) return { kind: "locked" };
@@ -229,10 +232,12 @@ export function persona(groups: GroupFile[], p: Progress): Persona {
     right: conceptsOf(g).filter((c) => resultOf(p, c) === "right").length,
     missed: conceptsOf(g).filter((c) => resultOf(p, c) === "wrong").length,
   }));
-  const passing = rows.filter((r) => r.strength >= PASS_RATE && r.missed <= r.right);
-  if (!passing.length) return { kind: "apprentice" };
+  const fair = rows.filter((r) => r.missed <= r.right);
+  const passing = fair.filter((r) => r.strength >= PASS_RATE);
   if (passing.length >= Math.min(WANDERER_AT, rows.length)) return { kind: "wanderer" };
-  const [top, second] = passing.sort((x, y) => y.strength - x.strength || y.right - x.right || x.order - y.order);
+  const pool = passing.length ? passing : fair.filter((r) => r.strength >= LEAN_RATE);
+  if (!pool.length) return { kind: "apprentice" };
+  const [top, second] = pool.sort((x, y) => y.strength - x.strength || y.right - x.right || x.order - y.order);
   return { kind: "group", id: top.id, job: (second ?? top).id };
 }
 

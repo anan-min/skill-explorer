@@ -38,7 +38,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 | 8 | Delivery & ops | Rhino · Warrior |
 | 9 | Frontend | Golden retriever · Bard |
 | — | Strong in 5 or more of the 9 topics | Fox · Wanderer |
-| — | Strong in no group yet | Chick · Apprentice |
+| — | No topic at 40% yet (or more misses than right answers) | Chick · Apprentice |
 
 Skills per group:
 
@@ -179,7 +179,7 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
 - **Unlock:** once every skill is rated (a finished Quick scan or Quiz). Before that, a silhouette and "finish a quick scan or a quiz".
 - **Checked:** "Checked X of Y claimed skills", where a claimed skill is rated Heard or higher and checked means it has had a question. While some aren't checked: "Take the quiz to check more."
 - **Persona rule:** a topic **passes** at ≥ 60% strength and with no more missed answers than right ones in it. A skill's question only moves that skill, so without the second part, rating everything Used and missing every question still passed most topics.
-  - No topic passes → **Apprentice**.
+  - No topic passes → the same rules below over topics at ≥ **40%** (same miss rule; `LEAN_RATE`), so harsher scoring doesn't turn everyone short of 60% into the Chick. Nothing at 40% either → **Apprentice**.
   - 5 or more of the 9 topics pass → **Wanderer** (`WANDERER_AT` in `src/logic.ts`; with fewer than 5 topics, all of them). It was briefly 7, but the real problem was claims scoring too high, now fixed by the lower starting scores.
   - One topic passes → that topic's animal in its own job (e.g. Mouse · Knight).
   - Two or more pass → the strongest topic's animal in the second-strongest topic's job (e.g. Octopus · Knight); a third or later topic doesn't change it. Ranking: strength, then more right answers, then the lower group number.

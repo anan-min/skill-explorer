@@ -289,6 +289,18 @@ describe("persona", () => {
     expect(persona(nine, p)).toEqual({ kind: "group", id: "g0", job: "g0" });
   });
 
+  it("falls back to topics at 40%+ when none reaches 60%, and is the Chick below that", () => {
+    // Used (0.5) is short of 60% but leans; Heard (0.3) does not.
+    const three = group("three", { t: [["t", "easy"]] });
+    let p = rate(emptyProgress(), strong, skill(strong, "s"), "heard");
+    p = rate(p, weak, skill(weak, "w"), "used");
+    p = rate(p, three, skill(three, "t"), "used");
+    expect(persona([strong, weak, three], p)).toEqual({ kind: "group", id: "weak", job: "three" });
+    // A miss takes a topic out of the fallback too.
+    p = wrong(wrong(p, find(weak, "w")), find(three, "t"));
+    expect(persona([strong, weak, three], p)).toEqual({ kind: "apprentice" });
+  });
+
   it("with one strong topic, is that topic's animal in its own job", () => {
     const p = rate(rate(emptyProgress(), strong, skill(strong, "s"), "expert"), weak, skill(weak, "w"), "new");
     expect(persona([strong, weak], p)).toEqual({ kind: "group", id: "strong", job: "strong" });

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { AppProps } from "../App.tsx";
 import { GROUPS } from "../content.ts";
-import { PASS_RATE, WANDERER_AT } from "../logic.ts";
+import { LEAN_RATE, PASS_RATE, WANDERER_AT } from "../logic.ts";
 import { DEX, mascot, TOPIC_MASCOTS } from "../mascots.ts";
 
 type Entry = (typeof DEX)[number];
@@ -26,7 +26,8 @@ const look = (e: Entry) => mascot(e.animal, e.job);
 // How a persona comes out of the results page (see `persona` in logic.ts).
 function hint(e: Entry) {
   if (e.key === "wanderer") return `Strong in ${WANDERER_AT} or more topics.`;
-  if (e.key === "apprentice") return "No strong topic yet.";
+  if (e.key === "apprentice")
+    return `No topic at ${Math.round(LEAN_RATE * 100)}% yet, or more misses than right answers.`;
   if (e.animal === e.job) return `Strong in ${title(e.animal)} only.`;
   return `Strongest in ${title(e.animal)}, second strongest in ${title(e.job)}.`;
 }
