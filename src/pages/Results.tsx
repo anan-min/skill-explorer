@@ -1,5 +1,5 @@
 import { toBlob } from "html-to-image";
-import { ImageDown, RotateCcw, Share2 } from "lucide-react";
+import { Copy, ImageDown, RotateCcw, Share2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,20 @@ export function Results({ progress, update, collection, setCollection }: AppProp
     if (!blob) throw new Error("Could not render the card");
     return blob;
   };
-  const canShare = typeof navigator.canShare === "function";
+  // Phones get the share sheet (which also has Copy); desktops, where Safari and Chrome would open the
+  // macOS share menu, copy the image to paste into Slack or X.
+  const phoneShare = window.matchMedia("(pointer: coarse)").matches && typeof navigator.canShare === "function";
+  const save = async () => download(await card(), "nerdscape.png");
+  const copyImage = async () => {
+    try {
+      // Pass the promise straight in: Safari drops the user gesture across an await.
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": card() })]);
+      toast("Image copied");
+    } catch {
+      await save();
+      toast("Couldn't copy the image here, so it was saved instead");
+    }
+  };
 
   const share = async () => {
     try {
@@ -130,16 +143,18 @@ export function Results({ progress, update, collection, setCollection }: AppProp
         </div>
         {/* Sharing the card is the point of this page, so it gets the first, filled button and icons. */}
         <div className="flex flex-wrap justify-center gap-2">
-          {canShare && (
+          {phoneShare ? (
             <Button onClick={share}>
               <Share2 />
               Share your nerd
             </Button>
+          ) : (
+            <Button onClick={copyImage}>
+              <Copy />
+              Copy your nerd
+            </Button>
           )}
-          <Button
-            variant={canShare ? "outline" : "default"}
-            onClick={async () => download(await card(), "nerdscape.png")}
-          >
+          <Button variant="outline" onClick={save}>
             <ImageDown />
             Save your nerd
           </Button>
