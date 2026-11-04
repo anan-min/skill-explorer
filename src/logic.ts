@@ -29,22 +29,24 @@ const QUIZ_CHECKS = 18;
 // A topic passes at this strength, and only with no more missed answers than right ones.
 const PASS_RATE = 0.6;
 // The Wanderer needs this many passing topics (capped at the number of topics).
-const WANDERER_AT = 7;
+const WANDERER_AT = 5;
 // A skill below this, or rated New or Heard, shows in the gap list.
 const GAP_BELOW = 0.5;
 // A skill's score starts from its rating, then each answered concept moves it.
 // Missing an easy question says the most; missing a hard one, little.
-export const START: Record<Rating, number> = { new: 0, heard: 0.4, used: 0.7, strong: 0.85, expert: 1 };
+// Ratings start low enough that only right answers make a skill strong: Used plus one lucky
+// easy guess is 60%, not 80%.
+export const START: Record<Rating, number> = { new: 0, heard: 0.3, used: 0.5, strong: 0.6, expert: 0.7 };
 // Ratings that claim hands-on use, highest first.
 const USED: Rating[] = ["expert", "strong", "used"];
 export const DELTA: Record<Level, { right: number; wrong: number }> = {
   easy: { right: 0.1, wrong: -0.4 },
-  medium: { right: 0.15, wrong: -0.3 },
-  hard: { right: 0.2, wrong: -0.15 },
+  medium: { right: 0.2, wrong: -0.3 },
+  hard: { right: 0.3, wrong: -0.15 },
 };
 // While a miss stands, the skill can't score above what it showed: missing an easy question
 // means Heard at most, so the bigger the claim, the further it falls.
-export const CAP: Record<Level, number> = { easy: START.heard, medium: 0.55, hard: START.used };
+export const CAP: Record<Level, number> = { easy: START.heard, medium: 0.4, hard: START.used };
 const LEVELS: Level[] = ["easy", "medium", "hard"];
 
 export const emptyProgress = (): Progress => ({ schemaVersion: 2, skills: {}, answers: {} });
@@ -60,8 +62,9 @@ export const rate = (p: Progress, g: GroupFile, s: Skill, rating: Rating): Progr
   skills: { ...p.skills, [skillKey(g, s)]: rating },
 });
 
-// The "I don't know" choice. It counts as a miss (caps the skill, blocks a strong topic)
-// but costs half a wrong answer's penalty, so saying so beats a wrong guess.
+// The "I don't know" choice. It counts as a miss for the topic rule and the gap list, but costs
+// half a wrong answer's penalty and skips the cap, so admitting it always beats a wrong guess.
+// With the cap, a Strong or Expert claim would score the same either way and guessing would win.
 export const DONT_KNOW = -1;
 export const choiceLabel = (v: Concept["variants"][number], choice: number) =>
   choice === DONT_KNOW ? "I don't know" : v.choices[choice];
@@ -193,7 +196,8 @@ export function skillScore(g: GroupFile, s: Skill, p: Progress): number | null {
     const unsure = p.answers[c.id].choice === DONT_KNOW;
     return sum + DELTA[c.level][result] * (unsure ? 0.5 : 1);
   }, START[rating]);
-  const cap = Math.min(1, ...s.concepts.filter((c) => resultOf(p, c) === "wrong").map((c) => CAP[c.level]));
+  const guessedWrong = (c: Concept) => resultOf(p, c) === "wrong" && p.answers[c.id].choice !== DONT_KNOW;
+  const cap = Math.min(1, ...s.concepts.filter(guessedWrong).map((c) => CAP[c.level]));
   return Math.min(cap, Math.max(0, moved));
 }
 

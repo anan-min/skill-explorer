@@ -37,7 +37,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 | 7 | Testing | Mouse · Knight |
 | 8 | Delivery & ops | Rhino · Warrior |
 | 9 | Frontend | Golden retriever · Bard |
-| — | Strong in 7 or more of the 9 topics | Fox · Wanderer |
+| — | Strong in 5 or more of the 9 topics | Fox · Wanderer |
 | — | Strong in no group yet | Chick · Apprentice |
 
 Skills per group:
@@ -147,7 +147,7 @@ Home has two buttons, so people know up front what they're starting. Both rate e
 - A skill rated New is never asked in a topic that has claims (that would be guessing).
 - Concepts not asked before come first.
 - Choices are shuffled when shown, since LLM-drafted questions tend to put the answer in the same position.
-- Under the four choices, an **I don't know** button (saved as choice `-1`). It counts as a miss everywhere (gap list, topic rule, cap) but moves the skill by half a wrong answer's penalty, so admitting it beats a wrong guess. The feedback reads "Here's the answer."
+- Under the four choices, an **I don't know** button (saved as choice `-1`). It counts as a miss for the gap list and the topic rule, but moves the skill by half a wrong answer's penalty and isn't capped, so admitting it always beats a wrong guess. The feedback reads "Here's the answer."
 - After each answer, show the right answer and `explain`. Each answer is saved immediately.
 - **Language toggle:** Go / TS / Python, default TS. A question is picked at random from the variants in that language; variants with `lang: null` always qualify.
 - Each question has a **"Report this question"** link: a prefilled new GitHub issue titled `[report] <concept id> #<variant index>`. Nothing personal in the link.
@@ -156,18 +156,18 @@ Home has two buttons, so people know up front what they're starting. Both rate e
 
 Each skill gets a score from 0 to 1:
 
-1. **Start** from its rating: New **0**, Heard **0.4**, Used **0.7**, Strong **0.85**, Expert **1**.
+1. **Start** from its rating: New **0**, Heard **0.3**, Used **0.5**, Strong **0.6**, Expert **0.7**. Ratings start low so that only right answers make a skill strong: with the old Used 0.7, one lucky easy guess gave 80%.
 2. **Add** each answered concept's effect, counting only the latest answer per concept:
 
 | | Easy | Medium | Hard |
 |---|---|---|---|
-| Right | +0.10 | +0.15 | +0.20 |
+| Right | +0.10 | +0.20 | +0.30 |
 | Wrong | −0.4 | −0.3 | −0.15 |
 
-3. **Clamp** to 0–1. An **I don't know** answer counts as wrong at half the penalty.
-4. **Cap** while a miss stands: missing an easy question caps the skill at **0.4** (Heard), a medium one at **0.55**, a hard one at **0.7** (Used). The lowest cap wins. So the bigger the claim, the further a miss drops it: Expert missing an easy question goes 1 → 0.4, Used goes 0.7 → 0.3 (the penalty alone already takes it under the cap). Answering that concept right later lifts the cap.
+3. **Clamp** to 0–1. An **I don't know** answer counts as wrong at half the penalty, and skips the cap below, so admitting it always scores better than a wrong guess.
+4. **Cap** while a miss stands: missing an easy question caps the skill at **0.3** (Heard), a medium one at **0.4**, a hard one at **0.5** (Used). The lowest cap wins. So the bigger the claim, the further a miss drops it: Expert missing a hard question goes 0.7 → 0.5 (the penalty alone leaves 0.55); Used missing an easy one goes 0.5 → 0.1 (the penalty already takes it under the cap). Answering that concept right later lifts the cap.
 
-Missing an easy question says the most, missing a hard one little, and only right answers lift a skill above 0.7, so claiming everything doesn't pay. A topic's **strength** is the average of its rated skills. The numbers are constants in `src/logic.ts`.
+Missing an easy question says the most, missing a hard one little, and no rating alone gets a skill above 0.7, so claiming everything doesn't pay; a high score needs right answers, mostly medium or hard. A topic's **strength** is the average of its rated skills. The numbers are constants in `src/logic.ts`.
 
 ## Results page
 
@@ -180,7 +180,7 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
 - **Checked:** "Checked X of Y claimed skills", where a claimed skill is rated Heard or higher and checked means it has had a question. While some aren't checked: "Take the quiz to check more."
 - **Persona rule:** a topic **passes** at ≥ 60% strength and with no more missed answers than right ones in it. A skill's question only moves that skill, so without the second part, rating everything Used and missing every question still passed most topics.
   - No topic passes → **Apprentice**.
-  - 7 or more of the 9 topics pass → **Wanderer** (`WANDERER_AT` in `src/logic.ts`; with fewer than 7 topics, all of them). It was 5, but then anyone rating Used in 5 topics and answering right got the Fox, crowding out the combos.
+  - 5 or more of the 9 topics pass → **Wanderer** (`WANDERER_AT` in `src/logic.ts`; with fewer than 5 topics, all of them). It was briefly 7, but the real problem was claims scoring too high, now fixed by the lower starting scores.
   - One topic passes → that topic's animal in its own job (e.g. Mouse · Knight).
   - Two or more pass → the strongest topic's animal in the second-strongest topic's job (e.g. Octopus · Knight); a third or later topic doesn't change it. Ranking: strength, then more right answers, then the lower group number.
 - Results accumulate across runs, so later runs sharpen the result.

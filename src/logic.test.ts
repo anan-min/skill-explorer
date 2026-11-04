@@ -105,49 +105,52 @@ describe("pickVariant", () => {
 describe("skillScore", () => {
   const a = skill(g, "a");
 
-  it("is null until rated, then starts at New 0, Heard 0.4, Used 0.7, Strong 0.85, Expert 1", () => {
+  it("is null until rated, then starts at New 0, Heard 0.3, Used 0.5, Strong 0.6, Expert 0.7", () => {
     expect(skillScore(g, a, emptyProgress())).toBeNull();
     expect(skillScore(g, a, rate(emptyProgress(), g, a, "new"))).toBe(0);
-    expect(skillScore(g, a, rate(emptyProgress(), g, a, "heard"))).toBe(0.4);
-    expect(skillScore(g, a, rate(emptyProgress(), g, a, "used"))).toBe(0.7);
-    expect(skillScore(g, a, rate(emptyProgress(), g, a, "strong"))).toBe(0.85);
-    expect(skillScore(g, a, rate(emptyProgress(), g, a, "expert"))).toBe(1);
+    expect(skillScore(g, a, rate(emptyProgress(), g, a, "heard"))).toBe(0.3);
+    expect(skillScore(g, a, rate(emptyProgress(), g, a, "used"))).toBe(0.5);
+    expect(skillScore(g, a, rate(emptyProgress(), g, a, "strong"))).toBe(0.6);
+    expect(skillScore(g, a, rate(emptyProgress(), g, a, "expert"))).toBe(0.7);
   });
 
-  it("moves by level: right easy/medium/hard +0.1/+0.15/+0.2, wrong −0.4/−0.3/−0.15", () => {
+  it("moves by level: right easy/medium/hard +0.1/+0.2/+0.3, wrong −0.4/−0.3/−0.15", () => {
     const used = rate(emptyProgress(), g, a, "used");
-    expect(skillScore(g, a, right(used, find(g, "a-easy")))).toBeCloseTo(0.8);
-    expect(skillScore(g, a, wrong(used, find(g, "a-easy")))).toBeCloseTo(0.3);
-    expect(skillScore(g, a, wrong(used, find(g, "a-hard")))).toBeCloseTo(0.55);
+    expect(skillScore(g, a, right(used, find(g, "a-easy")))).toBeCloseTo(0.6);
+    expect(skillScore(g, a, wrong(used, find(g, "a-easy")))).toBeCloseTo(0.1);
+    expect(skillScore(g, a, wrong(used, find(g, "a-hard")))).toBeCloseTo(0.35);
     const heard = rate(emptyProgress(), g, a, "heard");
-    expect(skillScore(g, a, right(right(heard, find(g, "a-med")), find(g, "a-hard")))).toBeCloseTo(0.75);
+    expect(skillScore(g, a, right(right(heard, find(g, "a-med")), find(g, "a-hard")))).toBeCloseTo(0.8);
   });
 
   it("caps a skill while a miss stands, so a bigger claim falls further", () => {
     const expert = rate(emptyProgress(), g, a, "expert");
-    expect(skillScore(g, a, wrong(expert, find(g, "a-easy")))).toBeCloseTo(0.4);
-    expect(skillScore(g, a, wrong(expert, find(g, "a-med")))).toBeCloseTo(0.55);
-    expect(skillScore(g, a, wrong(expert, find(g, "a-hard")))).toBeCloseTo(0.7);
-    // Right answers elsewhere don't lift it past the cap; the lowest cap wins.
-    expect(skillScore(g, a, right(wrong(expert, find(g, "a-easy")), find(g, "a-hard")))).toBeCloseTo(0.4);
-    expect(skillScore(g, a, wrong(wrong(expert, find(g, "a-hard")), find(g, "a-easy")))).toBeCloseTo(0.4);
+    expect(skillScore(g, a, wrong(expert, find(g, "a-easy")))).toBeCloseTo(0.3);
+    expect(skillScore(g, a, wrong(expert, find(g, "a-med")))).toBeCloseTo(0.4);
+    // The penalty alone leaves 0.55; the hard cap holds it at Used, 0.5.
+    expect(skillScore(g, a, wrong(expert, find(g, "a-hard")))).toBeCloseTo(0.5);
+    // Right answers elsewhere don't lift it past the cap.
+    expect(skillScore(g, a, right(wrong(expert, find(g, "a-easy")), find(g, "a-hard")))).toBeCloseTo(0.3);
     // Answering the missed concept right lifts the cap.
-    expect(skillScore(g, a, right(wrong(expert, find(g, "a-easy")), find(g, "a-easy")))).toBe(1);
+    expect(skillScore(g, a, right(wrong(expert, find(g, "a-easy")), find(g, "a-easy")))).toBeCloseTo(0.8);
   });
 
-  it("treats I don't know as a miss at half the penalty, still capped", () => {
+  it("treats I don't know as a miss at half the penalty, without the cap", () => {
     const dunno = (q: Progress, c: Concept) => answer(q, c, 0, DONT_KNOW);
     const used = rate(emptyProgress(), g, a, "used");
-    expect(skillScore(g, a, dunno(used, find(g, "a-hard")))).toBeCloseTo(0.625);
-    expect(skillScore(g, a, dunno(used, find(g, "a-easy")))).toBeCloseTo(0.4);
+    expect(skillScore(g, a, dunno(used, find(g, "a-hard")))).toBeCloseTo(0.425);
+    expect(skillScore(g, a, dunno(used, find(g, "a-easy")))).toBeCloseTo(0.3);
     expect(resultOf(dunno(used, find(g, "a-easy")), find(g, "a-easy"))).toBe("wrong");
-    // Better than a wrong guess.
-    expect(skillScore(g, a, wrong(used, find(g, "a-easy")))).toBeCloseTo(0.3);
+    // Better than a wrong guess, even for an Expert claim where the cap would make them equal.
+    expect(skillScore(g, a, wrong(used, find(g, "a-easy")))).toBeCloseTo(0.1);
+    const expert = rate(emptyProgress(), g, a, "expert");
+    expect(skillScore(g, a, dunno(expert, find(g, "a-easy")))).toBeCloseTo(0.5);
+    expect(skillScore(g, a, wrong(expert, find(g, "a-easy")))).toBeCloseTo(0.3);
   });
 
   it("counts only the latest answer per concept, and clamps to 0–1", () => {
     const used = rate(emptyProgress(), g, a, "used");
-    expect(skillScore(g, a, right(wrong(used, find(g, "a-easy")), find(g, "a-easy")))).toBeCloseTo(0.8);
+    expect(skillScore(g, a, right(wrong(used, find(g, "a-easy")), find(g, "a-easy")))).toBeCloseTo(0.6);
     const all = [find(g, "a-easy"), find(g, "a-med"), find(g, "a-hard")];
     expect(skillScore(g, a, all.reduce(right, used))).toBe(1);
     expect(skillScore(g, a, all.reduce(wrong, rate(emptyProgress(), g, a, "new")))).toBe(0);
@@ -157,8 +160,8 @@ describe("skillScore", () => {
 describe("strength", () => {
   it("averages the topic's rated skills", () => {
     const p = rateAll(emptyProgress(), g, { a: "used", b: "heard" });
-    expect(strength(g, p)).toBeCloseTo(0.55);
-    expect(strength(g, rate(emptyProgress(), g, skill(g, "a"), "used"))).toBeCloseTo(0.7);
+    expect(strength(g, p)).toBeCloseTo(0.4);
+    expect(strength(g, rate(emptyProgress(), g, skill(g, "a"), "used"))).toBeCloseTo(0.5);
     expect(strength(g, emptyProgress())).toBe(0);
   });
 });
@@ -258,25 +261,25 @@ describe("persona", () => {
   });
 
   it("is the Wanderer when every topic reaches 60%", () => {
-    const p = rate(rate(emptyProgress(), strong, skill(strong, "s"), "used"), weak, skill(weak, "w"), "used");
+    const p = rate(rate(emptyProgress(), strong, skill(strong, "s"), "expert"), weak, skill(weak, "w"), "expert");
     expect(persona([strong, weak], p)).toEqual({ kind: "wanderer" });
   });
 
-  it("is the Wanderer from 7 strong topics out of 9, not 6", () => {
+  it("is the Wanderer from 5 strong topics out of 9, not 4", () => {
     const nine = Array.from({ length: 9 }, (_, i) => group(`g${i}`, { s: [["s", "easy"]] }));
     const strongIn = (k: number) =>
-      nine.reduce((p, g, i) => rate(p, g, skill(g, "s"), i < k ? "used" : "new"), emptyProgress());
-    expect(persona(nine, strongIn(7))).toEqual({ kind: "wanderer" });
-    expect(persona(nine, strongIn(6))).toEqual({ kind: "group", id: "g0", job: "g1" });
+      nine.reduce((p, g, i) => rate(p, g, skill(g, "s"), i < k ? "expert" : "new"), emptyProgress());
+    expect(persona(nine, strongIn(5))).toEqual({ kind: "wanderer" });
+    expect(persona(nine, strongIn(4))).toEqual({ kind: "group", id: "g0", job: "g1" });
   });
 
   it("doesn't count a topic as strong when it has more missed answers than right ones", () => {
-    // Rated Used everywhere, then missed every Quick scan question: no topic passes.
+    // Rated Expert everywhere (topics still at 63%), then missed every Quick scan question: no topic passes.
     const nine = Array.from({ length: 9 }, (_, i) =>
       group(`g${i}`, Object.fromEntries(["a", "b", "c", "d", "e", "f"].map((k) => [k, [[k, "easy" as Level]]]))),
     );
     let p = nine.reduce(
-      (acc, g) => rateAll(acc, g, Object.fromEntries(g.skills.map((s) => [s.id, "used" as Rating]))),
+      (acc, g) => rateAll(acc, g, Object.fromEntries(g.skills.map((s) => [s.id, "expert" as Rating]))),
       emptyProgress(),
     );
     p = nine.reduce((acc, g) => wrong(acc, find(g, "a")), p);
@@ -287,22 +290,22 @@ describe("persona", () => {
   });
 
   it("with one strong topic, is that topic's animal in its own job", () => {
-    const p = rate(rate(emptyProgress(), strong, skill(strong, "s"), "used"), weak, skill(weak, "w"), "new");
+    const p = rate(rate(emptyProgress(), strong, skill(strong, "s"), "expert"), weak, skill(weak, "w"), "new");
     expect(persona([strong, weak], p)).toEqual({ kind: "group", id: "strong", job: "strong" });
   });
 
   it("otherwise is the strongest topic's animal in the second-strongest's job, ties broken by right answers then topic order", () => {
     const third = group("third", { t: [["t", "easy"]], u: [["u", "easy"]] });
-    let p = rate(emptyProgress(), strong, skill(strong, "s"), "used");
+    let p = rate(emptyProgress(), strong, skill(strong, "s"), "expert");
     p = rate(p, weak, skill(weak, "w"), "new");
-    p = rateAll(p, third, { t: "used", u: "used" });
+    p = rateAll(p, third, { t: "expert", u: "expert" });
     // Both 0.7: the earlier topic wins.
     expect(persona([strong, weak, third], p)).toEqual({ kind: "group", id: "strong", job: "third" });
     // Both 0.8, but third has two right answers.
     p = right(right(right(p, find(strong, "s")), find(third, "t")), find(third, "u"));
     expect(persona([strong, weak, third], p)).toEqual({ kind: "group", id: "third", job: "strong" });
-    // Higher strength beats more right answers: strong 0.95 with one right, third 0.8 with two.
-    expect(persona([weak, third, strong], rate(p, strong, skill(strong, "s"), "strong"))).toEqual({
+    // Higher strength beats more right answers: strong 0.8 with one right, third 0.75 with two.
+    expect(persona([weak, third, strong], rate(p, third, skill(third, "u"), "strong"))).toEqual({
       kind: "group",
       id: "strong",
       job: "third",
@@ -353,7 +356,7 @@ describe("report", () => {
     const md = report([g], p, "Octopus · Interpreter");
     expect(md).toContain("Persona: **Octopus · Interpreter** (checked 1 of 1 claimed skills)");
     expect(md).toContain(
-      "### A\n\nUsed · score 80%\n\n- **g/a/a-easy** (Easy): Right\n- **g/a/a-med** (Medium): Not asked",
+      "### A\n\nUsed · score 60%\n\n- **g/a/a-easy** (Easy): Right\n- **g/a/a-med** (Medium): Not asked",
     );
     expect(md).toContain("### B\n\nNew · score 0%");
   });
