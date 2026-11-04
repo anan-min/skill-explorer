@@ -17,7 +17,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 
 - Vite + React + TypeScript.
 - Hash routing (`#/scan`, `#/quiz`, `#/results`), because GitHub Pages has no SPA fallback.
-- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page. Besides the mascots, the only colour is two pastels in the gap list: rose (Missed) and butter (Heard). They sit behind near-black text, never as text colour. No solid black fills anywhere: a picked option (scan answer, language toggle, the right quiz answer), every main-action button and the progress bar are soft greys, and code blocks are a light grey panel. Text stays near-black for readability.
+- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page. Besides the mascots, the only colour is two pastels in the gap list: rose (Missed) and butter (Heard). They sit behind near-black text, never as text colour. A picked option (scan answer, language toggle, the right quiz answer), every main-action button and the progress bar are solid black for contrast; code blocks are a light grey panel. Text stays near-black for readability.
 - GitHub Pages at `anan-min.github.io/skill-explorer`, deployed by GitHub Actions on push to `main`.
 - English only.
 - The owner merges on their own judgment; CI validation is the only gate.
@@ -182,6 +182,8 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
   - Otherwise → the strongest passing topic's mascot. Tie → more right answers, then the lower group number.
 - Results accumulate across runs, so later runs sharpen the result.
 
+Your gaps and Your skills start closed: each heading opens its section and shows a count (skills in the gap list; right and missed answers), so the page stays short.
+
 ### Your gaps
 
 By topic, sorted by size: every skill rated **New** (grey tag, no stripe) or **Heard** (butter), or scoring under 50% (**Low score**, rose), with its summary. Under each skill, every missed question, tagged with its level (easy first), expanding to the question, the picked choice, the answer and the explanation. No links, no how-to-learn.
@@ -194,14 +196,14 @@ Below the gaps, never on the share card: right and missed answers, skills rated 
 
 - **Copy gap list** as plain text (it doubles as a personal growth note).
 - **Download report:** a Markdown file (`nerdscape-report.md`) with the persona and how many claims are checked, then every topic → skill with its rating and score → concept with its level and result (Right, Missed or Not asked). Each missed concept also has the question, the picked choice, the answer and the explanation.
-- **Backup / Restore:** the progress as a JSON file.
-- **Start over:** after a confirm, clears all progress in this browser (the language choice stays) and goes to Home.
+
 - One line on the first screen saying the data lives in this browser. No export nagging.
 
 ## Sharing
 
 - The hero exports as a PNG card (persona, mascot and radar, **no numbers**) via `html-to-image`.
 - Buttons: **Copy image** (`ClipboardItem`), **Download**, **Share** (`navigator.share` with the file, on mobile).
+- Next to them, **Start over**: after a confirm, clears all progress in this browser (the language choice stays) and goes to Home.
 - No share links: a per-user Slack/OG preview would need a backend.
 - If `html-to-image` renders badly, switch to drawing the card by hand on `<canvas>`.
 - `html-to-image` drops SVG paint set through CSS classes, so the radar sets `fill`/`stroke` as attributes.

@@ -50,8 +50,6 @@
   --color-rose-edge: var(--rose-edge);
   --color-butter: var(--butter);
   --color-butter-edge: var(--butter-edge);
-  --color-picked: var(--picked);
-  --color-picked-edge: var(--picked-edge);
 }
 
 :root {
@@ -93,9 +91,6 @@
   --rose-edge: #d8958c;
   --butter: #f3e5b8;
   --butter-edge: #cdb063;
-  /* Soft grey for a picked option in the scan and quiz, instead of solid black. */
-  --picked: #dedbd6;
-  --picked-edge: #a9a59e;
 }
 
 .dark {
