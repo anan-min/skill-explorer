@@ -17,7 +17,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 
 - Vite + React + TypeScript.
 - Hash routing (`#/scan`, `#/quiz`, `#/results`), because GitHub Pages has no SPA fallback.
-- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page. Besides the mascots and the results radar (drawn in the persona animal's own colour, from `color` in `src/mascots.ts`; grey before there's a persona), the only colour is two pastels in the gap list: rose (Missed) and butter (Heard). They sit behind near-black text, never as text colour. A picked option (scan answer, language toggle, the right quiz answer), every main-action button and the progress bar are solid black for contrast; code blocks are a light grey panel. Text stays near-black for readability.
+- UI: shadcn/ui (copied into `src/components/ui`) on Tailwind v4, black and white on an off-white page. Besides the mascots and the results radar (drawn in the persona animal's own colour, from `color` in `src/mascots.ts`; grey before there's a persona), the only colour is two pastels in the gap list: rose (Missed) and butter (Heard). They sit behind near-black text, never as text colour. A picked option (scan answer, language toggle, the right quiz answer), every main-action button and the progress bar are solid black for contrast; code blocks are a light grey panel. Text stays near-black for readability. On phones (under `sm`) every button, toggle, topic chip and header link is at least 44px tall.
 - GitHub Pages at `anan-min.github.io/skill-explorer`, deployed by GitHub Actions on push to `main`.
 - English only.
 - The owner merges on their own judgment; CI validation is the only gate.
@@ -116,7 +116,7 @@ One file per group: `content/NN-<group-id>.json` (`01-language-runtime.json` …
 
 What a person did, saved in this browser:
 
-- **Ratings:** one per skill, keyed `<group id>/<skill id>`: `new`, `heard` or `used`.
+- **Ratings:** one per skill, keyed `<group id>/<skill id>`: `new`, `heard`, `used`, `strong` or `expert`.
 - **Answers:** the latest answer per concept: which variant was shown and which choice was picked.
 - **`finished`:** set once a Quick scan or Quiz reaches its result.
 
@@ -134,15 +134,15 @@ Home has two buttons, so people know up front what they're starting. Both rate e
 
 ### Step 1: rate every skill
 
-- One page per topic, one row per skill: title and summary, then **New** (never heard of it) / **Heard** (know the name) / **Used**.
+- One page per topic, one row per skill: title and summary, then **New** (never heard of it) / **Heard** (know the name) / **Used** (used it, still look things up) / **Strong** (use it often without looking things up) / **Expert** (could teach it, edge cases included). On a phone the five buttons fill a row under the skill.
 - Rows show earlier ratings. "Next" stays disabled until every row on the page is rated.
 
 ### Step 2: questions
 
-- **Quick scan:** in each topic, a skill rated Used, else Heard, else any skill; one of its **easy** concepts.
+- **Quick scan:** in each topic, a skill rated Expert, else Strong, else Used, else Heard, else any skill; one of its **easy** concepts.
 - **Quiz:**
-  1. One question per topic from a skill rated Used, else Heard. A topic with nothing claimed gets an easy question from any skill.
-  2. Then the other claimed skills, Used before Heard, up to **18** questions.
+  1. One question per topic from a skill rated Expert, else Strong, else Used, else Heard. A topic with nothing claimed gets an easy question from any skill.
+  2. Then the other claimed skills, highest rating first (Expert, Strong, Used, then Heard), up to **18** questions.
   3. Each skill's question is at the **lowest level not yet answered right**: easy, then medium once easy is right, then hard. So repeat runs climb.
 - A skill rated New is never asked in a topic that has claims (that would be guessing).
 - Concepts not asked before come first.
@@ -155,7 +155,7 @@ Home has two buttons, so people know up front what they're starting. Both rate e
 
 Each skill gets a score from 0 to 1:
 
-1. **Start** from its rating: New **0**, Heard **0.4**, Used **0.7**.
+1. **Start** from its rating: New **0**, Heard **0.4**, Used **0.7**, Strong **0.85**, Expert **1**.
 2. **Add** each answered concept's effect, counting only the latest answer per concept:
 
 | | Easy | Medium | Hard |
@@ -175,7 +175,7 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
 
 - **Radar:** strength per topic, no numbers, drawn as a filled shape with a 2px outline in the persona animal's colour, no dots; grey with no outline before there's a persona.
 - **Unlock:** once every skill is rated (a finished Quick scan or Quiz). Before that, a silhouette and "finish a quick scan or a quiz".
-- **Checked:** "Checked X of Y claimed skills", where a claimed skill is rated Used or Heard and checked means it has had a question. While some aren't checked: "Take the quiz to check more."
+- **Checked:** "Checked X of Y claimed skills", where a claimed skill is rated Heard or higher and checked means it has had a question. While some aren't checked: "Take the quiz to check more."
 - **Persona rule:** a topic **passes** at ≥ 60% strength.
   - No topic passes → **Apprentice**.
   - 5 or more of the 9 topics pass → **Wanderer** (`WANDERER_AT` in `src/logic.ts`; with fewer than 5 topics, all of them).
@@ -194,7 +194,7 @@ By topic, sorted by size: every skill rated **New** (grey tag, no stripe) or **H
 
 ### Your skills page
 
-Never on the share card: right and missed answers, skills rated Used, and skills not rated. Then every topic's skills with their score and whether they're checked; each expands to its concepts ("To explore"), with their level and result.
+Never on the share card: right and missed answers, skills rated Used or higher, and skills not rated. Then every topic's skills with their score and whether they're checked; each expands to its concepts ("To explore"), with their level and result.
 
 ### Footer
 

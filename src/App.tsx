@@ -62,11 +62,14 @@ export function App() {
         {/* Hidden mid-run: leaving drops the run's queue. "Your map" waits for a finished scan or quiz. */}
         {!running && (
           <nav className="flex gap-4 text-sm">
-            <a href="#/mascots" className="underline-offset-4 hover:underline">
+            <a href="#/mascots" className="-my-3 inline-block py-3 underline-offset-4 hover:underline sm:my-0 sm:py-0">
               Mascots
             </a>
             {progress.finished && (
-              <a href="#/results" className="underline-offset-4 hover:underline">
+              <a
+                href="#/results"
+                className="-my-3 inline-block py-3 underline-offset-4 hover:underline sm:my-0 sm:py-0"
+              >
                 Your map
               </a>
             )}

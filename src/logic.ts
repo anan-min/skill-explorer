@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Lang, type Concept, type GroupFile, type Level, type Skill } from "./schema.ts";
 
-const RatingSchema = z.enum(["new", "heard", "used"]);
+const RatingSchema = z.enum(["new", "heard", "used", "strong", "expert"]);
 const AnswerSchema = z.object({ variant: z.number().int(), choice: z.number().int() });
 const ProgressSchema = z.object({
   schemaVersion: z.literal(2),
@@ -34,7 +34,9 @@ const WANDERER_AT = 5;
 const GAP_BELOW = 0.5;
 // A skill's score starts from its rating, then each answered concept moves it.
 // Missing an easy question says the most; missing a hard one, little.
-export const START: Record<Rating, number> = { new: 0, heard: 0.4, used: 0.7 };
+export const START: Record<Rating, number> = { new: 0, heard: 0.4, used: 0.7, strong: 0.85, expert: 1 };
+// Ratings that claim hands-on use, highest first.
+const USED: Rating[] = ["expert", "strong", "used"];
 export const DELTA: Record<Level, { right: number; wrong: number }> = {
   easy: { right: 0.1, wrong: -0.25 },
   medium: { right: 0.15, wrong: -0.15 },
@@ -107,14 +109,14 @@ const check = (concept: Concept, lang: LangPref, rand: () => number): Check => (
   variant: pickVariant(concept, lang, rand)!,
 });
 
-// A topic's skills, Used first, then Heard, then the rest, each shuffled.
+// A topic's skills, Expert, Strong and Used first, then Heard, then the rest, each level shuffled.
 function byClaim(g: GroupFile, p: Progress, rand: () => number) {
   const of = (r: Rating | null) =>
     shuffle(
       g.skills.filter((s) => ratingOf(p, g, s) === r),
       rand,
     );
-  return { used: of("used"), heard: of("heard"), rest: [...of("new"), ...of(null)] };
+  return { used: USED.flatMap(of), heard: of("heard"), rest: [...of("new"), ...of(null)] };
 }
 
 // Quick scan: one easy question per topic, from its most-claimed skill that has one.
@@ -130,7 +132,7 @@ export function quickChecks(groups: GroupFile[], p: Progress, lang: LangPref, ra
 }
 
 // Quiz: one question per topic from a claimed skill (or an easy one if nothing is claimed),
-// then the other claimed skills, Used before Heard, up to QUIZ_CHECKS. Each skill's question
+// then the other claimed skills, Used or higher before Heard, up to QUIZ_CHECKS. Each skill's question
 // is at the next level it hasn't proved, so repeat runs climb.
 export function quizChecks(groups: GroupFile[], p: Progress, lang: LangPref, rand: () => number): Check[] {
   const picks: Check[] = [];
@@ -160,7 +162,9 @@ export function quizChecks(groups: GroupFile[], p: Progress, lang: LangPref, ran
     extraUsed.push(...used.filter((s) => s !== first).map((s): [GroupFile, Skill] => [g, s]));
     extraHeard.push(...heard.filter((s) => s !== first).map((s): [GroupFile, Skill] => [g, s]));
   }
-  for (const [, s] of [...shuffle(extraUsed, rand), ...shuffle(extraHeard, rand)]) {
+  const rank = ([g, s]: [GroupFile, Skill]) => USED.indexOf(ratingOf(p, g, s)!);
+  const byRating = shuffle(extraUsed, rand).sort((x, y) => rank(x) - rank(y));
+  for (const [, s] of [...byRating, ...shuffle(extraHeard, rand)]) {
     if (picks.length >= QUIZ_CHECKS) break;
     const c = pickConcept(s, p, lang, rand);
     if (c) picks.push(check(c, lang, rand));
@@ -191,9 +195,9 @@ export function strength(g: GroupFile, p: Progress): number {
 
 const scanned = (g: GroupFile, p: Progress) => g.skills.every((s) => ratingOf(p, g, s));
 
-// How many skills rated Used or Heard have had a question.
+// How many skills rated Heard or higher have had a question.
 export function claimsChecked(groups: GroupFile[], p: Progress) {
-  const claimed = groups.flatMap((g) => g.skills.filter((s) => ["used", "heard"].includes(ratingOf(p, g, s) ?? "")));
+  const claimed = groups.flatMap((g) => g.skills.filter((s) => (ratingOf(p, g, s) ?? "new") !== "new"));
   return { checked: claimed.filter((s) => isChecked(s, p)).length, claimed: claimed.length };
 }
 
@@ -221,7 +225,7 @@ export function stats(groups: GroupFile[], p: Progress) {
   return {
     right: all.filter((c) => resultOf(p, c) === "right").length,
     missed: all.filter((c) => resultOf(p, c) === "wrong").length,
-    used: ratings.filter((r) => r === "used").length,
+    used: ratings.filter((r) => r !== null && USED.includes(r)).length,
     unrated: ratings.filter((r) => r === null).length,
   };
 }
@@ -247,7 +251,13 @@ export function gapsByGroup(groups: GroupFile[], p: Progress) {
     .sort((a, b) => b.count - a.count);
 }
 
-const RATING_LABEL: Record<Rating, string> = { new: "New", heard: "Heard", used: "Used" };
+const RATING_LABEL: Record<Rating, string> = {
+  new: "New",
+  heard: "Heard",
+  used: "Used",
+  strong: "Strong",
+  expert: "Expert",
+};
 const LEVEL_LABEL: Record<Level, string> = { easy: "Easy", medium: "Medium", hard: "Hard" };
 
 export function gapText(groups: GroupFile[], p: Progress): string {

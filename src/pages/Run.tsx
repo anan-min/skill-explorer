@@ -21,7 +21,9 @@ import { LANG_LABELS, type Skill } from "../schema.ts";
 const BUTTONS: [Rating, string, string][] = [
   ["new", "New", "Never heard of it"],
   ["heard", "Heard", "Know the name"],
-  ["used", "Used", "Used it"],
+  ["used", "Used", "Used it, still look things up"],
+  ["strong", "Strong", "Use it often without looking things up"],
+  ["expert", "Expert", "Could teach it, edge cases included"],
 ];
 
 const LANGS: [LangPref, string][] = [
@@ -64,7 +66,7 @@ export function Run({ mode, progress, update, settings, setSettings }: AppProps 
             Step 1 of 2 · {mode === "quiz" ? "Quiz" : "Quick scan"} · Topic {page + 1} of {GROUPS.length}
           </p>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{group.group.title}</h1>
-          <p className="hidden text-muted-foreground sm:block">Never heard of it, heard the name, or used it?</p>
+          <p className="hidden text-muted-foreground sm:block">From never heard of it to could teach it.</p>
         </div>
         <ul className="divide-y rounded-lg border">
           {group.skills.map((skill) => (
@@ -156,9 +158,15 @@ function SkillRow({ skill, value, onPick }: RowProps) {
         value={value ?? ""}
         onValueChange={(rating) => rating && onPick(rating as Rating)}
         aria-label={`Have you worked with ${skill.title}?`}
+        className="w-full sm:w-fit"
       >
         {BUTTONS.map(([rating, label, title]) => (
-          <ToggleGroupItem key={rating} value={rating} title={title} className={`px-3 ${selected}`}>
+          <ToggleGroupItem
+            key={rating}
+            value={rating}
+            title={title}
+            className={`flex-1 px-1 sm:flex-none sm:px-3 ${selected}`}
+          >
             {label}
           </ToggleGroupItem>
         ))}

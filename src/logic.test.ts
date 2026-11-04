@@ -104,11 +104,13 @@ describe("pickVariant", () => {
 describe("skillScore", () => {
   const a = skill(g, "a");
 
-  it("is null until rated, then starts at New 0, Heard 0.4, Used 0.7", () => {
+  it("is null until rated, then starts at New 0, Heard 0.4, Used 0.7, Strong 0.85, Expert 1", () => {
     expect(skillScore(g, a, emptyProgress())).toBeNull();
     expect(skillScore(g, a, rate(emptyProgress(), g, a, "new"))).toBe(0);
     expect(skillScore(g, a, rate(emptyProgress(), g, a, "heard"))).toBe(0.4);
     expect(skillScore(g, a, rate(emptyProgress(), g, a, "used"))).toBe(0.7);
+    expect(skillScore(g, a, rate(emptyProgress(), g, a, "strong"))).toBe(0.85);
+    expect(skillScore(g, a, rate(emptyProgress(), g, a, "expert"))).toBe(1);
   });
 
   it("moves by level: right easy/medium/hard +0.1/+0.15/+0.2, wrong −0.25/−0.15/−0.05", () => {
@@ -193,6 +195,12 @@ describe("quizChecks", () => {
     expect(ids(quizChecks([three], p, "go", Math.random))).toEqual(["t/u/u", "t/h/h"]);
   });
 
+  it("asks Expert, then Strong, then Used before Heard", () => {
+    const four = group("t", { e: [["e", "easy"]], s: [["s", "easy"]], u: [["u", "easy"]], h: [["h", "easy"]] });
+    const p = rateAll(emptyProgress(), four, { h: "heard", u: "used", s: "strong", e: "expert" });
+    expect(ids(quizChecks([four], p, "go", Math.random))).toEqual(["t/e/e", "t/s/s", "t/u/u", "t/h/h"]);
+  });
+
   it("asks an easy question in a topic where nothing is claimed", () => {
     const p = rateAll(emptyProgress(), g, { a: "new", b: "new" });
     const q = ids(quizChecks([g], p, "go", Math.random));
@@ -271,6 +279,12 @@ describe("claimsChecked and stats", () => {
     p = wrong(right(p, find(g, "a-easy")), find(g, "a-med"));
     expect(claimsChecked([g], p)).toEqual({ checked: 1, claimed: 2 });
     expect(stats([g], p)).toEqual({ right: 1, missed: 1, used: 1, unrated: 0 });
+  });
+
+  it("counts Strong and Expert as claimed and used", () => {
+    const p = rateAll(emptyProgress(), g, { a: "strong", b: "expert" });
+    expect(claimsChecked([g], p)).toEqual({ checked: 0, claimed: 2 });
+    expect(stats([g], p).used).toBe(2);
   });
 });
 
