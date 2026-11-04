@@ -37,7 +37,7 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 | 7 | Testing | Mouse · Knight |
 | 8 | Delivery & ops | Rhino · Warrior |
 | 9 | Frontend | Golden retriever · Bard |
-| — | Strong in every group | Fox · Wanderer |
+| — | Strong in 5 or more of the 9 topics | Fox · Wanderer |
 | — | Strong in no group yet | Chick · Apprentice |
 
 Skills per group:
@@ -173,12 +173,12 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
 
 ### Hero: persona + radar
 
-- **Radar:** strength per topic, no numbers, drawn as a soft grey filled shape with no outline and no dots.
+- **Radar:** strength per topic, no numbers, drawn as a filled shape with a 2px outline in the persona animal's colour, no dots; grey with no outline before there's a persona.
 - **Unlock:** once every skill is rated (a finished Quick scan or Quiz). Before that, a silhouette and "finish a quick scan or a quiz".
 - **Checked:** "Checked X of Y claimed skills", where a claimed skill is rated Used or Heard and checked means it has had a question. While some aren't checked: "Take the quiz to check more."
 - **Persona rule:** a topic **passes** at ≥ 60% strength.
   - No topic passes → **Apprentice**.
-  - Every topic passes → **Wanderer** (`WANDERER_AT` in `src/logic.ts`, 9 for now).
+  - 5 or more of the 9 topics pass → **Wanderer** (`WANDERER_AT` in `src/logic.ts`; with fewer than 5 topics, all of them).
   - One topic passes → that topic's animal in its own job (e.g. Mouse · Knight).
   - Two or more pass → the strongest topic's animal in the second-strongest topic's job (e.g. Octopus · Knight); a third or later topic doesn't change it. Ranking: strength, then more right answers, then the lower group number.
 - Results accumulate across runs, so later runs sharpen the result.

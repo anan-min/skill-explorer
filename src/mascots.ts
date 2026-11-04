@@ -79,7 +79,7 @@ const SOLO = {
     color: "#e0782c",
     job: "Wanderer",
     tagline:
-      "Has wandered every corner of the map, knows all the shortcuts, and feels at home everywhere. The pack is always ready for the next trail.",
+      "Has wandered most corners of the map, knows all the shortcuts, and feels at home everywhere. The pack is always ready for the next trail.",
   },
   apprentice: {
     animal: "Chick",
