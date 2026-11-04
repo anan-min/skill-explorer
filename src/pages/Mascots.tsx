@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { AppProps } from "../App.tsx";
 import { GROUPS } from "../content.ts";
-import { PASS_RATE, WANDERER_AT } from "../logic.ts";
+import { LEAN_RATE, PASS_RATE, WANDERER_AT } from "../logic.ts";
 import { DEX, mascot, TOPIC_MASCOTS } from "../mascots.ts";
 
 type Entry = (typeof DEX)[number];
@@ -25,9 +25,10 @@ const look = (e: Entry) => mascot(e.animal, e.job);
 
 // How a persona comes out of the results page (see `persona` in logic.ts).
 function hint(e: Entry) {
-  if (e.key === "wanderer") return `Strong in ${WANDERER_AT} or more topics.`;
-  if (e.key === "apprentice") return "No strong topic yet.";
-  if (e.animal === e.job) return `Strong in ${title(e.animal)} only.`;
+  if (e.key === "wanderer") return `${Math.round(PASS_RATE * 100)}% or more in ${WANDERER_AT} or more topics.`;
+  if (e.key === "apprentice")
+    return `No topic at ${Math.round(LEAN_RATE * 100)}% yet, or more misses than right answers.`;
+  if (e.animal === e.job) return `${title(e.animal)} is your only topic at ${Math.round(LEAN_RATE * 100)}% or more.`;
   return `Strongest in ${title(e.animal)}, second strongest in ${title(e.job)}.`;
 }
 
@@ -53,8 +54,9 @@ export function Mascots({ collection }: AppProps) {
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Nerd dex</h1>
         <p className="text-muted-foreground">
-          Found {count} of {DEX.length}. Your map's nerd joins the dex; quiz again or take another path to find more. A
-          topic is strong at {Math.round(PASS_RATE * 100)}% or more, with no more missed answers than right ones.
+          Found {count} of {DEX.length}. Your map's nerd joins the dex; quiz again or take another path to find more.
+          Your two best topics pick it; a topic counts from {Math.round(LEAN_RATE * 100)}%, with no more missed answers
+          than right ones.
         </p>
       </div>
       {SECTIONS.map((s) => {

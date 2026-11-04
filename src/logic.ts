@@ -26,25 +26,31 @@ export type Persona =
 
 // Quiz length; Quick scan asks one easy question per topic.
 const QUIZ_CHECKS = 18;
-// A topic passes at this strength, and only with no more missed answers than right ones.
-const PASS_RATE = 0.6;
-// The Wanderer needs this many passing topics (capped at the number of topics).
+// The nerd is your two best topics among those at LEAN_RATE or more with no more missed answers
+// than right ones; no such topic gives the Chick. The Fox needs WANDERER_AT topics at PASS_RATE.
+// Tuned by simulation so the Fox and the Chick are each a few percent and nearly everyone else
+// gets one of the 81 combos.
+const PASS_RATE = 0.7;
+const LEAN_RATE = 0.4;
+// The Wanderer needs this many topics at PASS_RATE (capped at the number of topics).
 const WANDERER_AT = 7;
 // A skill below this, or rated New or Heard, shows in the gap list.
 const GAP_BELOW = 0.5;
 // A skill's score starts from its rating, then each answered concept moves it.
 // Missing an easy question says the most; missing a hard one, little.
-export const START: Record<Rating, number> = { new: 0, heard: 0.4, used: 0.7, strong: 0.85, expert: 1 };
+// Ratings start low enough that only right answers make a skill strong: Used plus one lucky
+// easy guess is 60%, not 80%.
+export const START: Record<Rating, number> = { new: 0, heard: 0.3, used: 0.5, strong: 0.6, expert: 0.7 };
 // Ratings that claim hands-on use, highest first.
 const USED: Rating[] = ["expert", "strong", "used"];
 export const DELTA: Record<Level, { right: number; wrong: number }> = {
   easy: { right: 0.1, wrong: -0.4 },
-  medium: { right: 0.15, wrong: -0.3 },
-  hard: { right: 0.2, wrong: -0.15 },
+  medium: { right: 0.2, wrong: -0.3 },
+  hard: { right: 0.3, wrong: -0.15 },
 };
 // While a miss stands, the skill can't score above what it showed: missing an easy question
 // means Heard at most, so the bigger the claim, the further it falls.
-export const CAP: Record<Level, number> = { easy: START.heard, medium: 0.55, hard: START.used };
+export const CAP: Record<Level, number> = { easy: START.heard, medium: 0.4, hard: START.used };
 const LEVELS: Level[] = ["easy", "medium", "hard"];
 
 export const emptyProgress = (): Progress => ({ schemaVersion: 2, skills: {}, answers: {} });
@@ -59,6 +65,13 @@ export const rate = (p: Progress, g: GroupFile, s: Skill, rating: Rating): Progr
   ...p,
   skills: { ...p.skills, [skillKey(g, s)]: rating },
 });
+
+// The "I don't know" choice. It counts as a miss for the topic rule and the gap list, but costs
+// half a wrong answer's penalty and skips the cap, so admitting it always beats a wrong guess.
+// With the cap, a Strong or Expert claim would score the same either way and guessing would win.
+export const DONT_KNOW = -1;
+export const choiceLabel = (v: Concept["variants"][number], choice: number) =>
+  choice === DONT_KNOW ? "I don't know" : v.choices[choice];
 
 export const answer = (p: Progress, concept: Concept, variant: number, choice: number): Progress => ({
   ...p,
@@ -183,9 +196,12 @@ export function skillScore(g: GroupFile, s: Skill, p: Progress): number | null {
   if (!rating) return null;
   const moved = s.concepts.reduce((sum, c) => {
     const result = resultOf(p, c);
-    return result ? sum + DELTA[c.level][result] : sum;
+    if (!result) return sum;
+    const unsure = p.answers[c.id].choice === DONT_KNOW;
+    return sum + DELTA[c.level][result] * (unsure ? 0.5 : 1);
   }, START[rating]);
-  const cap = Math.min(1, ...s.concepts.filter((c) => resultOf(p, c) === "wrong").map((c) => CAP[c.level]));
+  const guessedWrong = (c: Concept) => resultOf(p, c) === "wrong" && p.answers[c.id].choice !== DONT_KNOW;
+  const cap = Math.min(1, ...s.concepts.filter(guessedWrong).map((c) => CAP[c.level]));
   return Math.min(cap, Math.max(0, moved));
 }
 
@@ -206,7 +222,7 @@ export function claimsChecked(groups: GroupFile[], p: Progress) {
 }
 
 // The dex page explains the persona rule with these.
-export { PASS_RATE, WANDERER_AT };
+export { LEAN_RATE, PASS_RATE, WANDERER_AT };
 
 export function persona(groups: GroupFile[], p: Progress): Persona {
   if (!groups.length || !groups.every((g) => scanned(g, p))) return { kind: "locked" };
@@ -217,10 +233,12 @@ export function persona(groups: GroupFile[], p: Progress): Persona {
     right: conceptsOf(g).filter((c) => resultOf(p, c) === "right").length,
     missed: conceptsOf(g).filter((c) => resultOf(p, c) === "wrong").length,
   }));
-  const passing = rows.filter((r) => r.strength >= PASS_RATE && r.missed <= r.right);
-  if (!passing.length) return { kind: "apprentice" };
+  const fair = rows.filter((r) => r.missed <= r.right);
+  const passing = fair.filter((r) => r.strength >= PASS_RATE);
   if (passing.length >= Math.min(WANDERER_AT, rows.length)) return { kind: "wanderer" };
-  const [top, second] = passing.sort((x, y) => y.strength - x.strength || y.right - x.right || x.order - y.order);
+  const pool = fair.filter((r) => r.strength >= LEAN_RATE);
+  if (!pool.length) return { kind: "apprentice" };
+  const [top, second] = pool.sort((x, y) => y.strength - x.strength || y.right - x.right || x.order - y.order);
   return { kind: "group", id: top.id, job: (second ?? top).id };
 }
 
@@ -301,7 +319,7 @@ export function report(groups: GroupFile[], p: Progress, personaName: string | n
     const a = p.answers[c.id];
     if (result !== "wrong" || !a) return line;
     const v = c.variants[a.variant];
-    const detail = [v.q, `You picked: ${v.choices[a.choice]}\nAnswer: ${v.choices[v.answer]}`, v.explain];
+    const detail = [v.q, `You picked: ${choiceLabel(v, a.choice)}\nAnswer: ${v.choices[v.answer]}`, v.explain];
     return `${line}\n\n${detail.map(indent).join("\n\n")}`;
   };
   const sections = groups.flatMap((g) => [
