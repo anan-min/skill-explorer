@@ -30,7 +30,7 @@ import { Radar } from "../Radar.tsx";
 
 function personaMascot(p: Persona) {
   if (p.kind === "locked") return null;
-  return mascot(p.kind === "group" ? p.id : p.kind);
+  return p.kind === "group" ? mascot(p.id, p.job) : mascot(p.kind);
 }
 
 // Why a skill is in the gap list. New stays neutral so a long list of unmet skills
@@ -93,7 +93,7 @@ export function Results({ progress, update }: AppProps) {
   };
   const downloadReport = () => {
     const name = m && `${m.animal} · ${m.job}`;
-    download(new Blob([report(GROUPS, progress, name)], { type: "text/markdown" }), "nerdscape-report.md");
+    download(new Blob([report(GROUPS, progress, name, m?.tagline)], { type: "text/markdown" }), "nerdscape-report.md");
   };
   const startOver = () => {
     if (!window.confirm("Clear every rating and answer in this browser and start over?")) return;
@@ -116,10 +116,7 @@ export function Results({ progress, update }: AppProps) {
               <img className="mascot size-44" src={m.src} alt="" />
               <p className="text-2xl font-semibold tracking-[0.25em] uppercase">{m.animal}</p>
               <p className="text-sm tracking-[0.2em] text-muted-foreground uppercase">{m.job}</p>
-              {who.kind === "wanderer" && <p className="text-sm text-muted-foreground">Strong in every area.</p>}
-              {who.kind === "apprentice" && (
-                <p className="text-sm text-muted-foreground">Every area is still open to explore.</p>
-              )}
+              <p className="max-w-sm text-sm text-muted-foreground italic">{m.tagline}</p>
               {claimed > 0 && (
                 <p className="text-sm text-muted-foreground">
                   Checked {checked} of {claimed} claimed skills.{checked < claimed && " Take the quiz to check more."}
