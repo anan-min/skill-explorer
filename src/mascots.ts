@@ -1,5 +1,6 @@
 // Each topic has an animal and a job (a hat and a tool). A persona is one topic's animal
-// in another topic's job, drawn as public/mascots/<animal topic>--<job topic>.png.
+// in another topic's job, drawn as public/mascots/<animal topic>--<job topic>.jpg
+// (all 81 combos, plus wanderer.jpg and apprentice.jpg). White backgrounds: show them on a white card.
 // Keep files same-origin: cross-origin images break the PNG share card.
 // `trait` (from the animal) and `deed` (from the job) join into the persona's description,
 // so every combo reads differently: "Juggles eight languages at once, one per tentacle, and stands guard
@@ -19,15 +20,15 @@ export const TOPIC_MASCOTS = {
   },
   "code-craft": {
     animal: "Bear",
-    job: "Blacksmith",
+    job: "Smith",
     trait: "Writes code sturdy enough to survive a Friday deploy",
     deed: "hammers tangled legacy code into something worth showing off",
   },
   "design-architecture": {
     animal: "Cat",
-    job: "Noble",
+    job: "Priest",
     trait: "Always lands its designs on their feet, then naps on the whiteboard",
-    deed: "decrees clean boundaries with one regal flick of the wand",
+    deed: "blesses every boundary so no module dares cross another",
   },
   backend: {
     animal: "Ant",
@@ -42,9 +43,9 @@ export const TOPIC_MASCOTS = {
     deed: "brews indexes that turn slow queries into pure gold",
   },
   testing: {
-    animal: "Rat",
+    animal: "Mouse",
     job: "Knight",
-    trait: "Sniffs out the bug nobody else could find, usually hiding in the walls",
+    trait: "Squeezes through the tiniest crack to find the bug hiding in the walls",
     deed: "stands guard over every release with a shield made of tests",
   },
   "delivery-ops": {
@@ -77,11 +78,6 @@ const SOLO = {
   },
 } as const;
 
-// Drawings that exist in public/mascots/, without `.png`: `<animal>--<job>` for topics,
-// `wanderer` and `apprentice`. Add a name here when its PNG lands; anything not listed
-// falls back to the animal's own drawing, then to the `<id>.svg` placeholder.
-const DRAWN = new Set<string>([]);
-
 export const MASCOT_IDS = [...Object.keys(TOPIC_MASCOTS), ...Object.keys(SOLO)];
 
 type TopicId = keyof typeof TOPIC_MASCOTS;
@@ -92,16 +88,15 @@ const file = (name: string) => `${import.meta.env.BASE_URL}mascots/${name}`;
 export function mascot(id: string, job: string = id) {
   if (id in SOLO) {
     const m = SOLO[id as keyof typeof SOLO];
-    return { ...m, src: file(DRAWN.has(id) ? `${id}.png` : `${id}.svg`) };
+    return { ...m, src: file(`${id}.jpg`) };
   }
   const animal = id in TOPIC_MASCOTS ? (id as TopicId) : null;
   if (!animal) return mascot("wanderer");
   const jobId = job in TOPIC_MASCOTS ? (job as TopicId) : animal;
-  const name = [`${animal}--${jobId}`, `${animal}--${animal}`].find((n) => DRAWN.has(n));
   return {
     animal: TOPIC_MASCOTS[animal].animal,
     job: TOPIC_MASCOTS[jobId].job,
     tagline: `${TOPIC_MASCOTS[animal].trait}, and ${TOPIC_MASCOTS[jobId].deed}.`,
-    src: file(name ? `${name}.png` : `${animal}.svg`),
+    src: file(`${animal}--${jobId}.jpg`),
   };
 }

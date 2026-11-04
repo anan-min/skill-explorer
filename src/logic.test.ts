@@ -307,8 +307,8 @@ describe("report", () => {
   });
 
   it("puts the persona's description under its name", () => {
-    const md = report([g], rate(emptyProgress(), g, skill(g, "a"), "used"), "Rat · Knight", "Sniffs out bugs.");
-    expect(md).toContain("Persona: **Rat · Knight** (checked 0 of 1 claimed skills)\n\n_Sniffs out bugs._");
+    const md = report([g], rate(emptyProgress(), g, skill(g, "a"), "used"), "Mouse · Knight", "Sniffs out bugs.");
+    expect(md).toContain("Persona: **Mouse · Knight** (checked 0 of 1 claimed skills)\n\n_Sniffs out bugs._");
   });
 
   it("says when there is no persona yet", () => {

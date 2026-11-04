@@ -30,11 +30,11 @@ This doc is the spec. Build from it; when something here turns out wrong, fix it
 |---|---|---|
 | 1 | Language & runtime | Octopus · Mage |
 | 2 | Data structures & algorithms | Owl · Ranger |
-| 3 | Code craft | Bear · Blacksmith |
-| 4 | Design & architecture | Cat · Noble |
+| 3 | Code craft | Bear · Smith |
+| 4 | Design & architecture | Cat · Priest |
 | 5 | Backend | Ant · Merchant |
 | 6 | Data & storage | Crow · Alchemist |
-| 7 | Testing | Rat · Knight |
+| 7 | Testing | Mouse · Knight |
 | 8 | Delivery & ops | Rhino · Warrior |
 | 9 | Frontend | Golden retriever · Bard |
 | — | Strong in every group | Fox · Wanderer |
@@ -179,7 +179,7 @@ The header's **Your map** link (to `#/results`) shows only once a Quick scan or 
 - **Persona rule:** a topic **passes** at ≥ 60% strength.
   - No topic passes → **Apprentice**.
   - Every topic passes → **Wanderer** (`WANDERER_AT` in `src/logic.ts`, 9 for now).
-  - One topic passes → that topic's animal in its own job (e.g. Rat · Knight).
+  - One topic passes → that topic's animal in its own job (e.g. Mouse · Knight).
   - Two or more pass → the strongest topic's animal in the second-strongest topic's job (e.g. Octopus · Knight); a third or later topic doesn't change it. Ranking: strength, then more right answers, then the lower group number.
 - Results accumulate across runs, so later runs sharpen the result.
 
@@ -214,11 +214,11 @@ Never on the share card: right and missed answers, skills rated Used, and skills
 
 ## Mascots
 
-- The owner draws them by hand. Until then, ship placeholders.
+- The owner draws them by hand; all 83 are in.
 - Each persona has a one-line description under its name, on the card and in the report: the animal's trait plus the job's deed ("Juggles eight languages at once, one per tentacle, and stands guard over every release with a shield made of tests."), so each of the 81 topic combos reads differently. Fox and Chick have their own line. The lines live in `src/mascots.ts`.
 - Each job is one hat and one tool, so a combo is one topic's animal wearing another topic's hat and holding its tool. The page prints animal and job, so drawings carry no lettering.
-- Drawings: 512×512 transparent PNGs in `public/mascots/`, named `<animal topic>--<job topic>.png` (`testing--testing.png` for Rat · Knight, `language-runtime--testing.png` for Octopus · Knight), plus `wanderer.png` and `apprentice.png`. 9 own-job drawings plus Fox and Chick first, the 72 combos later.
-- `src/mascots.ts` lists the drawn files in `DRAWN`. A combo that isn't drawn shows the animal in its own job; one that isn't drawn either shows the placeholder `public/mascots/<topic id>.svg` (a coloured circle with the animal emoji).
+- Drawings: 512×512 white-background JPGs in `public/mascots/`, named `<animal topic>--<job topic>.jpg` (`testing--testing.jpg` for Mouse · Knight, `language-runtime--testing.jpg` for Octopus · Knight), plus `wanderer.jpg` and `apprentice.jpg`: all 81 combos plus Fox and Chick, about 40 KB each.
+- The backgrounds are white, so every mascot sits on a white rounded card on the off-white page.
 - No external placeholder services: cross-origin images break the PNG export.
 
 ## Build order

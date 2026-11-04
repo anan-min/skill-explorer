@@ -9,9 +9,9 @@ export function Home({ progress }: AppProps) {
   const rated = skills.filter(Boolean).length;
   return (
     <section className="space-y-8 pt-6 text-center">
-      <div className="mx-auto flex max-w-md flex-wrap justify-center">
+      <div className="mx-auto flex max-w-md flex-wrap justify-center gap-2">
         {MASCOT_IDS.map((id) => (
-          <img key={id} className="size-16" src={mascot(id).src} alt="" />
+          <img key={id} className="size-16 rounded-xl bg-white" src={mascot(id).src} alt="" />
         ))}
       </div>
       <h1 className="text-4xl font-semibold tracking-tight">Find the concepts you've missed</h1>
