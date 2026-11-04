@@ -1,3 +1,5 @@
+import type { Persona } from "./logic.ts";
+
 // `color` is the animal's own colour (the radar on the results card uses it).
 // Each topic has an animal and a job (a hat and a tool). A persona is one topic's animal
 // in another topic's job, drawn as public/mascots/<animal topic>--<job topic>.jpg
@@ -93,6 +95,19 @@ const SOLO = {
 export const MASCOT_IDS = [...Object.keys(TOPIC_MASCOTS), ...Object.keys(SOLO)];
 
 type TopicId = keyof typeof TOPIC_MASCOTS;
+const TOPICS = Object.keys(TOPIC_MASCOTS) as TopicId[];
+
+// Every mascot in the dex, numbered in this order: each animal in every job, then Fox and Chick.
+// `key` is what the collection stores; `animal` and `job` are topic ids (the job's own id for solos).
+export const DEX = [
+  ...TOPICS.flatMap((animal) => TOPICS.map((job) => ({ key: `${animal}--${job}`, animal, job }))),
+  ...(Object.keys(SOLO) as (keyof typeof SOLO)[]).map((id) => ({ key: id, animal: id, job: id })),
+];
+
+export function dexKey(p: Persona): string | null {
+  if (p.kind === "locked") return null;
+  return p.kind === "group" ? `${p.id}--${p.job}` : p.kind;
+}
 
 const file = (name: string) => `${import.meta.env.BASE_URL}mascots/${name}`;
 

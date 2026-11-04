@@ -197,6 +197,9 @@ export function claimsChecked(groups: GroupFile[], p: Progress) {
   return { checked: claimed.filter((s) => isChecked(s, p)).length, claimed: claimed.length };
 }
 
+// The dex page explains the persona rule with these.
+export { PASS_RATE, WANDERER_AT };
+
 export function persona(groups: GroupFile[], p: Progress): Persona {
   if (!groups.length || !groups.every((g) => scanned(g, p))) return { kind: "locked" };
   const rows = groups.map((g, order) => ({

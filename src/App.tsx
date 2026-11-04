@@ -3,9 +3,18 @@ import { Toaster } from "@/components/ui/sonner";
 import type { Progress } from "./logic.ts";
 import { Gaps, Skills } from "./pages/Details.tsx";
 import { Home } from "./pages/Home.tsx";
+import { Mascots } from "./pages/Mascots.tsx";
 import { Results } from "./pages/Results.tsx";
 import { Run } from "./pages/Run.tsx";
-import { loadProgress, loadSettings, saveProgress, saveSettings, type Settings } from "./store.ts";
+import {
+  loadCollection,
+  loadProgress,
+  loadSettings,
+  saveCollection,
+  saveProgress,
+  saveSettings,
+  type Settings,
+} from "./store.ts";
 
 function useHash() {
   const [hash, setHash] = useState(window.location.hash);
@@ -25,18 +34,22 @@ export type AppProps = {
   update: (fn: (p: Progress) => Progress) => void;
   settings: Settings;
   setSettings: (s: Settings) => void;
+  collection: string[];
+  setCollection: (keys: string[]) => void;
 };
 
 export function App() {
   const [progress, setProgress] = useState(loadProgress);
   const [settings, setSettingsState] = useState(loadSettings);
+  const [collection, setCollection] = useState(loadCollection);
   useEffect(() => saveProgress(progress), [progress]);
+  useEffect(() => saveCollection(collection), [collection]);
 
   const setSettings = (s: Settings) => {
     setSettingsState(s);
     saveSettings(s);
   };
-  const props: AppProps = { progress, update: setProgress, settings, setSettings };
+  const props: AppProps = { progress, update: setProgress, settings, setSettings, collection, setCollection };
   const [route] = useHash();
   const running = route === "scan" || route === "quiz";
 
@@ -46,11 +59,18 @@ export function App() {
         <a href="#/" className="text-lg font-semibold tracking-tight">
           Nerdscape
         </a>
-        {/* Hidden until a scan or quiz is finished, and mid-run: leaving drops the run's queue. */}
-        {progress.finished && !running && (
-          <a href="#/results" className="text-sm underline-offset-4 hover:underline">
-            Your map
-          </a>
+        {/* Hidden mid-run: leaving drops the run's queue. "Your map" waits for a finished scan or quiz. */}
+        {!running && (
+          <nav className="flex gap-4 text-sm">
+            <a href="#/mascots" className="underline-offset-4 hover:underline">
+              Mascots
+            </a>
+            {progress.finished && (
+              <a href="#/results" className="underline-offset-4 hover:underline">
+                Your map
+              </a>
+            )}
+          </nav>
         )}
       </header>
       <main className="mx-auto max-w-3xl px-4 pb-16">
@@ -62,6 +82,8 @@ export function App() {
           <Gaps {...props} />
         ) : route === "skills" ? (
           <Skills {...props} />
+        ) : route === "mascots" ? (
+          <Mascots {...props} />
         ) : (
           <Home {...props} />
         )}

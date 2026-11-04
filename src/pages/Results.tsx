@@ -1,6 +1,6 @@
 import { toBlob } from "html-to-image";
 import { RotateCcw } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -18,7 +18,7 @@ import {
   strength,
   type Persona,
 } from "../logic.ts";
-import { mascot } from "../mascots.ts";
+import { DEX, dexKey, mascot } from "../mascots.ts";
 import { Radar } from "../Radar.tsx";
 import { percent } from "./Details.tsx";
 
@@ -37,11 +37,16 @@ function download(blob: Blob, name: string) {
   URL.revokeObjectURL(url);
 }
 
-export function Results({ progress, update }: AppProps) {
+export function Results({ progress, update, collection, setCollection }: AppProps) {
   const who = persona(GROUPS, progress);
   const { checked, claimed } = claimsChecked(GROUPS, progress);
   const m = personaMascot(who);
   const hero = useRef<HTMLDivElement>(null);
+  // Seeing a mascot on your map adds it to the dex.
+  const found = dexKey(who);
+  useEffect(() => {
+    if (found && !collection.includes(found)) setCollection([...collection, found]);
+  }, [found, collection, setCollection]);
 
   const card = async () => {
     const blob = await toBlob(hero.current!, { pixelRatio: 2 });
@@ -80,6 +85,7 @@ export function Results({ progress, update }: AppProps) {
   };
   const startOver = () => {
     if (!window.confirm("Clear every rating and answer in this browser and start over?")) return;
+    if (window.confirm("Also clear the mascots you've found? Cancel keeps them.")) setCollection([]);
     update(emptyProgress);
     window.location.hash = "#/";
   };
@@ -151,6 +157,9 @@ export function Results({ progress, update }: AppProps) {
             Start over
           </Button>
         </div>
+        <a href="#/mascots" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+          Mascot dex · {collection.length} of {DEX.length} found
+        </a>
       </section>
 
       <Separator />

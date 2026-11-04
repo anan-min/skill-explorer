@@ -3,6 +3,7 @@ import { LANG_LABELS } from "./schema.ts";
 
 const PROGRESS_KEY = "skill-explorer:progress";
 const SETTINGS_KEY = "skill-explorer:settings";
+const COLLECTION_KEY = "skill-explorer:collection";
 
 export type Settings = { lang: LangPref };
 const defaultSettings: Settings = { lang: "ts" };
@@ -45,3 +46,15 @@ export function loadSettings(): Settings {
 }
 
 export const saveSettings = (s: Settings) => write(SETTINGS_KEY, s);
+
+// Mascot dex keys (see `dexKey` in mascots.ts) this browser has met on its map.
+export function loadCollection(): string[] {
+  try {
+    const saved: unknown = JSON.parse(read(COLLECTION_KEY) ?? "[]");
+    return Array.isArray(saved) ? saved.filter((k): k is string => typeof k === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export const saveCollection = (keys: string[]) => write(COLLECTION_KEY, keys);
