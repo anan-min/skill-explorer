@@ -29,7 +29,7 @@ const QUIZ_CHECKS = 18;
 // A topic passes at this strength.
 const PASS_RATE = 0.6;
 // The Wanderer needs this many passing topics (capped at the number of topics).
-const WANDERER_AT = 9;
+const WANDERER_AT = 5;
 // A skill below this, or rated New or Heard, shows in the gap list.
 const GAP_BELOW = 0.5;
 // A skill's score starts from its rating, then each answered concept moves it.

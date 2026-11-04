@@ -231,6 +231,14 @@ describe("persona", () => {
     expect(persona([strong, weak], p)).toEqual({ kind: "wanderer" });
   });
 
+  it("is the Wanderer from 5 strong topics out of 9, not 4", () => {
+    const nine = Array.from({ length: 9 }, (_, i) => group(`g${i}`, { s: [["s", "easy"]] }));
+    const strongIn = (k: number) =>
+      nine.reduce((p, g, i) => rate(p, g, skill(g, "s"), i < k ? "used" : "new"), emptyProgress());
+    expect(persona(nine, strongIn(5))).toEqual({ kind: "wanderer" });
+    expect(persona(nine, strongIn(4))).toEqual({ kind: "group", id: "g0", job: "g1" });
+  });
+
   it("with one strong topic, is that topic's animal in its own job", () => {
     const p = rate(rate(emptyProgress(), strong, skill(strong, "s"), "used"), weak, skill(weak, "w"), "new");
     expect(persona([strong, weak], p)).toEqual({ kind: "group", id: "strong", job: "strong" });
