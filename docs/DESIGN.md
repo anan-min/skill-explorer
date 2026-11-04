@@ -209,7 +209,7 @@ Never on the share card: right and missed answers, skills rated Used or higher, 
 ## Sharing
 
 - The hero exports as a PNG card (persona, mascot and radar, **no numbers**) via `html-to-image`.
-- Sharing is the page's main action, so its buttons come first, right under the card, each with an icon: **Share your nerd** (`navigator.share` with the file, where supported; the filled button) and **Save image** (downloads the PNG; filled when Share isn't available). No Copy image: the phone share sheet already saves or copies, and two buttons read clearer.
+- Sharing is the page's main action, so its buttons come first, right under the card, each with an icon: **Share your nerd** (`navigator.share` with the file, where supported; the filled button) and **Save your nerd** (downloads the PNG; filled when Share isn't available). No Copy image: the phone share sheet already saves or copies, and two buttons read clearer.
 - A second row: **Take the quiz →** / **Quiz again →** (outline) and **Start over** (ghost): after a confirm, clears all progress in this browser (the language choice stays) and goes to Home. A second confirm asks whether to clear the nerd dex too; Cancel keeps it.
 - No share links: a per-user Slack/OG preview would need a backend.
 - If `html-to-image` renders badly, switch to drawing the card by hand on `<canvas>`.
