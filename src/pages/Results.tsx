@@ -1,5 +1,5 @@
 import { toBlob } from "html-to-image";
-import { Copy, ImageDown, RotateCcw, Share2 } from "lucide-react";
+import { ImageDown, RotateCcw, Share2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -55,15 +55,6 @@ export function Results({ progress, update, collection, setCollection }: AppProp
   };
   const canShare = typeof navigator.canShare === "function";
 
-  const copyImage = async () => {
-    try {
-      // Pass the promise straight in: Safari drops the user gesture across an await.
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": card() })]);
-      toast("Image copied");
-    } catch {
-      toast("Couldn't copy the image here; try Download");
-    }
-  };
   const share = async () => {
     try {
       await navigator.share({ files: [new File([await card()], "nerdscape.png", { type: "image/png" })] });
@@ -145,11 +136,10 @@ export function Results({ progress, update, collection, setCollection }: AppProp
               Share your nerd
             </Button>
           )}
-          <Button variant={canShare ? "outline" : "default"} onClick={copyImage}>
-            <Copy />
-            Copy image
-          </Button>
-          <Button variant="outline" onClick={async () => download(await card(), "nerdscape.png")}>
+          <Button
+            variant={canShare ? "outline" : "default"}
+            onClick={async () => download(await card(), "nerdscape.png")}
+          >
             <ImageDown />
             Save image
           </Button>
