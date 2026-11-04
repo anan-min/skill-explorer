@@ -141,7 +141,7 @@ export function Results({ progress, update, collection, setCollection }: AppProp
             onClick={async () => download(await card(), "nerdscape.png")}
           >
             <ImageDown />
-            Save image
+            Save your nerd
           </Button>
         </div>
         <div className="flex flex-wrap justify-center gap-2">
