@@ -164,6 +164,7 @@ Each skill gets a score from 0 to 1:
 | Wrong | −0.4 | −0.3 | −0.15 |
 
 3. **Clamp** to 0–1.
+4. **Cap** while a miss stands: missing an easy question caps the skill at **0.4** (Heard), a medium one at **0.55**, a hard one at **0.7** (Used). The lowest cap wins. So the bigger the claim, the further a miss drops it: Expert missing an easy question goes 1 → 0.4, Used goes 0.7 → 0.3 (the penalty alone already takes it under the cap). Answering that concept right later lifts the cap.
 
 Missing an easy question says the most, missing a hard one little, and only right answers lift a skill above 0.7, so claiming everything doesn't pay. A topic's **strength** is the average of its rated skills. The numbers are constants in `src/logic.ts`.
 

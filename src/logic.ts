@@ -42,6 +42,9 @@ export const DELTA: Record<Level, { right: number; wrong: number }> = {
   medium: { right: 0.15, wrong: -0.3 },
   hard: { right: 0.2, wrong: -0.15 },
 };
+// While a miss stands, the skill can't score above what it showed: missing an easy question
+// means Heard at most, so the bigger the claim, the further it falls.
+export const CAP: Record<Level, number> = { easy: START.heard, medium: 0.55, hard: START.used };
 const LEVELS: Level[] = ["easy", "medium", "hard"];
 
 export const emptyProgress = (): Progress => ({ schemaVersion: 2, skills: {}, answers: {} });
@@ -182,7 +185,8 @@ export function skillScore(g: GroupFile, s: Skill, p: Progress): number | null {
     const result = resultOf(p, c);
     return result ? sum + DELTA[c.level][result] : sum;
   }, START[rating]);
-  return Math.min(1, Math.max(0, moved));
+  const cap = Math.min(1, ...s.concepts.filter((c) => resultOf(p, c) === "wrong").map((c) => CAP[c.level]));
+  return Math.min(cap, Math.max(0, moved));
 }
 
 export const isChecked = (s: Skill, p: Progress) => s.concepts.some((c) => resultOf(p, c) !== null);

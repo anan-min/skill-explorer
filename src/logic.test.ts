@@ -122,6 +122,18 @@ describe("skillScore", () => {
     expect(skillScore(g, a, right(right(heard, find(g, "a-med")), find(g, "a-hard")))).toBeCloseTo(0.75);
   });
 
+  it("caps a skill while a miss stands, so a bigger claim falls further", () => {
+    const expert = rate(emptyProgress(), g, a, "expert");
+    expect(skillScore(g, a, wrong(expert, find(g, "a-easy")))).toBeCloseTo(0.4);
+    expect(skillScore(g, a, wrong(expert, find(g, "a-med")))).toBeCloseTo(0.55);
+    expect(skillScore(g, a, wrong(expert, find(g, "a-hard")))).toBeCloseTo(0.7);
+    // Right answers elsewhere don't lift it past the cap; the lowest cap wins.
+    expect(skillScore(g, a, right(wrong(expert, find(g, "a-easy")), find(g, "a-hard")))).toBeCloseTo(0.4);
+    expect(skillScore(g, a, wrong(wrong(expert, find(g, "a-hard")), find(g, "a-easy")))).toBeCloseTo(0.4);
+    // Answering the missed concept right lifts the cap.
+    expect(skillScore(g, a, right(wrong(expert, find(g, "a-easy")), find(g, "a-easy")))).toBe(1);
+  });
+
   it("counts only the latest answer per concept, and clamps to 0–1", () => {
     const used = rate(emptyProgress(), g, a, "used");
     expect(skillScore(g, a, right(wrong(used, find(g, "a-easy")), find(g, "a-easy")))).toBeCloseTo(0.8);
