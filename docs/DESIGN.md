@@ -210,7 +210,7 @@ Below the gaps, never on the share card: right and missed answers, skills rated 
 ## Mascots
 
 - The owner draws them by hand. Until then, ship placeholders.
-- Each persona has a one-line description under its name, on the card and in the report: the animal's trait plus the job's deed ("Juggles eight languages at once and guards every release with tests."), so each of the 81 topic combos reads differently. Fox and Chick have their own line. The lines live in `src/mascots.ts`.
+- Each persona has a one-line description under its name, on the card and in the report: the animal's trait plus the job's deed ("Juggles eight languages at once, one per tentacle, and stands guard over every release with a shield made of tests."), so each of the 81 topic combos reads differently. Fox and Chick have their own line. The lines live in `src/mascots.ts`.
 - Each job is one hat and one tool, so a combo is one topic's animal wearing another topic's hat and holding its tool. The page prints animal and job, so drawings carry no lettering.
 - Drawings: 512×512 transparent PNGs in `public/mascots/`, named `<animal topic>--<job topic>.png` (`testing--testing.png` for Rat · Knight, `language-runtime--testing.png` for Octopus · Knight), plus `wanderer.png` and `apprentice.png`. 9 own-job drawings plus Fox and Chick first, the 72 combos later.
 - `src/mascots.ts` lists the drawn files in `DRAWN`. A combo that isn't drawn shows the animal in its own job; one that isn't drawn either shows the placeholder `public/mascots/<topic id>.svg` (a coloured circle with the animal emoji).
